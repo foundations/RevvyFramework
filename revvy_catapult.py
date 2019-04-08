@@ -11,8 +11,8 @@ import time
 
 pids = {
     'pos': {
-        'good': [1.5, 0.02, 0, -10, 100],
-        'bad':  [0.9, 0.05, 0, -100, 100]
+        'good': [1.5, 0.02, 0, -80, 20],
+        'bad':  [0.9, 0.05, 0, -80, 20]
     },
     'speed': {
         'good': [5, 0.25, 0, -90, 90],
@@ -53,11 +53,7 @@ class CatAppPult(RevvyApp):
         # analóg gomb szintén kilövőnek
         self._shooterButton  = self.sensorPortMap[1]
         self._ultrasoundSensor  = self.sensorPortMap[2]
-        
-        self._currentArmPosition = 0
-        self._minArmPosition = 0
-        self._maxArmPosition = 200
-        
+                
         self._ledMode = 0
         
         shooterButtonHandler = EdgeTrigger()
@@ -91,7 +87,7 @@ class CatAppPult(RevvyApp):
     def init(self):
         status = True
 
-        status = status and self.configureMotor(self._armMotor, "good", "position")
+        status = status and self.configureMotor(self._armMotor, "good", "openLoop")
         status = status and self.configureMotor(self._motorFL, "good", "speed")
         status = status and self.configureMotor(self._motorFR, "good", "speed")
         status = status and self.configureMotor(self._motorRL, "good", "speed")
@@ -99,16 +95,12 @@ class CatAppPult(RevvyApp):
         
         status = status and self._myrobot.sensor_set_type(self._shooterButton, self._sensor_types["ABUTTON"])
         status = status and self._myrobot.sensor_set_type(self._ultrasoundSensor, self._sensor_types["HC_SR05"])
-        
-        if status == True:
-            self.retract()
-        
+                
         return status
 
     def run(self):
         buttonValue = self._myrobot.sensor_get_value(self._shooterButton)
         if (len(buttonValue) > 0):
-            self._indicationButtonHandler.handle(buttonValue[0])
             self._analogShooterButtonHandler.handle(buttonValue[0])
             
         usValue = self._myrobot.sensor_get_value(self._ultrasoundSensor)
@@ -126,18 +118,11 @@ class CatAppPult(RevvyApp):
     def shootAndRetract(self):
         print("FIRE!!")
         self.shoot()
-        time.sleep(2)
-        self.retract()
         
     def shoot(self):
-        newPos = self._maxArmPosition
-        self._myrobot.motor_set_state(self._armMotor, newPos)
-        self._currentArmPosition = newPos
-
-    def retract(self):
-        newPos = 0
-        self._myrobot.motor_set_state(self._armMotor, newPos)
-        self._currentArmPosition = newPos
+        self._myrobot.motor_set_state(self._armMotor, -60)
+        time.sleep(0.05)
+        self._myrobot.motor_set_state(self._armMotor, 0)
         
     def configureMotor(self, motor, motorType, controlType):
         motorTypeMap = {
