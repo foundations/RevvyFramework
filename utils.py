@@ -95,8 +95,8 @@ def map_values(x, minx, maxx, miny, maxy):
 def differentialControl(r, angle):
     angle = map_values(clip(angle, 0, 180), 0, 180, -math.pi, +math.pi)
     
-    v = r * math.cos(angle + math.pi/2) / 100
-    w = r * math.sin(angle + math.pi/2) / 100
+    v = 0.4 * r * math.cos(angle + math.pi/2) / 100
+    w = 0.4 * r * math.sin(angle + math.pi/2) / 100
     
     sr = +(v - w)
     sl = -(v + w)
