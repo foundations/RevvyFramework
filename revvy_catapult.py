@@ -39,16 +39,16 @@ class CatAppPult(RevvyApp):
     def __init__(self):
         super().__init__()
         
-        self._motorFL = self.motorPortMap[1]
-        self._motorFR = self.motorPortMap[6]
-        self._motorRL = self.motorPortMap[2]
-        self._motorRR = self.motorPortMap[5]
+        self._motorFL = self.motorPortMap[5]
+        self._motorFR = self.motorPortMap[3]
+        self._motorRL = self.motorPortMap[6]
+        self._motorRR = self.motorPortMap[2]
         
         self._maxVl = motorSpeeds['good']
         self._maxVr = motorSpeeds['good']
         
         # 1 gomb, ami labdát adagol pos ctrl motorral
-        self._armMotor = self.motorPortMap[4]
+        self._armMotor = self.motorPortMap[1]
         
         # analóg gomb szintén kilövőnek
         self._shooterButton  = self.sensorPortMap[1]
@@ -113,7 +113,7 @@ class CatAppPult(RevvyApp):
                 self._ledMode = 1
                 self.switchToColorWheel()
             else:
-                pass        
+                pass
 
     def shootAndRetract(self):
         print("FIRE!!")
