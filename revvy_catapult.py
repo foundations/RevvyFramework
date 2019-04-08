@@ -41,10 +41,10 @@ class CatAppPult(RevvyApp):
     def __init__(self):
         super().__init__()
         
-        self._motorFL = None
-        self._motorFR = None
-        self._motorRL = None
-        self._motorRR = None
+        self._motorFL = self.motorPortMap[1]
+        self._motorFR = self.motorPortMap[6]
+        self._motorRL = self.motorPortMap[2]
+        self._motorRR = self.motorPortMap[5]
         
         # 1 gomb, ami labdát adagol pos ctrl motorral
         self._armMotor = self.motorPortMap[4]
@@ -57,12 +57,8 @@ class CatAppPult(RevvyApp):
         self._maxArmPosition = 200
         
         shooterButtonHandler = EdgeTrigger()
-        shooterButtonHandler.onRisingEdge(self.shoot)
+        shooterButtonHandler.onRisingEdge(self.shootAndRetract)
         self._buttons[0] = shooterButtonHandler
-        
-        retractButtonHandler = EdgeTrigger()
-        retractButtonHandler.onRisingEdge(self.retract)
-        self._buttons[1] = retractButtonHandler
         
         self._analogShooterButtonHandler = EdgeTrigger()
         self._analogShooterButtonHandler.onRisingEdge(self.shootAndRetract)
@@ -71,6 +67,10 @@ class CatAppPult(RevvyApp):
         status = True
 
         status = status and self.configureMotor(self._armMotor, "good", "position")
+        status = status and self.configureMotor(self._motorFL, "good", "speed")
+        status = status and self.configureMotor(self._motorFR, "good", "speed")
+        status = status and self.configureMotor(self._motorRL, "good", "speed")
+        status = status and self.configureMotor(self._motorRR, "good", "speed")
         
         if status == True:
             self.retract()
@@ -83,6 +83,7 @@ class CatAppPult(RevvyApp):
             self._analogShooterButtonHandler.handle(buttonValue[0])
 
     def shootAndRetract(self):
+        print("FIRE!!")
         self.shoot()
         time.sleep(2)
         self.retract()
@@ -124,8 +125,10 @@ class CatAppPult(RevvyApp):
     def handleSpeedControl(self, vecLen, vecAngle):
         (sl, sr) = differentialControl(vecLen, vecAngle)
         
-        #self._myrobot.motor_set_state(self._leftDriveMotor,  int(sl * self._maxVl))
-        #self._myrobot.motor_set_state(self._rightDriveMotor, int(sr * self._maxVr))
+        self._myrobot.motor_set_state(self._motorFL, int(sl * self._maxVl))
+        self._myrobot.motor_set_state(self._motorRL, int(sl * self._maxVl))
+        self._myrobot.motor_set_state(self._motorFR, int(sr * self._maxVr))
+        self._myrobot.motor_set_state(self._motorRR, int(sr * self._maxVr))
     
 app = CatAppPult()
 def main():
