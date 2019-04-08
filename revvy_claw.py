@@ -80,6 +80,8 @@ class ClawApp(RevvyApp):
         status = status and self.configureMotor(self._motorL, "good", "speed")
         status = status and self.configureMotor(self._motorR, "good", "speed")
         
+        self._myrobot.ring_led_set_scenario(6)
+        
         return status
         
     def run(self):
