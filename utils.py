@@ -6,6 +6,7 @@ from threading import Lock, Event
 from threading import Thread
 from ble_uart import *
 import sys
+import struct
 
 def emptyCallback():
     pass
@@ -186,6 +187,14 @@ class RevvyApp:
 
         _myrobot = None
         
+    def setMotorPid(self, motor, pid):
+        if pid == None:
+            return True
+        else:
+            (p, i, d, ll, ul) = pid
+            pidConfig = bytearray(struct.pack(">" + 5 * "f", p, i, d, ll, ul))
+            return self._myrobot.motor_set_config(motor, pidConfig)
+        
     def handleButton(self, data):
         for i in range(6):
             self._buttons[i].handle(buttonValue(data, i))
@@ -228,6 +237,8 @@ class RevvyApp:
 
                     if (self._stop == False):
                         self.run()
+            except Exception as e:
+                print("Oops! {}".format(e))
             finally:
                 self.deinitBrain()
 

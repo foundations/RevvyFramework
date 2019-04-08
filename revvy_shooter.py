@@ -6,9 +6,6 @@
 # sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3))
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
 
-import math
-import struct
-
 from utils import *
 
 pids = {
@@ -124,7 +121,7 @@ class ShooterApp(RevvyApp):
         if self._currentArmPosition > self._minArmPosition:
             self._currentArmPosition = self._currentArmPosition - 3
             self._myrobot.motor_set_state(self._armRaiseMotor, self._currentArmPosition)
-
+        
     def configureMotor(self, motor, motorType, controlType):
         motorTypeMap = {
             'speed':    "MOTOR_SPEED_CONTROLLED",
@@ -139,13 +136,8 @@ class ShooterApp(RevvyApp):
         }
         
         status = self._myrobot.motor_set_type(motor, self._motor_types[motorTypeMap[controlType]])
-        
-        if controlTypeMap[controlType] != None:
-            (p, i, d, ll, ul) = controlTypeMap[controlType][motorType]
-            pidConfig = bytearray(struct.pack(">" + 5 * "f", p, i, d, ll, ul))
-            status = status and self._myrobot.motor_set_config(motor, pidConfig)
-            
         status = status and self._myrobot.motor_set_state(motor, 0)
+        status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
         
         return status
 
