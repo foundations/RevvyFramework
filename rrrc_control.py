@@ -296,6 +296,26 @@ class rrrc_control(object):
             val = self.bus.rrrc_write(rrrc_transport.RRRC_I2C_CMD_MOTOR_SET_STEPS, rq)
             return val
         return 0
+        
+    def _userframe_add(self, idx, frame):
+        if len(frame) != 12*3:
+            raise Exception("Incorrect frame length: {} instead of 12".format(len(frame)))
+        rq = bytearray(1)
+        rq[0] = idx
+        rq += bytearray(frame)
+        self.bus.rrrc_write(rrrc_transport.RRRC_I2C_CMD_INDICATION_SET_RING_USER_FRAME, rq)
+    
+    def ring_led_show_user_animation(self, frames):
+        val = self.ring_led_set_scenario(1)
+        for i in len(frames):
+            self._userframe_add(i, frames[i])
+        return val
+    
+    def ring_led_show_user_frame(self, frame):
+        val = self.ring_led_set_scenario(1)
+        self._userframe_add(0, frame)
+        self._userframe_add(1, frame)
+        return val
     
     def ring_led_set_scenario(self, scenario):
         rq = bytearray(1)

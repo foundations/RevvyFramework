@@ -52,10 +52,13 @@ class CatAppPult(RevvyApp):
         
         # analóg gomb szintén kilövőnek
         self._shooterButton  = self.sensorPortMap[1]
+        self._ultrasoundSensor  = self.sensorPortMap[2]
         
         self._currentArmPosition = 0
         self._minArmPosition = 0
         self._maxArmPosition = 200
+        
+        self._ledMode = 0
         
         shooterButtonHandler = EdgeTrigger()
         shooterButtonHandler.onRisingEdge(self.shootAndRetract)
@@ -74,6 +77,17 @@ class CatAppPult(RevvyApp):
     def ledRingOff(self):
         self._myrobot.ring_led_set_scenario(0)
         
+    def showDistanceOnLeds(self, distance):
+        frame = []
+        distance = clip(distance, 0, 36) / 3
+        for i in range(12):
+            if i < distance:
+                frame += [0x10, 0, 0]
+            else:
+                frame += [0, 0, 0]
+            
+        self._myrobot.ring_led_show_user_frame(frame)
+        
     def init(self):
         status = True
 
@@ -84,6 +98,7 @@ class CatAppPult(RevvyApp):
         status = status and self.configureMotor(self._motorRR, "good", "speed")
         
         status = status and self._myrobot.sensor_set_type(self._shooterButton, self._sensor_types["ABUTTON"])
+        status = status and self._myrobot.sensor_set_type(self._ultrasoundSensor, self._sensor_types["HC_SR05"])
         
         if status == True:
             self.retract()
@@ -95,6 +110,18 @@ class CatAppPult(RevvyApp):
         if (len(buttonValue) > 0):
             self._indicationButtonHandler.handle(buttonValue[0])
             self._analogShooterButtonHandler.handle(buttonValue[0])
+            
+        usValue = self._myrobot.sensor_get_value(self._ultrasoundSensor)
+        if (len(usValue) > 0):
+            distance = usValue[0]
+            if (distance <= 36):
+                self._ledMode = 0
+                self.showDistanceOnLeds(distance)
+            elif self._ledMode == 0:
+                self._ledMode = 1
+                self.switchToColorWheel()
+            else:
+                pass        
 
     def shootAndRetract(self):
         print("FIRE!!")
