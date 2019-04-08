@@ -7,6 +7,7 @@
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
 
 from utils import *
+import time
 
 pids = {
     'pos': {
@@ -63,6 +64,16 @@ class CatAppPult(RevvyApp):
         self._analogShooterButtonHandler = EdgeTrigger()
         self._analogShooterButtonHandler.onRisingEdge(self.shootAndRetract)
         
+        self._indicationButtonHandler = EdgeTrigger()
+        self._indicationButtonHandler.onRisingEdge(self.switchToColorWheel)
+        self._indicationButtonHandler.onFallingEdge(self.ledRingOff)
+        
+    def switchToColorWheel(self):
+        self._myrobot.ring_led_set_scenario(6)
+        
+    def ledRingOff(self):
+        self._myrobot.ring_led_set_scenario(0)
+        
     def init(self):
         status = True
 
@@ -72,6 +83,8 @@ class CatAppPult(RevvyApp):
         status = status and self.configureMotor(self._motorRL, "good", "speed")
         status = status and self.configureMotor(self._motorRR, "good", "speed")
         
+        status = status and self._myrobot.sensor_set_type(self._shooterButton, self._sensor_types["ABUTTON"])
+        
         if status == True:
             self.retract()
         
@@ -80,6 +93,7 @@ class CatAppPult(RevvyApp):
     def run(self):
         buttonValue = self._myrobot.sensor_get_value(self._shooterButton)
         if (len(buttonValue) > 0):
+            self._indicationButtonHandler.handle(buttonValue[0])
             self._analogShooterButtonHandler.handle(buttonValue[0])
 
     def shootAndRetract(self):

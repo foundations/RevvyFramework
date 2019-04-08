@@ -296,7 +296,13 @@ class rrrc_control(object):
             val = self.bus.rrrc_write(rrrc_transport.RRRC_I2C_CMD_MOTOR_SET_STEPS, rq)
             return val
         return 0
-        
+    
+    def ring_led_set_scenario(self, scenario):
+        rq = bytearray(1)
+        rq[0] = scenario
+        val = self.bus.rrrc_write(rrrc_transport.RRRC_I2C_CMD_INDICATION_SET_RING_SCENARIO, rq)
+        return val
+    
     def indicator_set_led(self, led, r, g, b):
         rq = bytearray(4)
         rq[0] = led
