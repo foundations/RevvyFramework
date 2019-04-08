@@ -7,6 +7,7 @@ from threading import Thread
 from ble_uart import *
 import sys
 import struct
+import time
 
 def emptyCallback():
     pass
@@ -199,7 +200,7 @@ class RevvyApp:
         for i in range(6):
             self._buttons[i].handle(buttonValue(data, i))
 
-    def commandReceived(data):
+    def commandReceived(self, data):
         self.mutex.acquire()
         self.command = data[1:4]
         self.mutex.release()
@@ -231,9 +232,11 @@ class RevvyApp:
                             self.mutex.acquire()
                             data = self.command
                             self.mutex.release()
+                            print(repr(data))  # DEBUG
 
-                            self.handleSpeedControl(data[0], data[1])
-                            self.handleButton(data[2])
+                            if len(data) >= 3:
+                                self.handleSpeedControl(data[0], data[1])
+                                self.handleButton(data[2])
 
                     if (self._stop == False):
                         self.run()
@@ -276,10 +279,14 @@ def startRevvy(app):
     
     try:
         bleno.start()
-        print('Press Enter to stop')
+        print("Press enter to exit")
         input()
     except KeyboardInterrupt:
         pass
+    except EOFError:
+      # Running as a service will end up here as stdin is empty.
+      while True:
+          time.sleep(1)
     finally:
         app._stop = True
         app.event.set()

@@ -42,15 +42,15 @@ class ShooterApp(RevvyApp):
         self._leftDriveMotor  = self.motorPortMap[6]
         self._rightDriveMotor = self.motorPortMap[3]
         
-        self._maxVl = motorSpeeds['bad']
-        self._maxVr = motorSpeeds['bad']
+        self._maxVl = motorSpeeds['good']
+        self._maxVr = motorSpeeds['good']
         
         # 2 motor maxon kilövőnek, gombbal kapcsolva
-        self._shooterMotor1 = self.motorPortMap[2]
+        self._shooterMotor1 = self.motorPortMap[4]
         self._shooterMotor2 = self.motorPortMap[1]
         
         # 1 gomb, ami labdát adagol pos ctrl motorral
-        self._ballFeederMotor = self.motorPortMap[4]
+        self._ballFeederMotor = self.motorPortMap[2]
         
         # kilövő emelő (pos ctrl)
         self._armRaiseMotor = self.motorPortMap[5]
@@ -59,7 +59,7 @@ class ShooterApp(RevvyApp):
         self._shooterButton = self.sensorPortMap[1]
         
         self._currentShooterPosition = 0
-        self._shooterIncrement = -motorResolutions['bad'] / 4
+        self._shooterIncrement = -motorResolutions['good'] / 4
         
         self._currentArmPosition = 0
         self._minArmPosition = 0
@@ -88,11 +88,11 @@ class ShooterApp(RevvyApp):
     def init(self):
         status = True
         
-        status = status and self.configureMotor(self._leftDriveMotor,  "bad", "speed")
-        status = status and self.configureMotor(self._rightDriveMotor, "bad", "speed")
+        status = status and self.configureMotor(self._leftDriveMotor,  "good", "speed")
+        status = status and self.configureMotor(self._rightDriveMotor, "good", "speed")
         status = status and self.configureMotor(self._shooterMotor1,   "good", "openLoop")
         status = status and self.configureMotor(self._shooterMotor2,   "good", "openLoop")
-        status = status and self.configureMotor(self._ballFeederMotor, "bad",  "position")
+        status = status and self.configureMotor(self._ballFeederMotor, "good", "position")
         status = status and self.configureMotor(self._armRaiseMotor,   "good", "position")
         
         status = status and self._myrobot.sensor_set_type(self._shooterButton, self._sensor_types["ABUTTON"])
@@ -114,12 +114,12 @@ class ShooterApp(RevvyApp):
         
     def raiseArm(self):
         if self._currentArmPosition < self._maxArmPosition:
-            self._currentArmPosition = self._currentArmPosition + 3
+            self._currentArmPosition = self._currentArmPosition + 5
             self._myrobot.motor_set_state(self._armRaiseMotor, self._currentArmPosition)
         
     def lowerArm(self):
         if self._currentArmPosition > self._minArmPosition:
-            self._currentArmPosition = self._currentArmPosition - 3
+            self._currentArmPosition = self._currentArmPosition - 5
             self._myrobot.motor_set_state(self._armRaiseMotor, self._currentArmPosition)
         
     def configureMotor(self, motor, motorType, controlType):
@@ -137,7 +137,8 @@ class ShooterApp(RevvyApp):
         
         status = self._myrobot.motor_set_type(motor, self._motor_types[motorTypeMap[controlType]])
         status = status and self._myrobot.motor_set_state(motor, 0)
-        status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
+        if controlTypeMap[controlType] is not None:
+            status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
         
         return status
 
@@ -148,7 +149,7 @@ class ShooterApp(RevvyApp):
         self._myrobot.motor_set_state(self._rightDriveMotor, int(sr * self._maxVr))
             
     def feedBall(self):
-        newPos = self._currentShooterPosition + self._shooterIncrement
+        newPos = self._currentShooterPosition - self._shooterIncrement
         self._myrobot.motor_set_state(self._ballFeederMotor, int(newPos))
         self._currentShooterPosition = newPos
     

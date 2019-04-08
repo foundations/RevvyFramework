@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import pybleno
+import urllib.parse
+import json
 
 # constants
 HM_10_UART_SERIVCE = '0000FFE0-0000-1000-8000-00805F9B34FB'.replace("-", "")
@@ -19,10 +21,10 @@ class UartCharacteristic(pybleno.Characteristic):
         self._commandReceivedCallback = callback
         
     def onWriteRequest(self, data, offset, withoutResponse, callback):
-        print(repr(data))  # DEBUG
+        #print(repr(data))  # DEBUG
         head = data[0]
         if head == 0xff:
-            self._commandReceivedCallback(data[1:4])
+            self._commandReceivedCallback(data)
         elif head == 0xfe:
            self.readSyncedPacket(data[1:])
         else:

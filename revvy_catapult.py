@@ -79,9 +79,9 @@ class CatAppPult(RevvyApp):
         
     def showDistanceOnLeds(self, distance):
         frame = []
-        distance = clip(distance, 0, 36) / 3
+        distance = clip(distance - 3, 0, 33) / 3
         for i in range(12):
-            if i < distance:
+            if i >= distance:
                 frame += [0x10, 0, 0]
             else:
                 frame += [0, 0, 0]
@@ -154,7 +154,8 @@ class CatAppPult(RevvyApp):
         
         status = self._myrobot.motor_set_type(motor, self._motor_types[motorTypeMap[controlType]])
         status = status and self._myrobot.motor_set_state(motor, 0)
-        status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
+        if controlTypeMap[controlType] is not None:
+            status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
         
         return status
 

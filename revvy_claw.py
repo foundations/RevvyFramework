@@ -42,13 +42,16 @@ openClawPosition = 292
 class ClawApp(RevvyApp):
     def __init__(self):
         super().__init__()
+
+        self._motorL = self.motorPortMap[3]
+        self._motorR = self.motorPortMap[6]
         
-        self._motorL = None
-        self._motorR = None
+        self._maxVl = motorSpeeds['good']
+        self._maxVr = motorSpeeds['good']
         
         # 1 gomb, ami labdát adagol pos ctrl motorral
-        self._clawMotor = self.motorPortMap[1]
-        self._armMotor = self.motorPortMap[4]
+        self._clawMotor = self.motorPortMap[2]
+        self._armMotor = self.motorPortMap[5]
         
         self._armPosition = 0
         
@@ -72,8 +75,11 @@ class ClawApp(RevvyApp):
         status = True
 
         status = status and self.configureMotor(self._clawMotor, "good", "position")
-        status = status and self.configureMotor(self._armMotor,  "bad",  "position")
-         
+        status = status and self.configureMotor(self._armMotor,  "good", "position")
+                 
+        status = status and self.configureMotor(self._motorL, "good", "speed")
+        status = status and self.configureMotor(self._motorR, "good", "speed")
+        
         return status
         
     def run(self):
@@ -94,12 +100,10 @@ class ClawApp(RevvyApp):
         
         status = self._myrobot.motor_set_type(motor, self._motor_types[motorTypeMap[controlType]])
         
-        if controlTypeMap[controlType] != None:
-            (p, i, d, ll, ul) = controlTypeMap[controlType][motorType]
-            pidConfig = bytearray(struct.pack(">" + 5 * "f", p, i, d, ll, ul))
-            status = status and self._myrobot.motor_set_config(motor, pidConfig)
-            
+        status = self._myrobot.motor_set_type(motor, self._motor_types[motorTypeMap[controlType]])
         status = status and self._myrobot.motor_set_state(motor, 0)
+        if controlTypeMap[controlType] is not None:
+            status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
         
         return status
     
@@ -126,8 +130,8 @@ class ClawApp(RevvyApp):
     def handleSpeedControl(self, vecLen, vecAngle):
         (sl, sr) = differentialControl(vecLen, vecAngle)
         
-        #self._myrobot.motor_set_state(self._leftDriveMotor,  int(sl * self._maxVl))
-        #self._myrobot.motor_set_state(self._rightDriveMotor, int(sr * self._maxVr))
+        self._myrobot.motor_set_state(self._motorL, int(sl * self._maxVl))
+        self._myrobot.motor_set_state(self._motorR, int(sr * self._maxVr))
 
 def main():
     startRevvy(ClawApp())
