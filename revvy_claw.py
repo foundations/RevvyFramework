@@ -126,7 +126,7 @@ class ClawApp(RevvyApp):
     
     def armUp(self):
         print("Up")
-        self._myrobot.motor_set_state(self._armMotor, 700)
+        self._myrobot.motor_set_state(self._armMotor, 1200)
     
     def armDown(self):
         print("Down")
