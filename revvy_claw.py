@@ -109,7 +109,7 @@ class ClawApp(RevvyApp):
             'openLoop': None
         }
                 
-        status = self._myrobot.motor_set_type(motor, self._motor_types[motorTypeMap[controlType]])
+        status = self._myrobot.motor_set_type(motor, self._myrobot.motors[motorTypeMap[controlType]])
         status = status and self._myrobot.motor_set_state(motor, 0)
         if controlTypeMap[controlType] is not None:
             status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])

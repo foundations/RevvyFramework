@@ -17,7 +17,7 @@ class rrrc_control(object):
         self.motor_ports = self.motors_get_amount()
         
         self.sensors = self.sensor_get_avalible_types()
-        self.morots = self.motor_get_avalible_types()
+        self.motors = self.motor_get_avalible_types()
 
     def sensors_get_amount(self):
         """
@@ -67,7 +67,7 @@ class rrrc_control(object):
                 idx += 1
                 sz = data[idx]
                 idx += 1
-                name = data[idx:(idx+sz)].decode("utf-8")
+                name = data[idx:(idx+sz)].decode("ascii")
                 idx += sz
                 val[name] = type_id
         
@@ -91,7 +91,7 @@ class rrrc_control(object):
                 idx += 1
                 sz = data[idx]
                 idx += 1
-                name = data[idx:(idx+sz)].decode("utf-8")
+                name = data[idx:(idx+sz)].decode("ascii")
                 idx += sz
                 val[name] = key
         
@@ -131,7 +131,7 @@ class rrrc_control(object):
         data = self.bus.rrrc_read(rrrc_transport.RRRC_I2C_CMD_SENSOR_GET_TYPE, rq)        
         sens_type = 0 #non set
         if len(data)>0:
-            sens_type = data[0]        
+            sens_type = data[0]
         return sens_type
     
     def sensor_get_value(self, port):
@@ -197,7 +197,7 @@ class rrrc_control(object):
             mot_type = data[0]
         return mot_type
     
-    def motor_get_counter(self, port):
+    def motor_get_position(self, port):
         """
         Read motor steps amount for port
 
@@ -209,22 +209,12 @@ class rrrc_control(object):
             raise ValueError("Wrong port number. Must be from 0 to  %d " % (self.motor_ports-1))
         rq = bytearray(1)
         rq[0] = port
-        data = self.bus.rrrc_read(rrrc_transport.RRRC_I2C_CMD_MOTOR_GET_COUNT, rq)      
-        sz = len(data)/4
-        idx = 0
-        #mot_val = 0
-        #if sz != 0:
-        #    mot_val = (data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3]
-            
-        sz = len(data)/4
-        idx = 0
-        mot_val = list()
-        #print(hex(sens_val))
-        if sz > 0:
-            for idx in range(sz):
-                val = (data[4*idx]<<24)+(data[4*idx+1]<<16)+(data[4*idx+2]<<8)+data[4*idx+3]
-                #print("sensor_get_value p%d [%d] = %s" % (port, idx, hex(val)))
-                mot_val.append(val)    
+        data = self.bus.rrrc_read(rrrc_transport.RRRC_I2C_CMD_MOTOR_GET_POSITION, rq)
+        
+        mot_val = 0
+        if len(data) == 4:
+            mot_val = (data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3]
+         
         return mot_val
     
     def motor_set_state(self, port, state):
@@ -257,21 +247,6 @@ class rrrc_control(object):
             
         val = self.bus.rrrc_write(rrrc_transport.RRRC_I2C_CMD_MOTOR_SET_STATE, rq)
         return val
-    
-    def motor_get_position(self, port):
-        """
-        Read motor current state for port
-
-        :param port as int
-        :return:  byte
-        :rtype: int
-        """
-        if port >= self.motor_ports:
-            raise ValueError("Wrong port number. Must be from 0 to  %d " % (self.motor_ports-1))
-        rq = bytearray(1)
-        rq[0] = port
-        data = self.bus.rrrc_read(rrrc_transport.RRRC_I2C_CMD_MOTOR_GET_POSITION, rq)
-        return data
     
     def motor_set_config(self, port, config):
         """
@@ -331,3 +306,7 @@ class rrrc_control(object):
         rq[3] = b
         val = self.bus.rrrc_write(rrrc_transport.RRRC_I2C_CMD_INDICATION_SET_STATUS_LEDS, rq)
         return val
+        
+    def echo(self, text):
+        self.bus.rrrc_write(rrrc_transport.RRRC_I2C_CMD_ECHO_WR, text.encode("utf-8"))
+        return self.bus.rrrc_read(rrrc_transport.RRRC_I2C_CMD_ECHO_RD).decode("utf-8")

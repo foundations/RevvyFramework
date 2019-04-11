@@ -95,14 +95,15 @@ class ShooterApp(RevvyApp):
         status = status and self.configureMotor(self._ballFeederMotor, "good", "position")
         status = status and self.configureMotor(self._armRaiseMotor,   "good", "position")
         
-        status = status and self._myrobot.sensor_set_type(self._shooterButton, self._sensor_types["ABUTTON"])
+        status = status and self._myrobot.sensor_set_type(self._shooterButton, self._myrobot.sensors["ABUTTON"])
         
         return status
 
     def run(self):
-        buttonValue = self._myrobot.sensor_get_value(self._shooterButton)
-        if (len(buttonValue) > 0):
-            self._analogShooterButtonHandler.handle(buttonValue[0])
+        #buttonValue = self._myrobot.sensor_get_value(self._shooterButton)
+        #if (len(buttonValue) > 0):
+        #    self._analogShooterButtonHandler.handle(buttonValue[0])
+        pass
 
     def disableShooter(self):        
         self._myrobot.motor_set_state(self._shooterMotor1, 0)
@@ -135,7 +136,7 @@ class ShooterApp(RevvyApp):
             'openLoop': None
         }
         
-        status = self._myrobot.motor_set_type(motor, self._motor_types[motorTypeMap[controlType]])
+        status = self._myrobot.motor_set_type(motor, self._myrobot.motors[motorTypeMap[controlType]])
         status = status and self._myrobot.motor_set_state(motor, 0)
         if controlTypeMap[controlType] is not None:
             status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])

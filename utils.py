@@ -160,11 +160,11 @@ class RevvyApp:
         try:
             self._myrobot = rrrc_control.rrrc_control()
             
-            self._sensor_types = self._myrobot.sensor_get_avalible_types()
-            self._motor_types  = self._myrobot.motor_get_avalible_types()
+            print(self._myrobot.sensors)
+            print(self._myrobot.motors)
             return True
         except Exception as e:
-            print("Prepare error: {}", e)
+            print("Prepare error: ", e)
             return False
     
     def indicatorRed(self):
@@ -181,10 +181,13 @@ class RevvyApp:
             self.indicatorRed()
             
             # robot deInit
-            for i in range(0, 6):
-                status = self._myrobot.motor_set_type(self.motorPortMap[i + 1], self._motor_types["MOTOR_NO_SET"])
-            for i in range(0, 4):
-                status = self._myrobot.sensor_set_type(self.sensorPortMap[i + 1], self._sensor_types["NO_SET"])
+            try:
+                for i in range(0, 6):
+                    status = self._myrobot.motor_set_type(self.motorPortMap[i + 1], self._myrobot.motors["MOTOR_NO_SET"])
+                for i in range(0, 4):
+                    status = self._myrobot.sensor_set_type(self.sensorPortMap[i + 1], self._myrobot.sensors["NO_SET"])
+            except:
+                pass
 
         _myrobot = None
         

@@ -93,19 +93,21 @@ class CatAppPult(RevvyApp):
         status = status and self.configureMotor(self._motorRL, "good", "speed")
         status = status and self.configureMotor(self._motorRR, "good", "speed")
         
-        status = status and self._myrobot.sensor_set_type(self._shooterButton, self._sensor_types["ABUTTON"])
-        status = status and self._myrobot.sensor_set_type(self._ultrasoundSensor, self._sensor_types["HC_SR05"])
+        status = status and self._myrobot.sensor_set_type(self._shooterButton, self._myrobot.sensors["ABUTTON"])
+        status = status and self._myrobot.sensor_set_type(self._ultrasoundSensor, self._myrobot.sensors["HC_SR05"])
                 
         return status
 
     def run(self):
         buttonValue = self._myrobot.sensor_get_value(self._shooterButton)
         if (len(buttonValue) > 0):
+            print("ab: {}".format(buttonValue[0]))
             self._analogShooterButtonHandler.handle(buttonValue[0])
             
         usValue = self._myrobot.sensor_get_value(self._ultrasoundSensor)
         if (len(usValue) > 0):
             distance = usValue[0]
+            print("dis: {}".format(distance))
             if (distance <= 36):
                 self._ledMode = 0
                 self.showDistanceOnLeds(distance)
@@ -137,7 +139,7 @@ class CatAppPult(RevvyApp):
             'openLoop': None
         }
         
-        status = self._myrobot.motor_set_type(motor, self._motor_types[motorTypeMap[controlType]])
+        status = self._myrobot.motor_set_type(motor, self._myrobot.motors[motorTypeMap[controlType]])
         status = status and self._myrobot.motor_set_state(motor, 0)
         if controlTypeMap[controlType] is not None:
             status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])

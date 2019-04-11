@@ -1,0 +1,3 @@
+git+https://github.com/vhermecz/pybleno.git@vhermecz-patch-1#egg=pybleno
+smbus2
+singleton-decorator
