@@ -274,30 +274,31 @@ class rrrc_transport(object):
             snd_size = 0
             if snd_data != None :
                 snd_size = len(snd_data)
-            request =  rrrc_trasaction_write_to(cmd, snd_size, snd_data)
-
-            write = i2c_msg.write(self.rrrc_addr, request.toByteArray())
-            read = i2c_msg.read(self.rrrc_addr, RRRC_I2C_TARNSACTION_MAX_DATA_SIZE)
+            request = rrrc_trasaction_write_to(cmd, snd_size, snd_data)
 
             with SMBusWrapper(1) as bus:
+                write = i2c_msg.write(self.rrrc_addr, request.toByteArray())
                 bus.i2c_rdwr(write)
-                #time.sleep(0.01)
-                bus.i2c_rdwr(read)
+                
+                readHeader = i2c_msg.read(self.rrrc_addr, 3)
+                bus.i2c_rdwr(readHeader)
+                
+                lst_rd = list(readHeader)
+                dataLength = lst_rd[1]
+                if dataLength > 0:
+                    readData = i2c_msg.read(self.rrrc_addr, dataLength)
+                    bus.i2c_rdwr(readData)
+                    lst_rd.extend(list(readData))
+                    
+                lst_wr = list(write)
+                response = rrrc_trasaction_read_from(lst_rd)
+
+                msg = response.rrrc_transaction
+                if msg.command != RRRC_I2C_CMD_STATUS_OK:
+                    ret = False
         except Exception as e:
             print("Transport: exception", e)
             ret = False
-        finally:
-            lst_wr = list(write)
-            #print("request: ")
-            #print(lst_wr)
-            lst_rd = list(read)
-            #print("response: ")
-            #print(lst_rd)
-            response = rrrc_trasaction_read_from(lst_rd)
-
-            msg = response.rrrc_transaction
-            if msg.command != RRRC_I2C_CMD_STATUS_OK:
-                ret = False
 
         self.bus_mutex.release()
         return ret
@@ -308,31 +309,31 @@ class rrrc_transport(object):
         try:
             request =  rrrc_trasaction_write_to(cmd, len(snd_data), snd_data)
 
-            write = i2c_msg.write(self.rrrc_addr, request.toByteArray())
-            read = i2c_msg.read(self.rrrc_addr, RRRC_I2C_TARNSACTION_MAX_DATA_SIZE)
-
             with SMBusWrapper(1) as bus:
+                write = i2c_msg.write(self.rrrc_addr, request.toByteArray())
                 bus.i2c_rdwr(write)
-                #time.sleep(0.01)
-                bus.i2c_rdwr(read)
+                
+                readHeader = i2c_msg.read(self.rrrc_addr, 3)
+                bus.i2c_rdwr(readHeader)
+                
+                lst_rd = list(readHeader)                
+                dataLength = lst_rd[1]
+                if dataLength > 0:
+                    readData = i2c_msg.read(self.rrrc_addr, dataLength)
+                    bus.i2c_rdwr(readData)
+                    lst_rd.extend(list(readData))
+
+                response = rrrc_trasaction_read_from(lst_rd)
+
+                msg = response.rrrc_transaction
+
+                rcv_data = bytearray(0)
+                if msg.command == cmd:
+                    if msg.data_size > RRRC_I2C_TARNSACTION_MAX_DATA_SIZE:
+                        msg.data_size = RRRC_I2C_TARNSACTION_MAX_DATA_SIZE
+                    rcv_data = bytearray(msg.data[0:(msg.data_size)])
         except:
             ret = False
-        finally:
-            lst_wr = list(write)
-            #print("request: ")
-            #print(lst_wr)
-            lst_rd = list(read)
-            #print("response: ")
-            #print(lst_rd)
-            response = rrrc_trasaction_read_from(lst_rd)
-
-            msg = response.rrrc_transaction
-
-            rcv_data = bytearray(0)
-            if msg.command == cmd:
-                if msg.data_size > RRRC_I2C_TARNSACTION_MAX_DATA_SIZE:
-                    msg.data_size = RRRC_I2C_TARNSACTION_MAX_DATA_SIZE
-                rcv_data = bytearray(msg.data[0:(msg.data_size)])
 
         self.bus_mutex.release()
         return  rcv_data
