@@ -191,7 +191,7 @@ class RevvyApp:
             return self._myrobot.motor_set_config(motor, pidConfig)
 
     def handleButton(self, data):
-        for i in len(self._buttons):
+        for i in range(len(self._buttons)):
             self._buttons[i].handle(data[i])
 
     def commandReceived(self, data):
@@ -232,6 +232,7 @@ class RevvyApp:
 
                 while(self._stop == False):
                     if self.event.wait(0.1):
+                        print('Packet received')
                         if (self._stop == False):
                             self.event.clear()
                             self.mutex.acquire()
@@ -250,18 +251,21 @@ class RevvyApp:
                 self.deinitBrain()
 
     def _updateAnalog(self, channel, value):
+        print('Update analog {} -> {}'.format(channel, value))
         self.mutex.acquire()
         if channel < len(self._analogData):
             self._analogData[channel] = value
         self.mutex.release()
 
     def _updateButton(self, channel, value):
+        print('Update button {} -> {}'.format(channel, value))
         self.mutex.acquire()
         if channel < len(self._analogData):
             self._buttonData[channel] = value
         self.mutex.release()
 
     def register(self, revvy):
+        print('Registering callbacks')
         for i in range(10):
             revvy.registerAnalogHandler(i, lambda x: self._updateAnalog(i, x))
         for i in range(32):

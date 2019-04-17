@@ -139,6 +139,9 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
         self._keepAliveHandler = emptyFn
         self._buttonHandlers = [ emptyFn ] * 32
         self._analogHandlers = [ emptyFn ] * 10
+        
+        print('Created {} button handlers'.format(len(self._buttonHandlers)))
+        print('Created {} analog handlers'.format(len(self._analogHandlers)))
 
         super().__init__({
             'uuid': 'd2d5558c-5b9d-11e9-8647-d663bd873d93'.replace("-", ""),
@@ -152,10 +155,14 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
     def registerAnalogHandler(self, channelId, callback):
         if channelId < len(self._analogHandlers):
             self._analogHandlers[channelId] = callback
+        else:
+            print('Incorrect analog handler id {}'.format(channelId))
 
     def registerButtonHandler(self, channelId, callback):
         if channelId < len(self._buttonHandlers):
             self._buttonHandlers[channelId] = callback
+        else:
+            print('Incorrect button handler id {}'.format(channelId))
 
     def _fireKeepAliveHandler(self, counter):
         self._keepAliveHandler(counter)
@@ -169,6 +176,7 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
             self._analogHandlers[idx](state)
 
     def simpleControlCallback(self, data):
+        print(repr(data))
         counter         = data[0]
         analogValues    = data[1:11]
 
@@ -180,8 +188,11 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
 
         buttonValues = reduce(lambda x, y: x + y, map(expandByte, data[11:15]), [])
 
-        map(self._fireAnalogHandler, range(len(analogValues)), analogValues)
-        map(self._fireButtonHandler, range(len(buttonValues)), buttonValues)
+        for i in range(len(analogValues)):
+            self._fireAnalogHandler(i, analogValues[i])
+            
+        for i in range(len(buttonValues)):
+            self._fireButtonHandler(i, buttonValues[i])
 
         self._fireKeepAliveHandler(counter)
         return True
