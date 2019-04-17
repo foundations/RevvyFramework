@@ -143,7 +143,7 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
         super().__init__({
             'uuid': 'd2d5558c-5b9d-11e9-8647-d663bd873d93'.replace("-", ""),
             'characteristics': [
-                MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a5', 20, 20, 'simpleControl', self.simpleControlCallback),
+                MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, 'simpleControl', self.simpleControlCallback),
           ]})
 
     def registerKeepAliveHandler(self, callback):
