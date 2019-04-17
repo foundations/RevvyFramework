@@ -232,7 +232,7 @@ class RevvyApp:
 
                 while(self._stop == False):
                     if self.event.wait(0.1):
-                        print('Packet received')
+                        #print('Packet received')
                         if (self._stop == False):
                             self.event.clear()
                             self.mutex.acquire()
@@ -251,14 +251,12 @@ class RevvyApp:
                 self.deinitBrain()
 
     def _updateAnalog(self, channel, value):
-        print('Update analog {} -> {}'.format(channel, value))
         self.mutex.acquire()
         if channel < len(self._analogData):
             self._analogData[channel] = value
         self.mutex.release()
 
     def _updateButton(self, channel, value):
-        print('Update button {} -> {}'.format(channel, value))
         self.mutex.acquire()
         if channel < len(self._analogData):
             self._buttonData[channel] = value
@@ -267,9 +265,9 @@ class RevvyApp:
     def register(self, revvy):
         print('Registering callbacks')
         for i in range(10):
-            revvy.registerAnalogHandler(i, lambda x: self._updateAnalog(i, x))
+            revvy.registerAnalogHandler(i, functools.partial(self._updateAnalog, channel = i))
         for i in range(32):
-            revvy.registerButtonHandler(i, lambda x: self._updateButton(i, x))
+            revvy.registerButtonHandler(i, functools.partial(self._updateButton, channel = i))
         revvy.registerKeepAliveHandler(lambda x: self.event.set())
 
     def init(self):

@@ -169,14 +169,14 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
 
     def _fireButtonHandler(self, idx, state):
         if idx < len(self._buttonHandlers):
-            self._buttonHandlers[idx](state)
+            self._buttonHandlers[idx](value = state)
 
     def _fireAnalogHandler(self, idx, state):
         if idx < len(self._analogHandlers):
-            self._analogHandlers[idx](state)
+            self._analogHandlers[idx](value = state)
 
     def simpleControlCallback(self, data):
-        print(repr(data))
+        #print(repr(data))
         counter         = data[0]
         analogValues    = data[1:11]
 
