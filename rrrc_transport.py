@@ -333,10 +333,10 @@ class rrrc_transport(object):
                         msg.data_size = RRRC_I2C_TARNSACTION_MAX_DATA_SIZE
                     rcv_data = bytearray(msg.data[0:(msg.data_size)])
         except:
-            ret = False
+            rcv_data = []
 
         self.bus_mutex.release()
-        return  rcv_data
+        return rcv_data
 
     def connected(self):
         val = (self.bus.fd>0)
