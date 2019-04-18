@@ -235,6 +235,7 @@ class RevvyApp:
                     if self.event.wait(0.1):
                         #print('Packet received')
                         if (self._stop == False):
+                            self._onConnectionChanged(True)
                             self.event.clear()
                             self.mutex.acquire()
                             analogData = self._analogData
@@ -245,6 +246,7 @@ class RevvyApp:
                             self.handleButton(buttonData)
                     else:
                         if not self._checkKeepAlive():
+                            self._onConnectionChanged(False)
                             restart = True
 
                     if (self._stop == False):
@@ -278,8 +280,9 @@ class RevvyApp:
         self.mutex.release()
         
     def _onConnectionChanged(self, isConnected):
-        self._isConnected = isConnected
-        self._updateConnectionIndication()
+        if isConnected != self._isConnected:
+            self._isConnected = isConnected
+            self._updateConnectionIndication()
       
     def _updateConnectionIndication(self):
         if self._myrobot:
