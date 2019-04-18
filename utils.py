@@ -144,7 +144,8 @@ class RevvyApp:
         self._buttonData   = [ False ] * 32
         self._analogInputs = [ NullHandler() ] * 10
         self._analogData   = [ 128 ] * 10
-        self._stop = False
+        self._stop             = False
+        self._missedKeepAlives = 0
 
     def prepare(self):
         print("Prepare")
@@ -194,14 +195,8 @@ class RevvyApp:
         for i in range(len(self._buttons)):
             self._buttons[i].handle(data[i])
 
-    def commandReceived(self, data):
-        self.mutex.acquire()
-        self.command = data[1:4]
-        self.mutex.release()
-        self.event.set()
-
     def handle(self):
-        while(self._stop == False):
+        while not self._stop:
             try:
                 status = False
                 retries = 5
@@ -230,7 +225,10 @@ class RevvyApp:
                     print("Init ok")
                     self.indicatorGreen()
 
-                while(self._stop == False):
+                self._missedKeepAlives = -1
+
+                restart = False
+                while not self._stop and not restart:
                     if self.event.wait(0.1):
                         #print('Packet received')
                         if (self._stop == False):
@@ -242,6 +240,9 @@ class RevvyApp:
 
                             self.handleAnalogValues(analogData)
                             self.handleButton(buttonData)
+                    else:
+                        if not self._checkKeepAlive():
+                            restart = True
 
                     if (self._stop == False):
                         self.run()
@@ -249,6 +250,17 @@ class RevvyApp:
                 print("Oops! {}".format(e))
             finally:
                 self.deinitBrain()
+                
+    def _handleKeepAlive(self, x):
+        self._missedKeepAlives = 0
+        self.event.set()
+
+    def _checkKeepAlive(self):
+        if self._missedKeepAlives > 3:
+            return False
+        elif self._missedKeepAlives >= 0:
+            self._missedKeepAlives = self._missedKeepAlives + 1
+        return True
 
     def _updateAnalog(self, channel, value):
         self.mutex.acquire()
@@ -268,7 +280,7 @@ class RevvyApp:
             revvy.registerAnalogHandler(i, functools.partial(self._updateAnalog, channel = i))
         for i in range(32):
             revvy.registerButtonHandler(i, functools.partial(self._updateButton, channel = i))
-        revvy.registerKeepAliveHandler(lambda x: self.event.set())
+        revvy.registerKeepAliveHandler(self._handleKeepAlive)
 
     def init(self):
         pass
