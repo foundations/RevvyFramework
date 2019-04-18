@@ -231,7 +231,7 @@ class RevvyApp:
         return status
 
     def handle(self):
-        commMissing = False
+        commMissing = True
         while not self._stop:
             try:
                 restart = False
