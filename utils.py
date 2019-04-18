@@ -54,10 +54,10 @@ class ToggleButton:
         self._onEnabled = emptyCallback
         self._onDisabled = emptyCallback
         self._edgeDetector = EdgeTrigger()
-        self._edgeDetector.onRisingEdge(self.toggle)
+        self._edgeDetector.onRisingEdge(self._toggle)
         self._isEnabled = False
 
-    def toggle(self):
+    def _toggle(self):
         self._isEnabled = not self._isEnabled
         if self._isEnabled:
             self._onEnabled()
@@ -97,8 +97,8 @@ def differentialControl(r, angle):
     v = 0.4 * r * math.cos(angle + math.pi/2) / 100
     w = 0.4 * r * math.sin(angle + math.pi/2) / 100
 
-    sr = +(v - w)
-    sl = -(v + w)
+    sr = +(v + w)
+    sl = -(v - w)
     return (sl, sr)
 
 def max(a, b):
@@ -127,7 +127,19 @@ def getserial():
 
     return cpuserial
 
+def _retry(fn, retries = 5):        
+    status = False
+    retryNum = 1
+    while retryNum <= retries and not status:
+        status = fn()
+        retryNum = retryNum + 1
+        
+    return status
+
 class RevvyApp:
+
+    LED_RING_OFF         = 0
+    LED_RING_COLOR_WHEEL = 6
 
     _myrobot = None
     # index: logical number; value: physical number
@@ -160,18 +172,27 @@ class RevvyApp:
             print("Prepare error: ", e)
             return False
 
-    def indicatorRed(self):
-        if self._myrobot is not None:
+    def indicateStopped(self):
+        if self._myrobot:
             self._myrobot.indicator_set_led(3, 0x10, 0, 0)
+            
+    def indicateCommFailure(self):
+        if self._myrobot:
+            self._myrobot.indicator_set_led(3, 0x10, 0x05, 0)
 
-    def indicatorGreen(self):
-        if self._myrobot is not None:
+    def indicateWorking(self):
+        if self._myrobot:
             self._myrobot.indicator_set_led(3, 0, 0x10, 0)
+            
+    def setLedRingMode(self, mode):
+        if self._myrobot:
+            self._myrobot.ring_led_set_scenario(mode)
 
     def deinitBrain(self):
         print("deInit")
-        if self._myrobot is not None:
-            self.indicatorRed()
+        if self._myrobot:
+            self.indicateStopped()
+            self.setLedRingMode(self.LED_RING_OFF)
             self._myrobot.indicator_set_led(2, 0, 0, 0)
 
             # robot deInit
@@ -197,45 +218,38 @@ class RevvyApp:
         for i in range(len(self._buttons)):
             self._buttons[i].handle(data[i])
 
+    def _setupRobot(self):        
+        status = _retry(self.prepare)
+        if status:
+            self.indicateStopped()
+            status = _retry(self.init)
+            if not status:
+                print('Init failed')
+        else:
+            print('Prepare failed')
+        
+        return status
+
     def handle(self):
+        commMissing = False
         while not self._stop:
             try:
-                status = False
-                retries = 5
-                retryNum = 1
-                while retryNum <= retries and not status:
-                    print("Prepare {}".format(retryNum))
-                    status = self.prepare()
-                    if status:
-                        self.indicatorRed()
-                    else:
-                        print('Prepare failed')
-                    retryNum = retryNum + 1
-
-                status = False
-                retryNum = 1
-                while retryNum <= retries and not status:
-                    print("Init {}".format(retryNum))
-                    status = self.init()
-                    if not status:
-                        print('Init failed')
-                    retryNum = retryNum + 1
-
-                if not status:
-                    print("Init failed")
-                else:
-                    print("Init ok")
-                    self.indicatorGreen()
-
-                self._updateConnectionIndication()
-                self._missedKeepAlives = -1
-
                 restart = False
+                status = _retry(self._setupRobot)
+
+                if status:
+                    print("Init ok")
+                    self.indicateCommFailure()
+                    self._updateConnectionIndication()
+                    self._missedKeepAlives = -1
+                else:
+                    print("Init failed")
+                    restart = True
+
                 while not self._stop and not restart:
                     if self.event.wait(0.1):
                         #print('Packet received')
-                        if (self._stop == False):
-                            self._onConnectionChanged(True)
+                        if not self._stop:
                             self.event.clear()
                             self.mutex.acquire()
                             analogData = self._analogData
@@ -244,12 +258,17 @@ class RevvyApp:
 
                             self.handleAnalogValues(analogData)
                             self.handleButton(buttonData)
+                            if commMissing:
+                                self.indicateWorking()
+                                commMissing = False
                     else:
                         if not self._checkKeepAlive():
-                            self._onConnectionChanged(False)
+                            if not commMissing:
+                                self.indicateCommFailure()
+                                commMissing = True
                             restart = True
 
-                    if (self._stop == False):
+                    if not self._stop:
                         self.run()
             except Exception as e:
                 print("Oops! {}".format(e))
