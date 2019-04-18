@@ -146,6 +146,7 @@ class RevvyApp:
         self._analogData   = [ 128 ] * 10
         self._stop             = False
         self._missedKeepAlives = 0
+        self._isConnected      = False
 
     def prepare(self):
         print("Prepare")
@@ -171,6 +172,7 @@ class RevvyApp:
         print("deInit")
         if self._myrobot is not None:
             self.indicatorRed()
+            self._myrobot.indicator_set_led(2, 0, 0, 0)
 
             # robot deInit
             try:
@@ -225,6 +227,7 @@ class RevvyApp:
                     print("Init ok")
                     self.indicatorGreen()
 
+                self._updateConnectionIndication()
                 self._missedKeepAlives = -1
 
                 restart = False
@@ -273,6 +276,17 @@ class RevvyApp:
         if channel < len(self._analogData):
             self._buttonData[channel] = value
         self.mutex.release()
+        
+    def _onConnectionChanged(self, isConnected):
+        self._isConnected = isConnected
+        self._updateConnectionIndication()
+      
+    def _updateConnectionIndication(self):
+        if self._myrobot:
+            if self._isConnected:
+                self._myrobot.indicator_set_led(2, 0, 0x10, 0x10)
+            else:
+                self._myrobot.indicator_set_led(2, 0, 0, 0)
 
     def register(self, revvy):
         print('Registering callbacks')
@@ -281,6 +295,7 @@ class RevvyApp:
         for i in range(32):
             revvy.registerButtonHandler(i, functools.partial(self._updateButton, channel = i))
         revvy.registerKeepAliveHandler(self._handleKeepAlive)
+        revvy.registerConnectionChangedHandler(self._onConnectionChanged)
 
     def init(self):
         pass

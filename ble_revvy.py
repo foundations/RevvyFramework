@@ -353,8 +353,6 @@ class RevvyBLE:
         self._bleno = pybleno.Bleno()
         self._bleno.on('stateChange', self.onStateChange)
         self._bleno.on('advertisingStart', self.onAdvertisingStart)
-        self._bleno.on('accept', lambda x: print('on -> accept'))
-        self._bleno.on('disconnected', lambda x: print('on -> disconnected'))
 
     def onStateChange(self, state):
         print('on -> stateChange: ' + state);
@@ -373,6 +371,10 @@ class RevvyBLE:
                 print('setServices: %s' % ('error ' + str(error) if error else 'success'))
 
             self._bleno.setServices(self._services, on_setServiceError)
+            
+    def registerConnectionChangedHandler(self, callback):
+        self._bleno.on('accept',       lambda x: callback(True ))
+        self._bleno.on('disconnected', lambda x: callback(False))
 
     def start(self):
         self._bleno.start()
