@@ -10,13 +10,15 @@ import time
 from ble_revvy import *
 import functools
 
-def emptyCallback():
+
+def empty_callback():
     pass
+
 
 class EdgeTrigger:
     def __init__(self):
-        self._risingEdge = emptyCallback
-        self._fallingEdge = emptyCallback
+        self._risingEdge = empty_callback
+        self._fallingEdge = empty_callback
         self._previous = 0
 
     def onRisingEdge(self, l):
@@ -32,10 +34,11 @@ class EdgeTrigger:
             self._fallingEdge()
         self._previous = value
 
+
 class LevelTrigger:
     def __init__(self):
-        self._high = emptyCallback
-        self._low = emptyCallback
+        self._high = empty_callback
+        self._low = empty_callback
 
     def onHigh(self, l):
         self._high = l
@@ -49,10 +52,11 @@ class LevelTrigger:
         else:
             self._low()
 
+
 class ToggleButton:
     def __init__(self):
-        self._onEnabled = emptyCallback
-        self._onDisabled = emptyCallback
+        self._onEnabled = empty_callback
+        self._onDisabled = empty_callback
         self._edgeDetector = EdgeTrigger()
         self._edgeDetector.onRisingEdge(self._toggle)
         self._isEnabled = False
@@ -73,33 +77,41 @@ class ToggleButton:
     def handle(self, value):
         self._edgeDetector.handle(value)
 
+
 class NullHandler:
-    def handle(slef, value):
+    def handle(self, value):
         pass
 
+
 def buttonValue(buttons, pos):
-    if ((buttons & (1 << pos)) != 0):
+    if (buttons & (1 << pos)) != 0:
         return 1
     else:
         return 0
 
-def clip(x, min, max):
-    if (x < min): return min
-    if (x > max): return max
+
+def clip(x, min_x, max_x):
+    if x < min_x:
+        return min_x
+    if x > max_x:
+        return max_x
     return x
 
+
 def map_values(x, minx, maxx, miny, maxy):
-    inFs  = maxx - minx
+    inFs = maxx - minx
     outFs = maxy - miny
     return (x - minx) * (outFs / inFs) + miny
 
+
 def differentialControl(r, angle):
-    v = 0.4 * r * math.cos(angle + math.pi/2) / 100
-    w = 0.4 * r * math.sin(angle + math.pi/2) / 100
+    v = 0.4 * r * math.cos(angle + math.pi / 2) / 100
+    w = 0.4 * r * math.sin(angle + math.pi / 2) / 100
 
     sr = +(v + w)
     sl = -(v - w)
     return (sl, sr)
+
 
 def max(a, b):
     if a > b:
@@ -107,11 +119,13 @@ def max(a, b):
     else:
         return b
 
+
 def min(a, b):
     if a < b:
         return a
     else:
         return b
+
 
 def getserial():
     # Extract serial from cpuinfo file
@@ -127,18 +141,19 @@ def getserial():
 
     return cpuserial
 
-def _retry(fn, retries = 5):        
+
+def _retry(fn, retries=5):
     status = False
-    retryNum = 1
-    while retryNum <= retries and not status:
+    retry_num = 1
+    while retry_num <= retries and not status:
         status = fn()
-        retryNum = retryNum + 1
-        
+        retry_num = retry_num + 1
+
     return status
 
-class RevvyApp:
 
-    LED_RING_OFF         = 0
+class RevvyApp:
+    LED_RING_OFF = 0
     LED_RING_COLOR_WHEEL = 6
 
     _myrobot = None
@@ -147,18 +162,18 @@ class RevvyApp:
 
     # index: logical number; value: physical number
     sensorPortMap = [-1, 0, 1, 2, 3]
-    
+
     mutex = Lock()
     event = Event()
 
     def __init__(self):
-        self._buttons      = [ NullHandler() ] * 32
-        self._buttonData   = [ False ] * 32
-        self._analogInputs = [ NullHandler() ] * 10
-        self._analogData   = [ 128 ] * 10
-        self._stop             = False
+        self._buttons = [NullHandler()] * 32
+        self._buttonData = [False] * 32
+        self._analogInputs = [NullHandler()] * 10
+        self._analogData = [128] * 10
+        self._stop = False
         self._missedKeepAlives = 0
-        self._isConnected      = False
+        self._isConnected = False
 
     def prepare(self):
         print("Prepare")
@@ -175,7 +190,7 @@ class RevvyApp:
     def indicateStopped(self):
         if self._myrobot:
             self._myrobot.indicator_set_led(3, 0x10, 0, 0)
-            
+
     def indicateCommFailure(self):
         if self._myrobot:
             self._myrobot.indicator_set_led(3, 0x10, 0x05, 0)
@@ -183,7 +198,7 @@ class RevvyApp:
     def indicateWorking(self):
         if self._myrobot:
             self._myrobot.indicator_set_led(3, 0, 0x10, 0)
-            
+
     def setLedRingMode(self, mode):
         if self._myrobot:
             self._myrobot.ring_led_set_scenario(mode)
@@ -198,7 +213,8 @@ class RevvyApp:
             # robot deInit
             try:
                 for i in range(0, 6):
-                    status = self._myrobot.motor_set_type(self.motorPortMap[i + 1], self._myrobot.motors["MOTOR_NO_SET"])
+                    status = self._myrobot.motor_set_type(self.motorPortMap[i + 1],
+                                                          self._myrobot.motors["MOTOR_NO_SET"])
                 for i in range(0, 4):
                     status = self._myrobot.sensor_set_type(self.sensorPortMap[i + 1], self._myrobot.sensors["NO_SET"])
             except:
@@ -207,18 +223,18 @@ class RevvyApp:
         _myrobot = None
 
     def setMotorPid(self, motor, pid):
-        if pid == None:
+        if pid is None:
             return True
         else:
             (p, i, d, ll, ul) = pid
-            pidConfig = bytearray(struct.pack(">" + 5 * "f", p, i, d, ll, ul))
-            return self._myrobot.motor_set_config(motor, pidConfig)
+            pid_config = bytearray(struct.pack(">{}".format("f" * 5), p, i, d, ll, ul))
+            return self._myrobot.motor_set_config(motor, pid_config)
 
     def handleButton(self, data):
         for i in range(len(self._buttons)):
             self._buttons[i].handle(data[i])
 
-    def _setupRobot(self):        
+    def _setupRobot(self):
         status = _retry(self.prepare)
         if status:
             self.indicateStopped()
@@ -227,11 +243,11 @@ class RevvyApp:
                 print('Init failed')
         else:
             print('Prepare failed')
-        
+
         return status
 
     def handle(self):
-        commMissing = True
+        comm_missing = True
         while not self._stop:
             try:
                 restart = False
@@ -248,24 +264,24 @@ class RevvyApp:
 
                 while not self._stop and not restart:
                     if self.event.wait(0.1):
-                        #print('Packet received')
+                        # print('Packet received')
                         if not self._stop:
                             self.event.clear()
                             self.mutex.acquire()
-                            analogData = self._analogData
-                            buttonData = self._buttonData
+                            analog_data = self._analogData
+                            button_data = self._buttonData
                             self.mutex.release()
 
-                            self.handleAnalogValues(analogData)
-                            self.handleButton(buttonData)
-                            if commMissing:
+                            self.handleAnalogValues(analog_data)
+                            self.handleButton(button_data)
+                            if comm_missing:
                                 self.indicateWorking()
-                                commMissing = False
+                                comm_missing = False
                     else:
                         if not self._checkKeepAlive():
-                            if not commMissing:
+                            if not comm_missing:
                                 self.indicateCommFailure()
-                                commMissing = True
+                                comm_missing = True
                             restart = True
 
                     if not self._stop:
@@ -274,7 +290,10 @@ class RevvyApp:
                 print("Oops! {}".format(e))
             finally:
                 self.deinitBrain()
-                
+
+    def handleAnalogValues(self, analog_values):
+        pass
+
     def _handleKeepAlive(self, x):
         self._missedKeepAlives = 0
         self.event.set()
@@ -297,12 +316,12 @@ class RevvyApp:
         if channel < len(self._analogData):
             self._buttonData[channel] = value
         self.mutex.release()
-        
-    def _onConnectionChanged(self, isConnected):
-        if isConnected != self._isConnected:
-            self._isConnected = isConnected
+
+    def _onConnectionChanged(self, is_connected):
+        if is_connected != self._isConnected:
+            self._isConnected = is_connected
             self._updateConnectionIndication()
-      
+
     def _updateConnectionIndication(self):
         if self._myrobot:
             if self._isConnected:
@@ -313,9 +332,9 @@ class RevvyApp:
     def register(self, revvy):
         print('Registering callbacks')
         for i in range(10):
-            revvy.registerAnalogHandler(i, functools.partial(self._updateAnalog, channel = i))
+            revvy.registerAnalogHandler(i, functools.partial(self._updateAnalog, channel=i))
         for i in range(32):
-            revvy.registerButtonHandler(i, functools.partial(self._updateButton, channel = i))
+            revvy.registerButtonHandler(i, functools.partial(self._updateButton, channel=i))
         revvy.registerKeepAliveHandler(self._handleKeepAlive)
         revvy.registerConnectionChangedHandler(self._onConnectionChanged)
 
@@ -325,11 +344,12 @@ class RevvyApp:
     def run(self):
         pass
 
+
 def startRevvy(app):
     t1 = Thread(target=app.handle, args=())
     t1.start()
-    serviceName = "Revvy_%s" % getserial().lstrip('0')
-    revvy = RevvyBLE(serviceName)
+    service_name = 'Revvy_{}'.format(getserial().lstrip('0'))
+    revvy = RevvyBLE(service_name)
     app.register(revvy)
 
     try:
@@ -339,16 +359,16 @@ def startRevvy(app):
     except KeyboardInterrupt:
         pass
     except EOFError:
-      # Running as a service will end up here as stdin is empty.
-      while True:
-          time.sleep(1)
+        # Running as a service will end up here as stdin is empty.
+        while True:
+            time.sleep(1)
     finally:
-        print ('stopping')
+        print('stopping')
         revvy.stop()
 
         app._stop = True
         app.event.set()
         t1.join()
 
-    print ('terminated.')
+    print('terminated.')
     sys.exit(1)

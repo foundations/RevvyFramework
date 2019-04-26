@@ -1,49 +1,9 @@
 #!/usr/bin/python3
+import array
 
 import pybleno
-import urllib.parse
-import json
 from functools import reduce
-
-# constants
-HM_10_UART_SERIVCE = '0000FFE0-0000-1000-8000-00805F9B34FB'.replace("-", "")
-HM_10_UART_CHARACTERISTIC = '0000FFE1-0000-1000-8000-00805F9B34FB'.replace("-", "")
-class UartCharacteristic(pybleno.Characteristic):
-    def __init__(self, callback):
-        super().__init__({
-            'uuid': HM_10_UART_CHARACTERISTIC,
-            'properties': ['write', 'write-without-response', 'notify'],
-            'value': None,
-          })
-        self._rawData = bytearray()
-        self._blockyList = []
-        self._value = bytearray()
-        self._updateValueCallback = None
-        self._commandReceivedCallback = callback
-
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
-        #print(repr(data))  # DEBUG
-        head = data[0]
-        if head == 0xff:
-            self._commandReceivedCallback(data)
-        elif head == 0xfe:
-           self.readSyncedPacket(data[1:])
-        else:
-            # TODO warning/error
-            print("Error: Unknown header")
-        callback(pybleno.Characteristic.RESULT_SUCCESS)
-
-    def readSyncedPacket(self, data):
-        isFinalPacket = bool(data[0])
-        self._rawData += data[1:]
-        if isFinalPacket:
-            decoded = urllib.parse.unquote(self._rawData.decode("utf-8"))  # TODO: Is encoding correct?
-            try:
-                self._blocklyList = json.loads(decoded)
-                self._rawData = bytearray()
-                print(repr(self._blocklyList))
-            except json.decoder.JSONDecodeError:
-                print("Error: Invalid JSON payload")
+from pybleno import Characteristic
 
 # Device communication related services
 class BrainToMobileCharacteristic(pybleno.Characteristic):
@@ -54,6 +14,7 @@ class BrainToMobileCharacteristic(pybleno.Characteristic):
             'value': None
         })
 
+
 class MobileToBrainCharacteristic(pybleno.Characteristic):
     def __init__(self):
         super().__init__({
@@ -62,6 +23,7 @@ class MobileToBrainCharacteristic(pybleno.Characteristic):
             'value': None
         })
 
+
 class LongMessageService(pybleno.BlenoPrimaryService):
     def __init__(self):
         pybleno.BlenoPrimaryService.__init__(self, {
@@ -69,7 +31,8 @@ class LongMessageService(pybleno.BlenoPrimaryService):
             'characteristics': [
                 BrainToMobileCharacteristic(),
                 MobileToBrainCharacteristic()
-          ]})
+            ]})
+
 
 class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
     def __init__(self, uuid, minLength, maxLength, description, callback):
@@ -81,12 +44,12 @@ class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
             'properties': ['write'],
             'value': None,
             'descriptors': [
-                  pybleno.Descriptor({
+                pybleno.Descriptor({
                     'uuid': '2901',
                     'value': description
-                  }),
-                ]
-          })
+                }),
+            ]
+        })
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
@@ -99,21 +62,21 @@ class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
         else:
             callback(pybleno.Characteristic.RESULT_UNLIKELY_ERROR)
 
+
 class BrainToMobileFunctionCharacteristic(pybleno.Characteristic):
     def __init__(self, description, uuid):
-        self._callbackFn = callback
         self._value = None
         super().__init__({
             'uuid': uuid.replace('-', ''),
             'properties': ['read', 'notify'],
             'value': None,
             'descriptors': [
-                  pybleno.Descriptor({
+                pybleno.Descriptor({
                     'uuid': '2901',
                     'value': description
-                  }),
-                ]
-          })
+                }),
+            ]
+        })
 
     def onReadRequest(self, offset, callback):
         if offset:
@@ -133,21 +96,24 @@ class BrainToMobileFunctionCharacteristic(pybleno.Characteristic):
         if self._updateValueCallback:
             self._updateValueCallback(self._value)
 
+
 class LiveMessageService(pybleno.BlenoPrimaryService):
     def __init__(self):
         def emptyFn(x): pass
+
         self._keepAliveHandler = emptyFn
-        self._buttonHandlers = [ emptyFn ] * 32
-        self._analogHandlers = [ emptyFn ] * 10
-        
+        self._buttonHandlers = [emptyFn] * 32
+        self._analogHandlers = [emptyFn] * 10
+
         print('Created {} button handlers'.format(len(self._buttonHandlers)))
         print('Created {} analog handlers'.format(len(self._analogHandlers)))
 
         super().__init__({
             'uuid': 'd2d5558c-5b9d-11e9-8647-d663bd873d93'.replace("-", ""),
             'characteristics': [
-                MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, 'simpleControl', self.simpleControlCallback),
-          ]})
+                MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, 'simpleControl',
+                                                    self.simpleControlCallback),
+            ]})
 
     def registerKeepAliveHandler(self, callback):
         self._keepAliveHandler = callback
@@ -169,16 +135,16 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
 
     def _fireButtonHandler(self, idx, state):
         if idx < len(self._buttonHandlers):
-            self._buttonHandlers[idx](value = state)
+            self._buttonHandlers[idx](value=state)
 
     def _fireAnalogHandler(self, idx, state):
         if idx < len(self._analogHandlers):
-            self._analogHandlers[idx](value = state)
+            self._analogHandlers[idx](value=state)
 
     def simpleControlCallback(self, data):
-        #print(repr(data))
-        counter         = data[0]
-        analogValues    = data[1:11]
+        # print(repr(data))
+        counter = data[0]
+        analogValues = data[1:11]
 
         def nthBit(byte, bit):
             return (byte & (1 << bit)) != 0
@@ -190,12 +156,13 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
 
         for i in range(len(analogValues)):
             self._fireAnalogHandler(i, analogValues[i])
-            
+
         for i in range(len(buttonValues)):
             self._fireButtonHandler(i, buttonValues[i])
 
         self._fireKeepAliveHandler(counter)
         return True
+
 
 # Device Information Service
 class ReadOnlyCharacteristic(pybleno.Characteristic):
@@ -206,33 +173,41 @@ class ReadOnlyCharacteristic(pybleno.Characteristic):
             'value': value
         })
 
+
 class SerialNumberCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, serial):
         super().__init__('2A25', serial)
+
 
 class ManufacturerNameCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, name):
         super().__init__('2A29', name)
 
+
 class ModelNumberCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, modelNo):
         super().__init__('2A24', modelNo)
+
 
 class HardwareRevisionCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, version):
         super().__init__('2A27', version)
 
+
 class SoftwareRevisionCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, version):
         super().__init__('2A28', version)
+
 
 class FirmwareRevisionCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, version):
         super().__init__('2A26', version)
 
+
 class SystemIdCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, id):
         super().__init__('2A23', id)
+
 
 class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
     def __init__(self, deviceName):
@@ -248,50 +223,54 @@ class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
                 SystemIdCharacteristic(deviceName),
             ]})
 
+
 # BLE SIG battery service, that is differentiated via Characteristic Presentation Format
 class BatteryLevelCharacteristic(pybleno.Characteristic):
-    def __init__(self, callback, description, id):
+    def __init__(self, description, id):
         super().__init__({
             'uuid': '2A19',
             'properties': ['read', 'notify'],
             'value': None,
             'descriptors': [
-                  pybleno.Descriptor({
+                pybleno.Descriptor({
                     'uuid': '2901',
                     'value': description
-                  }),
-                  pybleno.Descriptor({
+                }),
+                pybleno.Descriptor({
                     'uuid': '2904',
-                    'value': array.array('B', [0x04, 0x01, 0x27, 0xAD, 0x02, 0x00, id ]) # unsigned 8 bit, pybleno.Descriptor defined by RR
-                  })
-                ]
-          })
+                    'value': array.array('B', [0x04, 0x01, 0x27, 0xAD, 0x02, 0x00, id])
+                    # unsigned 8 bit, pybleno.Descriptor defined by RR
+                })
+            ]
+        })
+
 
 class BatteryService(pybleno.BlenoPrimaryService):
     def __init__(self, description, id):
         super().__init__({
             'uuid': '180F',
             'characteristics': [
-                BatteryCharacteristic(description, id)
+                BatteryLevelCharacteristic(description, id)
             ]})
+
 
 # Custom battery service that contains 2 characteristics
 class CustomBatteryLevelCharacteristic(pybleno.Characteristic):
-    def __init__(self, uuid, description, id):
+    def __init__(self, uuid, description):
         super().__init__({
             'uuid': uuid.replace('-', ''),
             'properties': ['read', 'notify'],
-            'value': None, # needs to be None because characteristic is not constant value
+            'value': None,  # needs to be None because characteristic is not constant value
             'descriptors': [
-                  pybleno.Descriptor({
+                pybleno.Descriptor({
                     'uuid': '2901',
                     'value': description
-                  })
-                ]
-          })
+                })
+            ]
+        })
 
         self._updateValueCallback = None
-        self._value = 99 # initial value only
+        self._value = 99  # initial value only
 
     def onReadRequest(self, offset, callback):
         if offset:
@@ -311,10 +290,12 @@ class CustomBatteryLevelCharacteristic(pybleno.Characteristic):
         if self._updateValueCallback:
             self._updateValueCallback(self._value)
 
+
 class CustomBatteryService(pybleno.BlenoPrimaryService):
     def __init__(self):
-        self._mainBattery  = CustomBatteryLevelCharacteristic('2A19', 'Main battery percentage', 0)
-        self._motorBattery = CustomBatteryLevelCharacteristic('00002a19-0000-1000-8000-00805f9b34fa', 'Motor battery percentage', 1)
+        self._mainBattery = CustomBatteryLevelCharacteristic('2A19', 'Main battery percentage')
+        self._motorBattery = CustomBatteryLevelCharacteristic('00002a19-0000-1000-8000-00805f9b34fa',
+                                                              'Motor battery percentage')
 
         super().__init__({
             'uuid': '180F',
@@ -322,13 +303,14 @@ class CustomBatteryService(pybleno.BlenoPrimaryService):
                 self._mainBattery,
                 self._motorBattery
             ]
-          })
+        })
 
     def updateMainBatteryValue(self, value):
         self._mainBattery.updateValue(value)
 
     def updateMotorBatteryValue(self, value):
         self._motorBattery.updateValue(value)
+
 
 class RevvyBLE:
     def __init__(self, deviceName):
@@ -367,13 +349,14 @@ class RevvyBLE:
 
         if not error:
             print('setServices')
+
             def on_setServiceError(error):
                 print('setServices: %s' % ('error ' + str(error) if error else 'success'))
 
             self._bleno.setServices(self._services, on_setServiceError)
-            
+
     def registerConnectionChangedHandler(self, callback):
-        self._bleno.on('accept',       lambda x: callback(True ))
+        self._bleno.on('accept', lambda x: callback(True))
         self._bleno.on('disconnected', lambda x: callback(False))
 
     def start(self):
