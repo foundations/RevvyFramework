@@ -12,9 +12,9 @@ HM_10_UART_CHARACTERISTIC = '0000FFE1-0000-1000-8000-00805F9B34FB'.replace("-", 
 class UartCharacteristic(pybleno.Characteristic):
     def __init__(self, callback):
         pybleno.Characteristic.__init__(self, {
-            'uuid': HM_10_UART_CHARACTERISTIC,
+            'uuid':       HM_10_UART_CHARACTERISTIC,
             'properties': ['write', 'write-without-response', 'notify'],
-            'value': None,
+            'value':      None,
         })
         self._rawData = bytearray()
         self._blockyList = []
@@ -50,7 +50,7 @@ class UartCharacteristic(pybleno.Characteristic):
 class UartService(pybleno.BlenoPrimaryService):
     def __init__(self, callback):
         pybleno.BlenoPrimaryService.__init__(self, {
-            'uuid': HM_10_UART_SERIVCE,
+            'uuid':            HM_10_UART_SERIVCE,
             'characteristics': [
                 UartCharacteristic(callback)
             ]})

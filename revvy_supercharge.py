@@ -7,31 +7,44 @@
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
 
 from utils import *
+from activation import *
 
 pids = {
-    'pos': {
+    'pos':   {
         'good': [1.5, 0.02, 0, -80, 20],
-        'bad': [0.9, 0.05, 0, -80, 20]
+        'bad':  [0.9, 0.05, 0, -80, 20]
     },
     'speed': {
         'good': [5, 0.25, 0, -90, 90],
-        'bad': [1, 0.2, 0, -90, 90]
+        'bad':  [1, 0.2, 0, -90, 90]
     }
 }
 
 motorSpeeds = {
     'good': 90,
-    'bad': 22
+    'bad':  22
 }
 
 ticks = {
     'good': 12 * 2,
-    'bad': 3 * 2
+    'bad':  3 * 2
 }
 
 motorResolutions = {
     'good': 1168,
-    'bad': 292
+    'bad':  292
+}
+
+motorTypeMap = {
+    'speed':    "MOTOR_SPEED_CONTROLLED",
+    'position': "MOTOR_POSITION_CONTROLLED",
+    'openLoop': "MOTOR_OPEN_LOOP"
+}
+
+controlTypeMap = {
+    'speed':    pids['speed'],
+    'position': pids['pos'],
+    'openLoop': None
 }
 
 
@@ -47,10 +60,10 @@ class SuperchargeDemo(RevvyApp):
 
         self._ledMode = 0
 
-        ledButton = ToggleButton()
-        ledButton.onEnabled(lambda: self.setLedRingMode(RevvyApp.LED_RING_COLOR_WHEEL))
-        ledButton.onDisabled(lambda: self.setLedRingMode(RevvyApp.LED_RING_OFF))
-        self._buttons[0] = ledButton
+        button_led = ToggleButton()
+        button_led.onEnabled(lambda: self.setLedRingMode(RevvyApp.LED_RING_COLOR_WHEEL))
+        button_led.onDisabled(lambda: self.setLedRingMode(RevvyApp.LED_RING_OFF))
+        self._buttons[0] = button_led
 
     def init(self):
         status = True
@@ -60,36 +73,24 @@ class SuperchargeDemo(RevvyApp):
 
         return status
 
-    def configureMotor(self, motor, motorType, controlType):
-        motorTypeMap = {
-            'speed': "MOTOR_SPEED_CONTROLLED",
-            'position': "MOTOR_POSITION_CONTROLLED",
-            'openLoop': "MOTOR_OPEN_LOOP"
-        }
-
-        controlTypeMap = {
-            'speed': pids['speed'],
-            'position': pids['pos'],
-            'openLoop': None
-        }
-
-        status = self._myrobot.motor_set_type(motor, self._myrobot.motors[motorTypeMap[controlType]])
+    def configureMotor(self, motor, motor_type, control_type):
+        status = self._myrobot.motor_set_type(motor, self._myrobot.motors[motorTypeMap[control_type]])
         status = status and self._myrobot.motor_set_state(motor, 0)
-        if controlTypeMap[controlType]:
-            status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
+        if controlTypeMap[control_type]:
+            status = status and self.setMotorPid(motor, controlTypeMap[control_type][motor_type])
 
         return status
 
-    def handleAnalogValues(self, analogValues):
-        analogA = analogValues[0]  # 0...255
-        analogB = analogValues[1]  # 0...255
+    def handleAnalogValues(self, analog_values):
+        analog_a = analog_values[0]  # 0...255
+        analog_b = analog_values[1]  # 0...255
 
-        x = clip((analogA - 128) / 127.0, -1, 1)
-        y = clip((analogB - 128) / 127.0, -1, 1)
+        x = clip((analog_a - 128) / 127.0, -1, 1)
+        y = clip((analog_b - 128) / 127.0, -1, 1)
 
-        vecAngle = math.atan2(y, x)
-        vecLen = math.sqrt(x * x + y * y) * 100
-        (sl, sr) = differentialControl(vecLen, vecAngle)
+        vec_angle = math.atan2(y, x)
+        vec_len = math.sqrt(x * x + y * y) * 100
+        (sl, sr) = differentialControl(vec_len, vec_angle)
 
         self._myrobot.motor_set_state(self._motorFL, int(sl * self._maxVl))
         self._myrobot.motor_set_state(self._motorFR, int(sr * self._maxVr))

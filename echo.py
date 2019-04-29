@@ -5,6 +5,7 @@ import struct
 import rrrc_control as rrrc_control
 import sys
 
+
 def main():
     try:
         myrobot = rrrc_control.rrrc_control()
@@ -22,8 +23,9 @@ def main():
     except KeyboardInterrupt:
         pass
 
-    print ('terminated.')
+    print('terminated.')
     sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

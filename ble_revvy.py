@@ -5,29 +5,30 @@ import pybleno
 from functools import reduce
 from pybleno import Characteristic
 
+
 # Device communication related services
 class BrainToMobileCharacteristic(pybleno.Characteristic):
     def __init__(self):
         super().__init__({
-            'uuid': 'd59bb321-7218-4fb9-abac-2f6814f31a4d'.replace('-', ''),
+            'uuid':       'd59bb321-7218-4fb9-abac-2f6814f31a4d'.replace('-', ''),
             'properties': ['read', 'write'],
-            'value': None
+            'value':      None
         })
 
 
 class MobileToBrainCharacteristic(pybleno.Characteristic):
     def __init__(self):
         super().__init__({
-            'uuid': 'b81239d9-260b-4945-bcfe-8b1ef1fc2879'.replace('-', ''),
+            'uuid':       'b81239d9-260b-4945-bcfe-8b1ef1fc2879'.replace('-', ''),
             'properties': ['read', 'write'],
-            'value': None
+            'value':      None
         })
 
 
 class LongMessageService(pybleno.BlenoPrimaryService):
     def __init__(self):
         pybleno.BlenoPrimaryService.__init__(self, {
-            'uuid': '97148a03-5b9d-11e9-8647-d663bd873d93'.replace("-", ""),
+            'uuid':            '97148a03-5b9d-11e9-8647-d663bd873d93'.replace("-", ""),
             'characteristics': [
                 BrainToMobileCharacteristic(),
                 MobileToBrainCharacteristic()
@@ -40,12 +41,12 @@ class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
         self._minLength = minLength
         self._maxLength = maxLength
         super().__init__({
-            'uuid': uuid.replace('-', ''),
-            'properties': ['write'],
-            'value': None,
+            'uuid':        uuid.replace('-', ''),
+            'properties':  ['write'],
+            'value':       None,
             'descriptors': [
                 pybleno.Descriptor({
-                    'uuid': '2901',
+                    'uuid':  '2901',
                     'value': description
                 }),
             ]
@@ -67,12 +68,12 @@ class BrainToMobileFunctionCharacteristic(pybleno.Characteristic):
     def __init__(self, description, uuid):
         self._value = None
         super().__init__({
-            'uuid': uuid.replace('-', ''),
-            'properties': ['read', 'notify'],
-            'value': None,
+            'uuid':        uuid.replace('-', ''),
+            'properties':  ['read', 'notify'],
+            'value':       None,
             'descriptors': [
                 pybleno.Descriptor({
-                    'uuid': '2901',
+                    'uuid':  '2901',
                     'value': description
                 }),
             ]
@@ -109,7 +110,7 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
         print('Created {} analog handlers'.format(len(self._analogHandlers)))
 
         super().__init__({
-            'uuid': 'd2d5558c-5b9d-11e9-8647-d663bd873d93'.replace("-", ""),
+            'uuid':            'd2d5558c-5b9d-11e9-8647-d663bd873d93'.replace("-", ""),
             'characteristics': [
                 MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, 'simpleControl',
                                                     self.simpleControlCallback),
@@ -168,9 +169,9 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
 class ReadOnlyCharacteristic(pybleno.Characteristic):
     def __init__(self, uuid, value):
         super().__init__({
-            'uuid': uuid,
+            'uuid':       uuid,
             'properties': ['read'],
-            'value': value
+            'value':      value
         })
 
 
@@ -212,7 +213,7 @@ class SystemIdCharacteristic(ReadOnlyCharacteristic):
 class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
     def __init__(self, deviceName):
         super().__init__({
-            'uuid': '180A',
+            'uuid':            '180A',
             'characteristics': [
                 SerialNumberCharacteristic('12345'),
                 ManufacturerNameCharacteristic('RevolutionRobotics'),
@@ -228,16 +229,16 @@ class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
 class BatteryLevelCharacteristic(pybleno.Characteristic):
     def __init__(self, description, id):
         super().__init__({
-            'uuid': '2A19',
-            'properties': ['read', 'notify'],
-            'value': None,
+            'uuid':        '2A19',
+            'properties':  ['read', 'notify'],
+            'value':       None,
             'descriptors': [
                 pybleno.Descriptor({
-                    'uuid': '2901',
+                    'uuid':  '2901',
                     'value': description
                 }),
                 pybleno.Descriptor({
-                    'uuid': '2904',
+                    'uuid':  '2904',
                     'value': array.array('B', [0x04, 0x01, 0x27, 0xAD, 0x02, 0x00, id])
                     # unsigned 8 bit, pybleno.Descriptor defined by RR
                 })
@@ -248,7 +249,7 @@ class BatteryLevelCharacteristic(pybleno.Characteristic):
 class BatteryService(pybleno.BlenoPrimaryService):
     def __init__(self, description, id):
         super().__init__({
-            'uuid': '180F',
+            'uuid':            '180F',
             'characteristics': [
                 BatteryLevelCharacteristic(description, id)
             ]})
@@ -258,12 +259,12 @@ class BatteryService(pybleno.BlenoPrimaryService):
 class CustomBatteryLevelCharacteristic(pybleno.Characteristic):
     def __init__(self, uuid, description):
         super().__init__({
-            'uuid': uuid.replace('-', ''),
-            'properties': ['read', 'notify'],
-            'value': None,  # needs to be None because characteristic is not constant value
+            'uuid':        uuid.replace('-', ''),
+            'properties':  ['read', 'notify'],
+            'value':       None,  # needs to be None because characteristic is not constant value
             'descriptors': [
                 pybleno.Descriptor({
-                    'uuid': '2901',
+                    'uuid':  '2901',
                     'value': description
                 })
             ]
@@ -298,7 +299,7 @@ class CustomBatteryService(pybleno.BlenoPrimaryService):
                                                               'Motor battery percentage')
 
         super().__init__({
-            'uuid': '180F',
+            'uuid':            '180F',
             'characteristics': [
                 self._mainBattery,
                 self._motorBattery
