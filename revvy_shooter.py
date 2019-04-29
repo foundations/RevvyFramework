@@ -97,7 +97,7 @@ class ShooterApp(RevvyApp):
         status = status and self.configureMotor(self._ballFeederMotor, "good", "position")
         status = status and self.configureMotor(self._armRaiseMotor, "good", "position")
 
-        status = status and self._myrobot.sensor_set_type(self._shooterButton, self._myrobot.sensors["ABUTTON"])
+        status = status and self._robot_control.sensor_set_type(self._shooterButton, self._robot_control.sensors["ABUTTON"])
 
         return status
 
@@ -108,22 +108,22 @@ class ShooterApp(RevvyApp):
         pass
 
     def disableShooter(self):
-        self._myrobot.motor_set_state(self._shooterMotor1, 0)
-        self._myrobot.motor_set_state(self._shooterMotor2, 0)
+        self._robot_control.motor_set_state(self._shooterMotor1, 0)
+        self._robot_control.motor_set_state(self._shooterMotor2, 0)
 
     def enableShooter(self):
-        self._myrobot.motor_set_state(self._shooterMotor1, -100)
-        self._myrobot.motor_set_state(self._shooterMotor2, 100)
+        self._robot_control.motor_set_state(self._shooterMotor1, -100)
+        self._robot_control.motor_set_state(self._shooterMotor2, 100)
 
     def raiseArm(self):
         if self._currentArmPosition < self._maxArmPosition:
             self._currentArmPosition = self._currentArmPosition + 5
-            self._myrobot.motor_set_state(self._armRaiseMotor, self._currentArmPosition)
+            self._robot_control.motor_set_state(self._armRaiseMotor, self._currentArmPosition)
 
     def lowerArm(self):
         if self._currentArmPosition > self._minArmPosition:
             self._currentArmPosition = self._currentArmPosition - 5
-            self._myrobot.motor_set_state(self._armRaiseMotor, self._currentArmPosition)
+            self._robot_control.motor_set_state(self._armRaiseMotor, self._currentArmPosition)
 
     def configureMotor(self, motor, motorType, controlType):
         motorTypeMap = {
@@ -138,8 +138,8 @@ class ShooterApp(RevvyApp):
             'openLoop': None
         }
 
-        status = self._myrobot.motor_set_type(motor, self._myrobot.motors[motorTypeMap[controlType]])
-        status = status and self._myrobot.motor_set_state(motor, 0)
+        status = self._robot_control.motor_set_type(motor, self._robot_control.motors[motorTypeMap[controlType]])
+        status = status and self._robot_control.motor_set_state(motor, 0)
         if controlTypeMap[controlType] is not None:
             status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
 
@@ -148,12 +148,12 @@ class ShooterApp(RevvyApp):
     def handleSpeedControl(self, vecLen, vecAngle):
         (sl, sr) = differentialControl(vecLen, vecAngle)
 
-        self._myrobot.motor_set_state(self._leftDriveMotor, int(sl * self._maxVl))
-        self._myrobot.motor_set_state(self._rightDriveMotor, int(sr * self._maxVr))
+        self._robot_control.motor_set_state(self._leftDriveMotor, int(sl * self._maxVl))
+        self._robot_control.motor_set_state(self._rightDriveMotor, int(sr * self._maxVr))
 
     def feedBall(self):
         newPos = self._currentShooterPosition - self._shooterIncrement
-        self._myrobot.motor_set_state(self._ballFeederMotor, int(newPos))
+        self._robot_control.motor_set_state(self._ballFeederMotor, int(newPos))
         self._currentShooterPosition = newPos
 
 

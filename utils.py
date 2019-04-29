@@ -20,13 +20,6 @@ class NullHandler:
         pass
 
 
-def buttonValue(buttons, pos):
-    if (buttons & (1 << pos)) != 0:
-        return 1
-    else:
-        return 0
-
-
 def clip(x, min_x, max_x):
     if x < min_x:
         return min_x
@@ -35,10 +28,10 @@ def clip(x, min_x, max_x):
     return x
 
 
-def map_values(x, minx, maxx, miny, maxy):
-    inFs = maxx - minx
-    outFs = maxy - miny
-    return (x - minx) * (outFs / inFs) + miny
+def map_values(x, min_x, max_x, min_y, max_y):
+    full_scale_in = max_x - min_x
+    full_scale_out = max_y - min_y
+    return (x - min_x) * (full_scale_out / full_scale_in) + min_y
 
 
 def differentialControl(r, angle):
@@ -47,36 +40,22 @@ def differentialControl(r, angle):
 
     sr = +(v + w)
     sl = -(v - w)
-    return (sl, sr)
-
-
-def max(a, b):
-    if a > b:
-        return a
-    else:
-        return b
-
-
-def min(a, b):
-    if a < b:
-        return a
-    else:
-        return b
+    return sl, sr
 
 
 def getserial():
     # Extract serial from cpuinfo file
-    cpuserial = "0000000000000000"
+    cpu_serial = "0000000000000000"
     try:
         f = open('/proc/cpuinfo', 'r')
         for line in f:
             if line[0:6] == 'Serial':
-                cpuserial = line.rstrip()[-16:]
+                cpu_serial = line.rstrip()[-16:]
         f.close()
     except:
-        cpuserial = "ERROR000000000"
+        cpu_serial = "ERROR000000000"
 
-    return cpuserial
+    return cpu_serial
 
 
 def _retry(fn, retries=5):
@@ -93,7 +72,7 @@ class RevvyApp:
     LED_RING_OFF = 0
     LED_RING_COLOR_WHEEL = 6
 
-    _myrobot = None
+    _robot_control = None
     # index: logical number; value: physical number
     motorPortMap = [-1, 3, 4, 5, 2, 1, 0]
 
@@ -115,49 +94,50 @@ class RevvyApp:
     def prepare(self):
         print("Prepare")
         try:
-            self._myrobot = rrrc_control.rrrc_control()
+            self._robot_control = rrrc_control.rrrc_control()
 
-            print(self._myrobot.sensors)
-            print(self._myrobot.motors)
+            print(self._robot_control.sensors)
+            print(self._robot_control.motors)
             return True
         except Exception as e:
             print("Prepare error: ", e)
             return False
 
     def indicateStopped(self):
-        if self._myrobot:
-            self._myrobot.indicator_set_led(3, 0x10, 0, 0)
+        if self._robot_control:
+            self._robot_control.indicator_set_led(3, 0x10, 0, 0)
 
     def indicateCommFailure(self):
-        if self._myrobot:
-            self._myrobot.indicator_set_led(3, 0x10, 0x05, 0)
+        if self._robot_control:
+            self._robot_control.indicator_set_led(3, 0x10, 0x05, 0)
 
     def indicateWorking(self):
-        if self._myrobot:
-            self._myrobot.indicator_set_led(3, 0, 0x10, 0)
+        if self._robot_control:
+            self._robot_control.indicator_set_led(3, 0, 0x10, 0)
 
     def setLedRingMode(self, mode):
-        if self._myrobot:
-            self._myrobot.ring_led_set_scenario(mode)
+        if self._robot_control:
+            self._robot_control.ring_led_set_scenario(mode)
 
     def deinitBrain(self):
         print("deInit")
-        if self._myrobot:
+        if self._robot_control:
             self.indicateStopped()
             self.setLedRingMode(self.LED_RING_OFF)
-            self._myrobot.indicator_set_led(2, 0, 0, 0)
+            self._robot_control.indicator_set_led(2, 0, 0, 0)
 
             # robot deInit
             try:
                 for i in range(0, 6):
-                    status = self._myrobot.motor_set_type(self.motorPortMap[i + 1],
-                                                          self._myrobot.motors["MOTOR_NO_SET"])
+                    status = self._robot_control.motor_set_type(self.motorPortMap[i + 1],
+                                                                self._robot_control.motors["MOTOR_NO_SET"])
                 for i in range(0, 4):
-                    status = self._myrobot.sensor_set_type(self.sensorPortMap[i + 1], self._myrobot.sensors["NO_SET"])
+                    status = self._robot_control.sensor_set_type(self.sensorPortMap[i + 1],
+                                                                 self._robot_control.sensors["NO_SET"])
             except:
                 pass
 
-        _myrobot = None
+        self._robot_control = None
 
     def setMotorPid(self, motor, pid):
         if pid is None:
@@ -165,7 +145,7 @@ class RevvyApp:
         else:
             (p, i, d, ll, ul) = pid
             pid_config = bytearray(struct.pack(">{}".format("f" * 5), p, i, d, ll, ul))
-            return self._myrobot.motor_set_config(motor, pid_config)
+            return self._robot_control.motor_set_config(motor, pid_config)
 
     def handleButton(self, data):
         for i in range(len(self._buttons)):
@@ -256,15 +236,16 @@ class RevvyApp:
 
     def _onConnectionChanged(self, is_connected):
         if is_connected != self._isConnected:
+            print( 'Connected' if is_connected else 'Disconnected')
             self._isConnected = is_connected
             self._updateConnectionIndication()
 
     def _updateConnectionIndication(self):
-        if self._myrobot:
+        if self._robot_control:
             if self._isConnected:
-                self._myrobot.indicator_set_led(2, 0, 0x10, 0x10)
+                self._robot_control.indicator_set_led(2, 0, 0x10, 0x10)
             else:
-                self._myrobot.indicator_set_led(2, 0, 0, 0)
+                self._robot_control.indicator_set_led(2, 0, 0, 0)
 
     def register(self, revvy):
         print('Registering callbacks')

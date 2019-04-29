@@ -70,10 +70,10 @@ class CatAppPult(RevvyApp):
         self._indicationButtonHandler.onFallingEdge(self.ledRingOff)
 
     def switchToColorWheel(self):
-        self._myrobot.ring_led_set_scenario(6)
+        self._robot_control.ring_led_set_scenario(6)
 
     def ledRingOff(self):
-        self._myrobot.ring_led_set_scenario(0)
+        self._robot_control.ring_led_set_scenario(0)
 
     def showDistanceOnLeds(self, distance):
         frame = []
@@ -84,7 +84,7 @@ class CatAppPult(RevvyApp):
             else:
                 frame += [0, 0, 0]
 
-        self._myrobot.ring_led_show_user_frame(frame)
+        self._robot_control.ring_led_show_user_frame(frame)
 
     def init(self):
         status = True
@@ -95,18 +95,18 @@ class CatAppPult(RevvyApp):
         status = status and self.configureMotor(self._motorRL, "good", "speed")
         status = status and self.configureMotor(self._motorRR, "good", "speed")
 
-        status = status and self._myrobot.sensor_set_type(self._shooterButton, self._myrobot.sensors["ABUTTON"])
-        status = status and self._myrobot.sensor_set_type(self._ultrasoundSensor, self._myrobot.sensors["HC_SR05"])
+        status = status and self._robot_control.sensor_set_type(self._shooterButton, self._robot_control.sensors["ABUTTON"])
+        status = status and self._robot_control.sensor_set_type(self._ultrasoundSensor, self._robot_control.sensors["HC_SR05"])
 
         return status
 
     def run(self):
-        buttonValue = self._myrobot.sensor_get_value(self._shooterButton)
+        buttonValue = self._robot_control.sensor_get_value(self._shooterButton)
         if (len(buttonValue) > 0):
             print("ab: {}".format(buttonValue[0]))
             self._analogShooterButtonHandler.handle(buttonValue[0])
 
-        usValue = self._myrobot.sensor_get_value(self._ultrasoundSensor)
+        usValue = self._robot_control.sensor_get_value(self._ultrasoundSensor)
         if (len(usValue) > 0):
             distance = usValue[0]
             print("dis: {}".format(distance))
@@ -124,9 +124,9 @@ class CatAppPult(RevvyApp):
         self.shoot()
 
     def shoot(self):
-        self._myrobot.motor_set_state(self._armMotor, -60)
+        self._robot_control.motor_set_state(self._armMotor, -60)
         time.sleep(0.05)
-        self._myrobot.motor_set_state(self._armMotor, 0)
+        self._robot_control.motor_set_state(self._armMotor, 0)
 
     def configureMotor(self, motor, motorType, controlType):
         motorTypeMap = {
@@ -141,8 +141,8 @@ class CatAppPult(RevvyApp):
             'openLoop': None
         }
 
-        status = self._myrobot.motor_set_type(motor, self._myrobot.motors[motorTypeMap[controlType]])
-        status = status and self._myrobot.motor_set_state(motor, 0)
+        status = self._robot_control.motor_set_type(motor, self._robot_control.motors[motorTypeMap[controlType]])
+        status = status and self._robot_control.motor_set_state(motor, 0)
         if controlTypeMap[controlType] is not None:
             status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
 
@@ -151,10 +151,10 @@ class CatAppPult(RevvyApp):
     def handleSpeedControl(self, vecLen, vecAngle):
         (sl, sr) = differentialControl(vecLen, vecAngle)
 
-        self._myrobot.motor_set_state(self._motorFL, int(sl * self._maxVl))
-        self._myrobot.motor_set_state(self._motorRL, int(sl * self._maxVl))
-        self._myrobot.motor_set_state(self._motorFR, int(sr * self._maxVr))
-        self._myrobot.motor_set_state(self._motorRR, int(sr * self._maxVr))
+        self._robot_control.motor_set_state(self._motorFL, int(sl * self._maxVl))
+        self._robot_control.motor_set_state(self._motorRL, int(sl * self._maxVl))
+        self._robot_control.motor_set_state(self._motorFR, int(sr * self._maxVr))
+        self._robot_control.motor_set_state(self._motorRR, int(sr * self._maxVr))
 
 
 app = CatAppPult()

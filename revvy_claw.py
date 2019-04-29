@@ -91,7 +91,7 @@ class ClawApp(RevvyApp):
         status = status and self.configureMotor(self._motorL, "good", "speed")
         status = status and self.configureMotor(self._motorR, "good", "speed")
 
-        self._myrobot.ring_led_set_scenario(6)
+        self._robot_control.ring_led_set_scenario(6)
 
         return status
 
@@ -111,8 +111,8 @@ class ClawApp(RevvyApp):
             'openLoop': None
         }
 
-        status = self._myrobot.motor_set_type(motor, self._myrobot.motors[motorTypeMap[controlType]])
-        status = status and self._myrobot.motor_set_state(motor, 0)
+        status = self._robot_control.motor_set_type(motor, self._robot_control.motors[motorTypeMap[controlType]])
+        status = status and self._robot_control.motor_set_state(motor, 0)
         if controlTypeMap[controlType] is not None:
             status = status and self.setMotorPid(motor, controlTypeMap[controlType][motorType])
 
@@ -120,25 +120,25 @@ class ClawApp(RevvyApp):
 
     def openClaw(self):
         print("Open")
-        self._myrobot.motor_set_state(self._clawMotor, openClawPosition)
+        self._robot_control.motor_set_state(self._clawMotor, openClawPosition)
 
     def closeClaw(self):
         print("Close")
-        self._myrobot.motor_set_state(self._clawMotor, -openClawPosition)
+        self._robot_control.motor_set_state(self._clawMotor, -openClawPosition)
 
     def armUp(self):
         print("Up")
-        self._myrobot.motor_set_state(self._armMotor, 1200)
+        self._robot_control.motor_set_state(self._armMotor, 1200)
 
     def armDown(self):
         print("Down")
-        self._myrobot.motor_set_state(self._armMotor, 0)
+        self._robot_control.motor_set_state(self._armMotor, 0)
 
     def handleSpeedControl(self, vecLen, vecAngle):
         (sl, sr) = differentialControl(vecLen, vecAngle)
 
-        self._myrobot.motor_set_state(self._motorL, int(sl * self._maxVl))
-        self._myrobot.motor_set_state(self._motorR, int(sr * self._maxVr))
+        self._robot_control.motor_set_state(self._motorL, int(sl * self._maxVl))
+        self._robot_control.motor_set_state(self._motorR, int(sr * self._maxVr))
 
 
 def main():

@@ -36,10 +36,10 @@ class LongMessageService(pybleno.BlenoPrimaryService):
 
 
 class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
-    def __init__(self, uuid, minLength, maxLength, description, callback):
+    def __init__(self, uuid, min_length, max_length, description, callback):
         self._callbackFn = callback
-        self._minLength = minLength
-        self._maxLength = maxLength
+        self._minLength = min_length
+        self._maxLength = max_length
         super().__init__({
             'uuid':        uuid.replace('-', ''),
             'properties':  ['write'],
@@ -52,7 +52,7 @@ class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
             ]
         })
 
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
+    def onWriteRequest(self, data, offset, without_response, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
 
@@ -67,6 +67,7 @@ class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
 class BrainToMobileFunctionCharacteristic(pybleno.Characteristic):
     def __init__(self, description, uuid):
         self._value = None
+        self._updateValueCallback = None
         super().__init__({
             'uuid':        uuid.replace('-', ''),
             'properties':  ['read', 'notify'],
@@ -85,8 +86,8 @@ class BrainToMobileFunctionCharacteristic(pybleno.Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def onSubscribe(self, maxValueSize, updateValueCallback):
-        self._updateValueCallback = updateValueCallback
+    def onSubscribe(self, max_value_size, update_value_callback):
+        self._updateValueCallback = update_value_callback
 
     def onUnsubscribe(self):
         self._updateValueCallback = None
@@ -119,20 +120,17 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
     def registerKeepAliveHandler(self, callback):
         self._keepAliveHandler = callback
 
-    def registerAnalogHandler(self, channelId, callback):
-        if channelId < len(self._analogHandlers):
-            self._analogHandlers[channelId] = callback
+    def registerAnalogHandler(self, channel_id, callback):
+        if channel_id < len(self._analogHandlers):
+            self._analogHandlers[channel_id] = callback
         else:
-            print('Incorrect analog handler id {}'.format(channelId))
+            print('Incorrect analog handler id {}'.format(channel_id))
 
-    def registerButtonHandler(self, channelId, callback):
-        if channelId < len(self._buttonHandlers):
-            self._buttonHandlers[channelId] = callback
+    def registerButtonHandler(self, channel_id, callback):
+        if channel_id < len(self._buttonHandlers):
+            self._buttonHandlers[channel_id] = callback
         else:
-            print('Incorrect button handler id {}'.format(channelId))
-
-    def _fireKeepAliveHandler(self, counter):
-        self._keepAliveHandler(counter)
+            print('Incorrect button handler id {}'.format(channel_id))
 
     def _fireButtonHandler(self, idx, state):
         if idx < len(self._buttonHandlers):
@@ -145,24 +143,32 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
     def simpleControlCallback(self, data):
         # print(repr(data))
         counter = data[0]
-        analogValues = data[1:11]
+        analog_values = data[1:11]
 
-        def nthBit(byte, bit):
+        button_values = self.extract_button_states(data)
+
+        for i in range(len(analog_values)):
+            self._fireAnalogHandler(i, analog_values[i])
+
+        for i in range(len(button_values)):
+            self._fireButtonHandler(i, button_values[i])
+
+        self._keepAliveHandler(counter)
+        return True
+
+    @staticmethod
+    def extract_button_states(data):
+        def nth_bit(byte, bit):
             return (byte & (1 << bit)) != 0
 
-        def expandByte(byte):
-            return [nthBit(byte, x) for x in range(8)]
+        def expand_byte(byte):
+            return [nth_bit(byte, x) for x in range(8)]
 
-        buttonValues = reduce(lambda x, y: x + y, map(expandByte, data[11:15]), [])
-
-        for i in range(len(analogValues)):
-            self._fireAnalogHandler(i, analogValues[i])
-
-        for i in range(len(buttonValues)):
-            self._fireButtonHandler(i, buttonValues[i])
-
-        self._fireKeepAliveHandler(counter)
-        return True
+        return reduce(
+            lambda x, y: x + y,
+            map(expand_byte, data[11:15]),
+            []
+        )
 
 
 # Device Information Service
@@ -186,8 +192,8 @@ class ManufacturerNameCharacteristic(ReadOnlyCharacteristic):
 
 
 class ModelNumberCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, modelNo):
-        super().__init__('2A24', modelNo)
+    def __init__(self, model_no):
+        super().__init__('2A24', model_no)
 
 
 class HardwareRevisionCharacteristic(ReadOnlyCharacteristic):
@@ -206,12 +212,12 @@ class FirmwareRevisionCharacteristic(ReadOnlyCharacteristic):
 
 
 class SystemIdCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, id):
-        super().__init__('2A23', id)
+    def __init__(self, system_id):
+        super().__init__('2A23', system_id)
 
 
 class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
-    def __init__(self, deviceName):
+    def __init__(self, device_name):
         super().__init__({
             'uuid':            '180A',
             'characteristics': [
@@ -221,13 +227,13 @@ class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
                 HardwareRevisionCharacteristic("v1.0.0"),
                 SoftwareRevisionCharacteristic("v1.0.0"),
                 FirmwareRevisionCharacteristic("v1.0.0"),
-                SystemIdCharacteristic(deviceName),
+                SystemIdCharacteristic(device_name),
             ]})
 
 
 # BLE SIG battery service, that is differentiated via Characteristic Presentation Format
 class BatteryLevelCharacteristic(pybleno.Characteristic):
-    def __init__(self, description, id):
+    def __init__(self, description, char_id):
         super().__init__({
             'uuid':        '2A19',
             'properties':  ['read', 'notify'],
@@ -239,19 +245,19 @@ class BatteryLevelCharacteristic(pybleno.Characteristic):
                 }),
                 pybleno.Descriptor({
                     'uuid':  '2904',
-                    'value': array.array('B', [0x04, 0x01, 0x27, 0xAD, 0x02, 0x00, id])
-                    # unsigned 8 bit, pybleno.Descriptor defined by RR
+                    'value': array.array('B', [0x04, 0x01, 0x27, 0xAD, 0x02, 0x00, char_id])
+                    # unsigned 8 bit, descriptor defined by RR
                 })
             ]
         })
 
 
 class BatteryService(pybleno.BlenoPrimaryService):
-    def __init__(self, description, id):
+    def __init__(self, description, char_id):
         super().__init__({
             'uuid':            '180F',
             'characteristics': [
-                BatteryLevelCharacteristic(description, id)
+                BatteryLevelCharacteristic(description, char_id)
             ]})
 
 
@@ -279,8 +285,8 @@ class CustomBatteryLevelCharacteristic(pybleno.Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def onSubscribe(self, maxValueSize, updateValueCallback):
-        self._updateValueCallback = updateValueCallback
+    def onSubscribe(self, max_value_size, update_value_callback):
+        self._updateValueCallback = update_value_callback
 
     def onUnsubscribe(self):
         self._updateValueCallback = None
@@ -314,11 +320,11 @@ class CustomBatteryService(pybleno.BlenoPrimaryService):
 
 
 class RevvyBLE:
-    def __init__(self, deviceName):
-        print('Initializing {}'.format(deviceName))
-        self._deviceName = deviceName
+    def __init__(self, device_name):
+        print('Initializing {}'.format(device_name))
+        self._deviceName = device_name
 
-        self._deviceInformationService = RevvyDeviceInforrmationService(deviceName)
+        self._deviceInformationService = RevvyDeviceInforrmationService(device_name)
         self._batteryService = CustomBatteryService()
         self._liveMessageService = LiveMessageService()
         self._longMessageService = LongMessageService()
@@ -338,9 +344,9 @@ class RevvyBLE:
         self._bleno.on('advertisingStart', self.onAdvertisingStart)
 
     def onStateChange(self, state):
-        print('on -> stateChange: ' + state);
+        print('on -> stateChange: ' + state)
 
-        if (state == 'poweredOn'):
+        if state == 'poweredOn':
             self._bleno.startAdvertising(self._deviceName, self._advertisedUuids)
         else:
             self._bleno.stopAdvertising()
@@ -351,14 +357,15 @@ class RevvyBLE:
         if not error:
             print('setServices')
 
-            def on_setServiceError(error):
+            # noinspection PyShadowingNames
+            def on_set_service_error(error):
                 print('setServices: %s' % ('error ' + str(error) if error else 'success'))
 
-            self._bleno.setServices(self._services, on_setServiceError)
+            self._bleno.setServices(self._services, on_set_service_error)
 
     def registerConnectionChangedHandler(self, callback):
         self._bleno.on('accept', lambda x: callback(True))
-        self._bleno.on('disconnected', lambda x: callback(False))
+        self._bleno.on('disconnect', lambda x: callback(False))
 
     def start(self):
         self._bleno.start()
@@ -373,11 +380,11 @@ class RevvyBLE:
     def updateMotorBattery(self, level):
         self._batteryService.updateMotorBatteryValue(level)
 
-    def registerButtonHandler(self, channelIdx, callback):
-        self._liveMessageService.registerButtonHandler(channelIdx, callback)
+    def registerButtonHandler(self, channel_idx, callback):
+        self._liveMessageService.registerButtonHandler(channel_idx, callback)
 
-    def registerAnalogHandler(self, channelIdx, callback):
-        self._liveMessageService.registerAnalogHandler(channelIdx, callback)
+    def registerAnalogHandler(self, channel_idx, callback):
+        self._liveMessageService.registerAnalogHandler(channel_idx, callback)
 
     def registerKeepAliveHandler(self, callback):
         self._liveMessageService.registerKeepAliveHandler(callback)

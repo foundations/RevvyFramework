@@ -74,8 +74,8 @@ class SuperchargeDemo(RevvyApp):
         return status
 
     def configureMotor(self, motor, motor_type, control_type):
-        status = self._myrobot.motor_set_type(motor, self._myrobot.motors[motorTypeMap[control_type]])
-        status = status and self._myrobot.motor_set_state(motor, 0)
+        status = self._robot_control.motor_set_type(motor, self._robot_control.motors[motorTypeMap[control_type]])
+        status = status and self._robot_control.motor_set_state(motor, 0)
         if controlTypeMap[control_type]:
             status = status and self.setMotorPid(motor, controlTypeMap[control_type][motor_type])
 
@@ -92,8 +92,8 @@ class SuperchargeDemo(RevvyApp):
         vec_len = math.sqrt(x * x + y * y) * 100
         (sl, sr) = differentialControl(vec_len, vec_angle)
 
-        self._myrobot.motor_set_state(self._motorFL, int(sl * self._maxVl))
-        self._myrobot.motor_set_state(self._motorFR, int(sr * self._maxVr))
+        self._robot_control.motor_set_state(self._motorFL, int(sl * self._maxVl))
+        self._robot_control.motor_set_state(self._motorFR, int(sr * self._maxVr))
 
 
 def main():
