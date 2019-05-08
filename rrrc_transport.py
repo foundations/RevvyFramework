@@ -95,6 +95,7 @@ def crc7(data, crc):
         crc = crc7_table[(b ^ (crc << 1) & 0xFF)]
     return crc
 
+
 class RevvyTransportInterface:
     def read(self, length):
         raise NotImplementedError()
