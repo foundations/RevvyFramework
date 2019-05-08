@@ -94,10 +94,10 @@ class RevvyApp:
     def prepare(self):
         print("Prepare")
         try:
-            self._robot_control = rrrc_control.rrrc_control()
+            #self._robot_control = rrrc_control.rrrc_control()
 
-            print(self._robot_control.sensors)
-            print(self._robot_control.motors)
+            #print(self._robot_control.sensors)
+            #print(self._robot_control.motors)
             return True
         except Exception as e:
             print("Prepare error: ", e)
@@ -236,7 +236,7 @@ class RevvyApp:
 
     def _onConnectionChanged(self, is_connected):
         if is_connected != self._isConnected:
-            print( 'Connected' if is_connected else 'Disconnected')
+            print('Connected' if is_connected else 'Disconnected')
             self._isConnected = is_connected
             self._updateConnectionIndication()
 
@@ -264,8 +264,8 @@ class RevvyApp:
 
 
 def startRevvy(app):
-    t1 = Thread(target=app.handle, args=())
-    t1.start()
+    #t1 = Thread(target=app.handle, args=())
+    #t1.start()
     service_name = 'Revvy_{}'.format(getserial().lstrip('0'))
     revvy = RevvyBLE(service_name)
     app.register(revvy)
@@ -286,7 +286,7 @@ def startRevvy(app):
 
         app._stop = True
         app.event.set()
-        t1.join()
+        #t1.join()
 
     print('terminated.')
     sys.exit(1)
