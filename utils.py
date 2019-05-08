@@ -10,6 +10,8 @@ import time
 from ble_revvy import *
 import functools
 
+from rrrc_transport import *
+
 
 def empty_callback():
     pass
@@ -82,7 +84,8 @@ class RevvyApp:
     mutex = Lock()
     event = Event()
 
-    def __init__(self):
+    def __init__(self, interface):
+        self._interface = RevvyTransport(interface)
         self._buttons = [NullHandler()] * 32
         self._buttonData = [False] * 32
         self._analogInputs = [NullHandler()] * 10
@@ -94,8 +97,6 @@ class RevvyApp:
     def prepare(self):
         print("Prepare")
         try:
-            #self._robot_control = rrrc_control.rrrc_control()
-
             #print(self._robot_control.sensors)
             #print(self._robot_control.motors)
             return True
@@ -164,6 +165,12 @@ class RevvyApp:
         return status
 
     def handle(self):
+        while not self._stop:
+            command = CommandStart(0x00)
+            self._interface.send_command(command)
+            time.sleep(0.1)
+
+    def foo(self):
         comm_missing = True
         while not self._stop:
             try:
@@ -264,8 +271,8 @@ class RevvyApp:
 
 
 def startRevvy(app):
-    #t1 = Thread(target=app.handle, args=())
-    #t1.start()
+    t1 = Thread(target=app.handle, args=())
+    t1.start()
     service_name = 'Revvy_{}'.format(getserial().lstrip('0'))
     revvy = RevvyBLE(service_name)
     app.register(revvy)
@@ -286,7 +293,7 @@ def startRevvy(app):
 
         app._stop = True
         app.event.set()
-        #t1.join()
+        t1.join()
 
     print('terminated.')
     sys.exit(1)

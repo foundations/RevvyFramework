@@ -8,6 +8,7 @@
 
 from utils import *
 from activation import *
+from rrrc_transport import *
 
 pids = {
     'pos':   {
@@ -49,8 +50,8 @@ controlTypeMap = {
 
 
 class SuperchargeDemo(RevvyApp):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, interface):
+        super().__init__(interface)
 
         self._motorFL = self.motorPortMap[3]
         self._motorFR = self.motorPortMap[6]
@@ -97,7 +98,8 @@ class SuperchargeDemo(RevvyApp):
 
 
 def main():
-    startRevvy(SuperchargeDemo())
+    with RevvyTransportI2C(0x2D) as robot_interface:
+        startRevvy(SuperchargeDemo(robot_interface))
 
 
 if __name__ == "__main__":
