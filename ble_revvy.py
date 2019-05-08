@@ -221,13 +221,13 @@ class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
         super().__init__({
             'uuid':            '180A',
             'characteristics': [
-                SerialNumberCharacteristic('12345'),
-                ManufacturerNameCharacteristic('RevolutionRobotics'),
-                ModelNumberCharacteristic("RevvyAlpha"),
-                HardwareRevisionCharacteristic("v1.0.0"),
-                SoftwareRevisionCharacteristic("v1.0.0"),
-                FirmwareRevisionCharacteristic("v1.0.0"),
-                SystemIdCharacteristic(device_name),
+                SerialNumberCharacteristic(b'12345'),
+                ManufacturerNameCharacteristic(b'RevolutionRobotics'),
+                ModelNumberCharacteristic(b"RevvyAlpha"),
+                HardwareRevisionCharacteristic(b"v1.0.0"),
+                SoftwareRevisionCharacteristic(b"v1.0.0"),
+                FirmwareRevisionCharacteristic(b"v1.0.0"),
+                SystemIdCharacteristic(device_name.encode()),
             ]})
 
 
@@ -283,7 +283,7 @@ class CustomBatteryLevelCharacteristic(pybleno.Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         else:
-            callback(Characteristic.RESULT_SUCCESS, self._value)
+            callback(Characteristic.RESULT_SUCCESS, [self._value])
 
     def onSubscribe(self, max_value_size, update_value_callback):
         self._updateValueCallback = update_value_callback
