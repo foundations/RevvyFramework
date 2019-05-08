@@ -225,7 +225,7 @@ class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
                 ManufacturerNameCharacteristic(b'RevolutionRobotics'),
                 ModelNumberCharacteristic(b"RevvyAlpha"),
                 HardwareRevisionCharacteristic(b"v1.0.0"),
-                SoftwareRevisionCharacteristic(b"v1.0.0"),
+                SoftwareRevisionCharacteristic(b"v0.0.1"),
                 FirmwareRevisionCharacteristic(b"v1.0.0"),
                 SystemIdCharacteristic(device_name.encode()),
             ]})
