@@ -56,7 +56,7 @@ def crc16(data, crc=0xFFFF):
     return crc & 0xFFFF
 
 
-def crc7(data, crc):
+def crc7(data, crc=0xFF):
     crc7_table = [
         0x00, 0x09, 0x12, 0x1b, 0x24, 0x2d, 0x36, 0x3f,
         0x48, 0x41, 0x5a, 0x53, 0x6c, 0x65, 0x7e, 0x77,
@@ -230,10 +230,23 @@ class ResponseHeader:
     length = 5
 
     def __init__(self, data):
-        pass
+        if len(data) < self.length:
+            raise ValueError('Data is too short ({} bytes instead of at least {}'.format(len(data), self.length))
+
+        self._status = data[0]
+        self._payload_length = data[1]
+        self._payload_checksum = data[2] << 8 | data[3]
+        self._header_checksum = data[4]
+
+        checksum = crc7(data[0:self.length-1])
+        self._is_crc_valid = checksum == self._header_checksum
 
     def validate_payload(self, payload):
         pass
+
+    @property
+    def is_valid(self):
+        return self._is_crc_valid
 
 
 class Response:
@@ -252,17 +265,19 @@ class RevvyTransport:
         try:
             resend = True
             while resend:
+                resend = False
                 # send command and read back status
-                response_header = self._send_command(command)
-                print(repr(response_header))
-
-                # process status
+                try:
+                    response_header = self._send_command(command)
+                    # process status
+                    print('Integrity OK' if response_header.is_valid else 'Integrity fail')
+                except ValueError:
+                    resend = True
 
                 # read reply if appropriate
-                resend = False
         finally:
             self._mutex.release()
 
     def _send_command(self, command):
         self._transport.write(command.as_byte_array())
-        return self._transport.read(ResponseHeader.length)
+        return ResponseHeader(self._transport.read(ResponseHeader.length))
