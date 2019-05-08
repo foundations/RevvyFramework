@@ -214,11 +214,32 @@ class CommandCancel(Command):
 
 
 class ResponseHeader:
+    Status_Ok = 0
+    Status_Busy = 1
+    Status_Pending = 2
+
+    Status_Error_UnknownOperation = 3
+    Status_Error_InvalidOperation = 4
+    Status_Error_CommandIntegrityError = 5
+    Status_Error_PayloadIntegrityError = 6
+    Status_Error_PayloadLengthError = 7
+    Status_Error_UnknownCommand = 8
+    Status_Error_CommandError = 9
+    Status_Error_InternalError = 10
+
     length = 5
+
+    def __init__(self, data):
+        pass
+
+    def validate_payload(self, payload):
+        pass
 
 
 class Response:
-    pass
+    def __init__(self, data):
+        self._header = ResponseHeader(data[0:ResponseHeader.length])
+        self._payload = data[ResponseHeader.length:]
 
 
 class RevvyTransport:
