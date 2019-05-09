@@ -104,7 +104,10 @@ class RevvyApp:
             self.set_master_status(self.master_status_stopped)
             hw = self._interface.get_hardware_version()
             fw = self._interface.get_firmware_version()
-            print(hw, fw)
+            motor_port_amount = self._interface.get_motor_port_amount()
+            sensor_port_amount = self._interface.get_sensor_port_amount()
+            print("Hardware Version: {}\nFirmware Version: {}".format(hw, fw))
+            print("Motor ports: {}\nSensor ports: {}".format(motor_port_amount, sensor_port_amount))
             #print(self._robot_control.sensors)
             #print(self._robot_control.motors)
             return True

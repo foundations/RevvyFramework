@@ -11,8 +11,14 @@ class RevvyControl:
     command_set_master_status = 0x04
     command_set_bluetooth_status = 0x05
 
+    command_get_motor_port_amount = 0x10
+
+    command_get_sensor_port_amount = 0x20
+
     def __init__(self, transport: RevvyTransport):
         self._transport = transport
+
+    # general commands
 
     def ping(self):
         self._transport.send_command(self.command_ping)
@@ -34,3 +40,18 @@ class RevvyControl:
     def get_battery_status(self):
         response = self._transport.send_command(self.command_get_battery_status)
         return {'chargerStatus': response.payload[0], 'main': response.payload[1], 'motor': response.payload[2]}
+
+    # motor commands
+
+    def get_motor_port_amount(self):
+        response = self._transport.send_command(self.command_get_motor_port_amount)
+        return response.payload[0]
+
+    # sensor commands
+
+    def get_sensor_port_amount(self):
+        response = self._transport.send_command(self.command_get_sensor_port_amount)
+        return response.payload[0]
+
+    # ring led commands
+
