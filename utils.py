@@ -105,9 +105,13 @@ class RevvyApp:
             hw = self._interface.get_hardware_version()
             fw = self._interface.get_firmware_version()
             motor_port_amount = self._interface.get_motor_port_amount()
+            motor_port_types = self._interface.get_motor_port_types()
             sensor_port_amount = self._interface.get_sensor_port_amount()
+            sensor_port_types = self._interface.get_sensor_port_types()
             print("Hardware Version: {}\nFirmware Version: {}".format(hw, fw))
             print("Motor ports: {}\nSensor ports: {}".format(motor_port_amount, sensor_port_amount))
+            print("Motor port types:\n{}".format(motor_port_types))
+            print("Sensor port types:\n{}".format(sensor_port_types))
             #print(self._robot_control.sensors)
             #print(self._robot_control.motors)
             return True
