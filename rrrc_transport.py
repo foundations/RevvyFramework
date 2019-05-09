@@ -275,7 +275,7 @@ class RevvyTransport:
         self._transport = transport
         self._mutex = Lock()
 
-    def send_command(self, command: CommandStart):
+    def send_command(self, command, payload=None) -> Response:
         self._mutex.acquire()
         try:
             resend = True
@@ -283,11 +283,11 @@ class RevvyTransport:
             while resend:
                 resend = False
                 # send command and read back status
-                header = self._send_command(command)
+                header = self._send_command(CommandStart(command, payload))
 
                 # wait for command execution to finish
                 while header.status == ResponseHeader.Status_Pending:
-                    header = self._send_command(CommandGetResult(command.command))
+                    header = self._send_command(CommandGetResult(command))
 
                 # check result
                 if header.status == ResponseHeader.Status_Ok:

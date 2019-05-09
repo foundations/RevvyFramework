@@ -1,4 +1,4 @@
-from rrrc_transport import RevvyTransport, Command, CommandStart, Response, ResponseHeader
+from rrrc_transport import RevvyTransport
 
 
 class RevvyControl:
@@ -14,18 +14,18 @@ class RevvyControl:
         self._transport = transport
 
     def ping(self):
-        self._transport.send_command(CommandStart(self.command_ping))
+        self._transport.send_command(self.command_ping)
 
     def set_master_status(self, status):
-        self._transport.send_command(CommandStart(self.command_set_master_status, [status]))
+        self._transport.send_command(self.command_set_master_status, [status])
 
     def set_bluetooth_connection_status(self, status):
-        self._transport.send_command(CommandStart(self.command_set_bluetooth_status, [status]))
+        self._transport.send_command(self.command_set_bluetooth_status, [status])
 
     def get_firmware_version(self):
-        response = self._transport.send_command(CommandStart(self.command_get_firmware_version))
+        response = self._transport.send_command(self.command_get_firmware_version)
         return "".join(map(chr, response.payload))
 
     def get_battery_status(self):
-        response = self._transport.send_command(CommandStart(self.command_get_battery_status))
+        response = self._transport.send_command(self.command_get_battery_status)
         return {'chargerStatus': response.payload[0], 'main': response.payload[1], 'motor': response.payload[2]}
