@@ -102,6 +102,8 @@ class RevvyApp:
         print("Prepare")
         try:
             self.set_master_status(self.master_status_stopped)
+            fw = self._interface.get_firmware_version()
+            print(fw)
             #print(self._robot_control.sensors)
             #print(self._robot_control.motors)
             return True

@@ -5,6 +5,7 @@ class RevvyControl:
     mcu_address = 0x2D
 
     command_ping = 0x00
+    command_get_firmware_version = 0x01
     command_set_master_status = 0x10
     command_set_bluetooth_status = 0x11
 
@@ -19,3 +20,7 @@ class RevvyControl:
 
     def set_bluetooth_connection_status(self, status):
         self._transport.send_command(CommandStart(self.command_set_bluetooth_status, [status]))
+
+    def get_firmware_version(self):
+        response = self._transport.send_command(CommandStart(self.command_get_firmware_version))
+        return "".join(map(chr, response.payload))
