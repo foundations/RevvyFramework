@@ -8,8 +8,8 @@ class RevvyControl:
     command_get_hardware_version = 0x01
     command_get_firmware_version = 0x02
     command_get_battery_status = 0x03
-    command_set_master_status = 0x10
-    command_set_bluetooth_status = 0x11
+    command_set_master_status = 0x04
+    command_set_bluetooth_status = 0x05
 
     def __init__(self, transport: RevvyTransport):
         self._transport = transport
