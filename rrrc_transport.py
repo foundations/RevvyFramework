@@ -234,7 +234,7 @@ class ResponseHeader:
     def __init__(self, data):
         self._status = data[0]
         self._payload_length = data[1]
-        self._payload_checksum = data[2] << 8 | data[3]
+        self._payload_checksum = int.from_bytes(data[2:4], byteorder='little')
         self._header_checksum = data[4]
 
     def validate_payload(self, payload):
@@ -244,7 +244,7 @@ class ResponseHeader:
         return len(header) >= self.length \
                and self._status == header[0] \
                and self._payload_length == header[1] \
-               and self._payload_checksum == header[2] << 8 | header[3] \
+               and self._payload_checksum == int.from_bytes(header[2:4], byteorder='little') \
                and self._header_checksum == header[4]
 
     @property
@@ -298,7 +298,7 @@ class RevvyTransport:
                         resend = True
                     else:
                         # TODO use different error
-                        raise BrokenPipeError('An error has happened. Error code {}'.format(header.status))
+                        raise BrokenPipeError('Send command: An error has happened. Error code {}'.format(header.status))
             return response
         finally:
             self._mutex.release()
@@ -309,25 +309,27 @@ class RevvyTransport:
         while not has_valid_response:
             retries = retries - 1
             if retries == 0:
-                raise BrokenPipeError('Retry limit reached')
+                raise BrokenPipeError('Read response header: Retry limit reached')
             header_bytes = self._transport.read(ResponseHeader.length)
             has_valid_response = ResponseHeader.is_valid_header(header_bytes)
         return ResponseHeader(header_bytes)
 
     def _read_payload(self, header, retries=5):
+        if header.payload_length == 0:
+            return []
+
         has_valid_payload = False
         payload = []
         while not has_valid_payload:
             retries = retries - 1
             if retries == 0:
-                raise BrokenPipeError('Retry limit reached')
+                raise BrokenPipeError('Read payload: Retry limit reached')
             response_bytes = self._transport.read(header.length + header.payload_length)
-            payload = response_bytes[ResponseHeader.length:]
-            has_valid_response = ResponseHeader.is_valid_header(response_bytes)
-            if has_valid_response:
+            if ResponseHeader.is_valid_header(response_bytes):
                 if not header.is_same_header(response_bytes):
-                    raise ValueError('Unexpected header received')
+                    raise ValueError('Read payload: Unexpected header received')
 
+                payload = response_bytes[ResponseHeader.length:]
                 has_valid_payload = header.validate_payload(payload)
         return payload
 
