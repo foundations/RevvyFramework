@@ -1,16 +1,5 @@
-import os, sys, time
-from threading import Thread
 from threading import Lock
-from ctypes import c_uint32, c_uint8, c_uint16, c_char, c_char_p, c_int, POINTER, Structure, Array, Union, \
-    create_string_buffer
-import array, fcntl, struct
-from fcntl import ioctl
-from singleton_decorator import singleton
-
-import ctypes
-from smbus2 import SMBus, i2c_msg, SMBusWrapper
-
-import pdb
+from smbus2 import SMBus, i2c_msg
 
 
 def crc16(data, crc=0xFFFF):
@@ -190,11 +179,16 @@ class Command:
 
 class CommandStart(Command):
     def __init__(self, command, payload=None):
+        self._command = command
         self._header = CommandHeader.start(command, payload)
         self._payload = payload if payload else []
 
     def as_byte_array(self):
         return self._header.as_byte_array() + self._payload
+
+    @property
+    def command(self):
+        return self._command
 
 
 class CommandGetResult(Command):
@@ -229,31 +223,51 @@ class ResponseHeader:
 
     length = 5
 
-    def __init__(self, data):
-        if len(data) < self.length:
-            raise ValueError('Data is too short ({} bytes instead of at least {}'.format(len(data), self.length))
+    @staticmethod
+    def is_valid_header(data):
+        if len(data) >= ResponseHeader.length:
+            checksum = crc7(data[0:ResponseHeader.length - 1])
+            return checksum == data[4]
 
+        return False
+
+    def __init__(self, data):
         self._status = data[0]
         self._payload_length = data[1]
         self._payload_checksum = data[2] << 8 | data[3]
         self._header_checksum = data[4]
 
-        checksum = crc7(data[0:self.length-1])
-        self._is_crc_valid = checksum == self._header_checksum
-
     def validate_payload(self, payload):
-        pass
+        return self._payload_checksum == crc16(payload, 0xFFFF)
+
+    def is_same_header(self, header):
+        return len(header) >= self.length \
+               and self._status == header[0] \
+               and self._payload_length == header[1] \
+               and self._payload_checksum == header[2] << 8 | header[3] \
+               and self._header_checksum == header[4]
 
     @property
-    def is_valid(self):
-        return self._is_crc_valid
+    def status(self):
+        return self._status
+
+    @property
+    def payload_length(self):
+        return self._payload_length
 
 
 class Response:
-    def __init__(self, data):
-        self._header = ResponseHeader(data[0:ResponseHeader.length])
-        self._payload = data[ResponseHeader.length:]
+    def __init__(self, header, payload):
+        self._header = header
+        self._payload = payload
 
+    @property
+    def header(self):
+        return self._header
+
+    @property
+    def payload(self):
+        return self._payload
 
 class RevvyTransport:
     def __init__(self, transport: RevvyTransportInterface):
@@ -264,20 +278,66 @@ class RevvyTransport:
         self._mutex.acquire()
         try:
             resend = True
+            response = None
             while resend:
                 resend = False
                 # send command and read back status
-                try:
-                    response_header = self._send_command(command)
-                    # process status
-                    print('Integrity OK' if response_header.is_valid else 'Integrity fail')
-                except ValueError:
-                    resend = True
+                header = self._send_command(command)
 
-                # read reply if appropriate
+                # wait for command execution to finish
+                while header.status == ResponseHeader.Status_Pending:
+                    header = self._send_command(CommandGetResult(command.command))
+
+                # check result
+                if header.status == ResponseHeader.Status_Ok:
+                    payload = self._read_payload(header)
+                    response = Response(header, payload)
+                else:
+                    if header.status == ResponseHeader.Status_Error_CommandIntegrityError:
+                        resend = True
+                    else:
+                        # TODO use different error
+                        raise BrokenPipeError('An error has happened. Error code {}'.format(header.status))
+            return response
         finally:
             self._mutex.release()
 
+    def _read_response_header(self, retries=5):
+        has_valid_response = False
+        header_bytes = []
+        while not has_valid_response:
+            retries = retries - 1
+            if retries == 0:
+                raise BrokenPipeError('Retry limit reached')
+            header_bytes = self._transport.read(ResponseHeader.length)
+            has_valid_response = ResponseHeader.is_valid_header(header_bytes)
+        return ResponseHeader(header_bytes)
+
+    def _read_payload(self, header, retries=5):
+        has_valid_payload = False
+        payload = []
+        while not has_valid_payload:
+            retries = retries - 1
+            if retries == 0:
+                raise BrokenPipeError('Retry limit reached')
+            response_bytes = self._transport.read(header.length + header.payload_length)
+            payload = response_bytes[ResponseHeader.length:]
+            has_valid_response = ResponseHeader.is_valid_header(response_bytes)
+            if has_valid_response:
+                if not header.is_same_header(response_bytes):
+                    raise ValueError('Unexpected header received')
+
+                has_valid_payload = header.validate_payload(payload)
+        return payload
+
     def _send_command(self, command):
+        """
+        Send a command, waits for a proper response and returns with the header
+        """
         self._transport.write(command.as_byte_array())
-        return ResponseHeader(self._transport.read(ResponseHeader.length))
+        busy = True
+        while busy:
+            response = self._read_response_header()
+            busy = response.status == ResponseHeader.Status_Busy
+            if not busy:
+                return response
