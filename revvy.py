@@ -98,7 +98,7 @@ class SuperchargeDemo(RevvyApp):
 
 
 def main():
-    with RevvyTransportI2C(0x2D) as robot_interface:
+    with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         startRevvy(SuperchargeDemo(robot_interface))
 
 
