@@ -151,7 +151,7 @@ class CommandHeader:
         if len(self._payload) > 255:
             raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(len(self._payload)))
 
-    def as_byte_array(self):
+    def get_bytes(self):
         header = [self._op, self._command, len(self._payload)]
         payload_checksum = crc16(self._payload)
         header += bytes(payload_checksum.to_bytes(2, byteorder='little'))
@@ -173,7 +173,7 @@ class CommandHeader:
 
 
 class Command:
-    def as_byte_array(self):
+    def get_bytes(self):
         raise NotImplementedError()
 
 
@@ -183,8 +183,8 @@ class CommandStart(Command):
         self._header = CommandHeader.start(command, payload)
         self._payload = payload if payload else []
 
-    def as_byte_array(self):
-        return self._header.as_byte_array() + self._payload
+    def get_bytes(self):
+        return self._header.get_bytes() + self._payload
 
     @property
     def command(self):
@@ -195,16 +195,16 @@ class CommandGetResult(Command):
     def __init__(self, command):
         self._header = CommandHeader.get_result(command)
 
-    def as_byte_array(self):
-        return self._header.as_byte_array()
+    def get_bytes(self):
+        return self._header.get_bytes()
 
 
 class CommandCancel(Command):
     def __init__(self, command):
         self._header = CommandHeader.cancel(command)
 
-    def as_byte_array(self):
-        return self._header.as_byte_array()
+    def get_bytes(self):
+        return self._header.get_bytes()
 
 
 class ResponseHeader:
@@ -331,11 +331,11 @@ class RevvyTransport:
                 has_valid_payload = header.validate_payload(payload)
         return payload
 
-    def _send_command(self, command):
+    def _send_command(self, command: Command):
         """
         Send a command, waits for a proper response and returns with the header
         """
-        self._transport.write(command.as_byte_array())
+        self._transport.write(command.get_bytes())
         busy = True
         while busy:
             response = self._read_response_header()
