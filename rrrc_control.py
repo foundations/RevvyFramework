@@ -6,6 +6,7 @@ class RevvyControl:
 
     command_ping = 0x00
     command_get_firmware_version = 0x01
+    command_get_battery_status = 0x02
     command_set_master_status = 0x10
     command_set_bluetooth_status = 0x11
 
@@ -24,3 +25,7 @@ class RevvyControl:
     def get_firmware_version(self):
         response = self._transport.send_command(CommandStart(self.command_get_firmware_version))
         return "".join(map(chr, response.payload))
+
+    def get_battery_status(self):
+        response = self._transport.send_command(CommandStart(self.command_get_battery_status))
+        return {'chargerStatus': response.payload[0], 'main': response.payload[1], 'motor': response.payload[2]}

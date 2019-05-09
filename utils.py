@@ -204,6 +204,7 @@ class RevvyApp:
                     if not self._stop:
                         self.run()
                         self._interface.ping()
+                        print(self._interface.get_battery_status())
             except Exception as e:
                 print("Oops! {}".format(e))
             finally:
