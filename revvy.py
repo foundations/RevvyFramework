@@ -69,8 +69,8 @@ class SuperchargeDemo(RevvyApp):
     def init(self):
         status = True
 
-        status = status and self.configureMotor(self._motorFL, "good", "speed")
-        status = status and self.configureMotor(self._motorFR, "good", "speed")
+        #status = status and self.configureMotor(self._motorFL, "good", "speed")
+        #status = status and self.configureMotor(self._motorFR, "good", "speed")
 
         return status
 
@@ -93,8 +93,8 @@ class SuperchargeDemo(RevvyApp):
         vec_len = math.sqrt(x * x + y * y) * 100
         (sl, sr) = differentialControl(vec_len, vec_angle)
 
-        self._robot_control.motor_set_state(self._motorFL, int(sl * self._maxVl))
-        self._robot_control.motor_set_state(self._motorFR, int(sr * self._maxVr))
+        #self._robot_control.motor_set_state(self._motorFL, int(sl * self._maxVl))
+        #self._robot_control.motor_set_state(self._motorFR, int(sr * self._maxVr))
 
 
 def main():

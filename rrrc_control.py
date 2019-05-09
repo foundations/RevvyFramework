@@ -1,11 +1,21 @@
-import rrrc_transport
-
-BUS_DEV_NAME = "/dev/i2c-1"
-RRRC_BOARD_I2CADDR = 0x2D
+from rrrc_transport import RevvyTransport, Command, CommandStart, Response, ResponseHeader
 
 
-class rrrc_control(object):
+class RevvyControl:
+    mcu_address = 0x2D
 
-    def __init__(self):
-        pass
+    command_ping = 0x00
+    command_set_master_status = 0x10
+    command_set_bluetooth_status = 0x11
 
+    def __init__(self, transport: RevvyTransport):
+        self._transport = transport
+
+    def ping(self):
+        self._transport.send_command(CommandStart(self.command_ping))
+
+    def set_master_status(self, status):
+        self._transport.send_command(CommandStart(self.command_set_master_status, [status]))
+
+    def set_bluetooth_connection_status(self, status):
+        self._transport.send_command(CommandStart(self.command_set_bluetooth_status, [status]))

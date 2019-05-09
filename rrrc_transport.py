@@ -257,7 +257,7 @@ class ResponseHeader:
 
 
 class Response:
-    def __init__(self, header, payload):
+    def __init__(self, header: ResponseHeader, payload):
         self._header = header
         self._payload = payload
 
@@ -268,6 +268,7 @@ class Response:
     @property
     def payload(self):
         return self._payload
+
 
 class RevvyTransport:
     def __init__(self, transport: RevvyTransportInterface):

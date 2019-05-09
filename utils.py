@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import math
-import rrrc_control as rrrc_control
 from threading import Lock, Event
 from threading import Thread
 import sys
@@ -11,6 +10,7 @@ from ble_revvy import *
 import functools
 
 from rrrc_transport import *
+from rrrc_control import RevvyControl
 
 
 def empty_callback():
@@ -74,6 +74,10 @@ class RevvyApp:
     LED_RING_OFF = 0
     LED_RING_COLOR_WHEEL = 6
 
+    master_status_stopped = 0
+    master_status_operational = 1
+    master_status_operational_controlled = 2
+
     _robot_control = None
     # index: logical number; value: physical number
     motorPortMap = [-1, 3, 4, 5, 2, 1, 0]
@@ -85,18 +89,19 @@ class RevvyApp:
     event = Event()
 
     def __init__(self, interface):
-        self._interface = RevvyTransport(interface)
+        self._interface = RevvyControl(RevvyTransport(interface))
         self._buttons = [NullHandler()] * 32
         self._buttonData = [False] * 32
         self._analogInputs = [NullHandler()] * 10
         self._analogData = [128] * 10
         self._stop = False
         self._missedKeepAlives = 0
-        self._isConnected = False
+        self._is_connected = False
 
     def prepare(self):
         print("Prepare")
         try:
+            self.set_master_status(self.master_status_stopped)
             #print(self._robot_control.sensors)
             #print(self._robot_control.motors)
             return True
@@ -104,17 +109,9 @@ class RevvyApp:
             print("Prepare error: ", e)
             return False
 
-    def indicateStopped(self):
-        if self._robot_control:
-            self._robot_control.indicator_set_led(3, 0x10, 0, 0)
-
-    def indicateCommFailure(self):
-        if self._robot_control:
-            self._robot_control.indicator_set_led(3, 0x10, 0x05, 0)
-
-    def indicateWorking(self):
-        if self._robot_control:
-            self._robot_control.indicator_set_led(3, 0, 0x10, 0)
+    def set_master_status(self, status):
+        if self._interface:
+            self._interface.set_master_status(status)
 
     def setLedRingMode(self, mode):
         if self._robot_control:
@@ -123,7 +120,7 @@ class RevvyApp:
     def deinitBrain(self):
         print("deInit")
         if self._robot_control:
-            self.indicateStopped()
+            self.set_master_status(self.master_status_stopped)
             self.setLedRingMode(self.LED_RING_OFF)
             self._robot_control.indicator_set_led(2, 0, 0, 0)
 
@@ -155,7 +152,7 @@ class RevvyApp:
     def _setupRobot(self):
         status = _retry(self.prepare)
         if status:
-            self.indicateStopped()
+            self.set_master_status(self.master_status_stopped)
             status = _retry(self.init)
             if not status:
                 print('Init failed')
@@ -165,12 +162,6 @@ class RevvyApp:
         return status
 
     def handle(self):
-        while not self._stop:
-            command = CommandStart(0x00)
-            self._interface.send_command(command)
-            time.sleep(0.1)
-
-    def foo(self):
         comm_missing = True
         while not self._stop:
             try:
@@ -179,8 +170,8 @@ class RevvyApp:
 
                 if status:
                     print("Init ok")
-                    self.indicateCommFailure()
-                    self._updateConnectionIndication()
+                    self.set_master_status(self.master_status_operational)
+                    self._update_ble_connection_indication()
                     self._missedKeepAlives = -1
                 else:
                     print("Init failed")
@@ -199,17 +190,18 @@ class RevvyApp:
                             self.handleAnalogValues(analog_data)
                             self.handleButton(button_data)
                             if comm_missing:
-                                self.indicateWorking()
+                                self.set_master_status(self.master_status_operational_controlled)
                                 comm_missing = False
                     else:
                         if not self._checkKeepAlive():
                             if not comm_missing:
-                                self.indicateCommFailure()
+                                self.set_master_status(self.master_status_operational)
                                 comm_missing = True
                             restart = True
 
                     if not self._stop:
                         self.run()
+                        self._interface.ping()
             except Exception as e:
                 print("Oops! {}".format(e))
             finally:
@@ -242,17 +234,17 @@ class RevvyApp:
         self.mutex.release()
 
     def _onConnectionChanged(self, is_connected):
-        if is_connected != self._isConnected:
+        if is_connected != self._is_connected:
             print('Connected' if is_connected else 'Disconnected')
-            self._isConnected = is_connected
-            self._updateConnectionIndication()
+            self._is_connected = is_connected
+            self._update_ble_connection_indication()
 
-    def _updateConnectionIndication(self):
-        if self._robot_control:
-            if self._isConnected:
-                self._robot_control.indicator_set_led(2, 0, 0x10, 0x10)
+    def _update_ble_connection_indication(self):
+        if self._interface:
+            if self._is_connected:
+                self._interface.set_bluetooth_connection_status(1)
             else:
-                self._robot_control.indicator_set_led(2, 0, 0, 0)
+                self._interface.set_bluetooth_connection_status(0)
 
     def register(self, revvy):
         print('Registering callbacks')
@@ -264,7 +256,7 @@ class RevvyApp:
         revvy.registerConnectionChangedHandler(self._onConnectionChanged)
 
     def init(self):
-        pass
+        return True
 
     def run(self):
         pass
