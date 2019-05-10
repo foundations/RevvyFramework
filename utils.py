@@ -128,6 +128,32 @@ class SpeedControlledMotorController(MotorController):
         self._interface.set_motor_port_control_value(self._port_idx, list(struct.pack(">f", speed)))
 
 
+class SensorPort:
+    def __init__(self, interface: RevvyControl, port_idx):
+        self._interface = interface
+        self._port_idx = port_idx
+
+
+class BumperSwitch(SensorPort):
+    def __init__(self, interface: RevvyControl, port_idx):
+        super().__init__(interface, port_idx)
+        self._interface.set_sensor_port_type(port_idx, 1)
+
+    def is_pressed(self):
+        result = self._interface.get_sensor_port_value(self._port_idx)
+        return result[0] == 1
+
+
+class HcSr04(SensorPort):
+    def __init__(self, interface: RevvyControl, port_idx):
+        super().__init__(interface, port_idx)
+        self._interface.set_sensor_port_type(port_idx, 2)
+
+    def get_distance(self):
+        result = self._interface.get_sensor_port_value(self._port_idx)
+        return int.from_bytes(result, byteorder='little')
+
+
 class RevvyApp:
     LED_RING_OFF = 0
     LED_RING_COLOR_WHEEL = 6
@@ -155,6 +181,7 @@ class RevvyApp:
         self._stop = False
         self._missedKeepAlives = 0
         self._is_connected = False
+        self._ultrasound = None
 
     def prepare(self):
         print("Prepare")
@@ -171,11 +198,9 @@ class RevvyApp:
             print("Motor port types:\n{}".format(motor_port_types))
             print("Sensor port types:\n{}".format(sensor_port_types))
 
-            motor = PositionControlledMotorController(self._interface, 3)
-            #motor.set_max_speed(20)
-            motor.set_position(25)
-            #print(self._robot_control.sensors)
-            #print(self._robot_control.motors)
+            self._ultrasound = HcSr04(self._interface, 0)
+
+            print("Init done")
             return True
         except Exception as e:
             print("Prepare error: ", e)
@@ -266,7 +291,8 @@ class RevvyApp:
                     if not self._stop:
                         self.run()
                         self._interface.ping()
-                        print(self._interface.get_battery_status())
+                        print(self._ultrasound.get_distance())
+                        #print(self._interface.get_battery_status())
             except Exception as e:
                 print("Oops! {}".format(e))
             finally:
