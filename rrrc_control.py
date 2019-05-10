@@ -27,9 +27,13 @@ class RevvyControl:
 
     command_get_motor_port_amount = 0x10
     command_get_motor_port_types = 0x11
+    command_set_motor_port_type = 0x12
+    command_set_motor_port_config = 0x13
 
     command_get_sensor_port_amount = 0x20
     command_get_sensor_port_types = 0x21
+    command_set_sensor_port_type = 0x22
+    command_set_sensor_port_config = 0x23
 
     def __init__(self, transport: RevvyTransport):
         self._transport = transport
@@ -67,6 +71,9 @@ class RevvyControl:
         response = self._transport.send_command(self.command_get_motor_port_types)
         return parse_string_list(response.payload)
 
+    def set_motor_port_type(self, port_idx, type_idx):
+        self._transport.send_command(self.command_set_motor_port_type, [port_idx, type_idx])
+
     # sensor commands
 
     def get_sensor_port_amount(self):
@@ -76,6 +83,9 @@ class RevvyControl:
     def get_sensor_port_types(self):
         response = self._transport.send_command(self.command_get_sensor_port_types)
         return parse_string_list(response.payload)
+
+    def set_sensor_port_type(self, port_idx, type_idx):
+        self._transport.send_command(self.command_set_sensor_port_type, [port_idx, type_idx])
 
     # ring led commands
 
