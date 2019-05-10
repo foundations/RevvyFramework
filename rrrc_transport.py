@@ -140,8 +140,9 @@ class RevvyTransportI2C:
 
 class CommandHeader:
     OpStart = 0
-    OpGetResult = 1
-    OpCancel = 2
+    OpRestart = 1
+    OpGetResult = 2
+    OpCancel = 3
 
     def __init__(self, op, command, payload=None):
         self._op = op
@@ -221,6 +222,20 @@ class ResponseHeader:
     Status_Error_CommandError = 9
     Status_Error_InternalError = 10
 
+    StatusStrings = [
+            "Ok",
+            "Busy",
+            "Pending",
+            "Unknown operation",
+            "Invalid operation",
+            "Command integrity error",
+            "Payload integrity error",
+            "Payload length error",
+            "Unknown command",
+            "Command error",
+            "Internal error"
+        ]
+
     length = 5
 
     @staticmethod
@@ -291,14 +306,15 @@ class RevvyTransport:
 
                 # check result
                 if header.status == ResponseHeader.Status_Ok:
-                    payload = self._read_payload(header)
-                    response = Response(header, payload)
+                    response_payload = self._read_payload(header)
+                    response = Response(header, response_payload)
                 else:
                     if header.status == ResponseHeader.Status_Error_CommandIntegrityError:
                         resend = True
                     else:
                         # TODO use different error
-                        raise BrokenPipeError('Send command: An error has happened. Error code {}'.format(header.status))
+                        error_string = ResponseHeader.StatusStrings[header.status] if header.status < len(ResponseHeader.StatusStrings) else "Unknown status"
+                        raise BrokenPipeError('Send command: {}. Error code {}'.format(error_string, header.status))
             return response
         finally:
             self._mutex.release()

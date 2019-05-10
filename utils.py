@@ -112,6 +112,11 @@ class RevvyApp:
             print("Motor ports: {}\nSensor ports: {}".format(motor_port_amount, sensor_port_amount))
             print("Motor port types:\n{}".format(motor_port_types))
             print("Sensor port types:\n{}".format(sensor_port_types))
+
+            print("Set motor type")
+            self._interface.set_motor_port_type(3, 1)
+            print("Set motor control value")
+            self._interface.set_motor_port_control_value(3, [25])
             #print(self._robot_control.sensors)
             #print(self._robot_control.motors)
             return True
