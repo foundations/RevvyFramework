@@ -70,6 +70,64 @@ def _retry(fn, retries=5):
     return status
 
 
+class MotorController:
+    def __init__(self, interface: RevvyControl, port_idx):
+        self._interface = interface
+        self._port_idx = port_idx
+
+
+class OpenLoopMotorController(MotorController):
+    def __init__(self, interface, port_idx):
+        super().__init__(interface, port_idx)
+        self._interface.set_motor_port_type(port_idx, 1)
+
+    def set_speed(self, speed):
+        speed = clip(speed, -100, 100)
+        self._interface.set_motor_port_control_value(self._port_idx, [speed])
+
+    def set_max_speed(self, speed):
+        speed = clip(speed, 0, 100)
+        self._interface.set_motor_port_config(self._port_idx, [speed, 256 - speed])
+
+
+class PositionControlledMotorController(MotorController):
+    def __init__(self, interface, port_idx):
+        super().__init__(interface, port_idx)
+        self._interface.set_motor_port_type(port_idx, 3)
+        self._config = [1.5, 0.02, 0, -80, 80]
+        self._update_config()
+
+    def _update_config(self):
+        (p, i, d, ll, ul) = self._config
+        config = list(struct.pack(">{}".format("f" * 5), p, i, d, ll, ul))
+        self._interface.set_motor_port_config(self._port_idx, config)
+
+    def set_position(self, pos: int):
+        self._interface.set_motor_port_control_value(self._port_idx, list(pos.to_bytes(4, byteorder='big')))
+
+
+class SpeedControlledMotorController(MotorController):
+    def __init__(self, interface, port_idx):
+        super().__init__(interface, port_idx)
+        self._interface.set_motor_port_type(port_idx, 2)
+        self._config = [5, 0.25, 0, -90, 90]
+        self._update_config()
+
+    def _update_config(self):
+        (p, i, d, ll, ul) = self._config
+        config = list(struct.pack(">{}".format("f" * 5), p, i, d, ll, ul))
+        self._interface.set_motor_port_config(self._port_idx, config)
+
+    def set_max_speed(self, speed):
+        speed = clip(speed, 0, 100)
+        self._config[3] = -speed
+        self._config[4] = speed
+        self._update_config()
+
+    def set_speed(self, speed):
+        self._interface.set_motor_port_control_value(self._port_idx, list(struct.pack(">f", speed)))
+
+
 class RevvyApp:
     LED_RING_OFF = 0
     LED_RING_COLOR_WHEEL = 6
@@ -113,10 +171,9 @@ class RevvyApp:
             print("Motor port types:\n{}".format(motor_port_types))
             print("Sensor port types:\n{}".format(sensor_port_types))
 
-            print("Set motor type")
-            self._interface.set_motor_port_type(3, 1)
-            print("Set motor control value")
-            self._interface.set_motor_port_control_value(3, [25])
+            motor = PositionControlledMotorController(self._interface, 3)
+            #motor.set_max_speed(20)
+            motor.set_position(25)
             #print(self._robot_control.sensors)
             #print(self._robot_control.motors)
             return True
@@ -151,14 +208,6 @@ class RevvyApp:
                 pass
 
         self._robot_control = None
-
-    def setMotorPid(self, motor, pid):
-        if pid is None:
-            return True
-        else:
-            (p, i, d, ll, ul) = pid
-            pid_config = bytearray(struct.pack(">{}".format("f" * 5), p, i, d, ll, ul))
-            return self._robot_control.motor_set_config(motor, pid_config)
 
     def handleButton(self, data):
         for i in range(len(self._buttons)):
