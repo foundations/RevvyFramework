@@ -154,15 +154,23 @@ class HcSr04(SensorPort):
         return int.from_bytes(result, byteorder='little')
 
 
-class RevvyApp:
+class RingLed:
     LED_RING_OFF = 0
     LED_RING_COLOR_WHEEL = 6
+
+    def __init__(self, interface: RevvyControl):
+        self._interface = interface
+
+    def set_scenario(self, scenario):
+        self._interface.ring_led_set_scenario(scenario)
+
+
+class RevvyApp:
 
     master_status_stopped = 0
     master_status_operational = 1
     master_status_operational_controlled = 2
 
-    _robot_control = None
     # index: logical number; value: physical number
     motorPortMap = [-1, 3, 4, 5, 2, 1, 0]
 
@@ -182,6 +190,7 @@ class RevvyApp:
         self._missedKeepAlives = 0
         self._is_connected = False
         self._ultrasound = None
+        self._ring_led = None
 
     def prepare(self):
         print("Prepare")
@@ -199,6 +208,7 @@ class RevvyApp:
             print("Sensor port types:\n{}".format(sensor_port_types))
 
             self._ultrasound = HcSr04(self._interface, 0)
+            self._ring_led = RingLed(self._interface)
 
             print("Init done")
             return True
@@ -211,34 +221,14 @@ class RevvyApp:
             self._interface.set_master_status(status)
 
     def setLedRingMode(self, mode):
-        if self._robot_control:
-            self._robot_control.ring_led_set_scenario(mode)
-
-    def deinitBrain(self):
-        print("deInit")
-        if self._robot_control:
-            self.set_master_status(self.master_status_stopped)
-            self.setLedRingMode(self.LED_RING_OFF)
-            self._robot_control.indicator_set_led(2, 0, 0, 0)
-
-            # robot deInit
-            try:
-                for i in range(0, 6):
-                    status = self._robot_control.motor_set_type(self.motorPortMap[i + 1],
-                                                                self._robot_control.motors["MOTOR_NO_SET"])
-                for i in range(0, 4):
-                    status = self._robot_control.sensor_set_type(self.sensorPortMap[i + 1],
-                                                                 self._robot_control.sensors["NO_SET"])
-            except:
-                pass
-
-        self._robot_control = None
+        if self._ring_led:
+            self._ring_led.set_scenario(mode)
 
     def handleButton(self, data):
         for i in range(len(self._buttons)):
             self._buttons[i].handle(data[i])
 
-    def _setupRobot(self):
+    def _setup_robot(self):
         status = _retry(self.prepare)
         if status:
             self.set_master_status(self.master_status_stopped)
@@ -255,7 +245,7 @@ class RevvyApp:
         while not self._stop:
             try:
                 restart = False
-                status = _retry(self._setupRobot)
+                status = _retry(self._setup_robot)
 
                 if status:
                     print("Init ok")
@@ -295,8 +285,6 @@ class RevvyApp:
                         #print(self._interface.get_battery_status())
             except Exception as e:
                 print("Oops! {}".format(e))
-            finally:
-                self.deinitBrain()
 
     def handleAnalogValues(self, analog_values):
         pass

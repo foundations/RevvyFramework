@@ -62,8 +62,8 @@ class SuperchargeDemo(RevvyApp):
         self._ledMode = 0
 
         button_led = ToggleButton()
-        button_led.onEnabled(lambda: self.setLedRingMode(RevvyApp.LED_RING_COLOR_WHEEL))
-        button_led.onDisabled(lambda: self.setLedRingMode(RevvyApp.LED_RING_OFF))
+        button_led.onEnabled(lambda: self.setLedRingMode(RingLed.LED_RING_COLOR_WHEEL))
+        button_led.onDisabled(lambda: self.setLedRingMode(RingLed.LED_RING_OFF))
         self._buttons[0] = button_led
 
     def init(self):
@@ -71,14 +71,6 @@ class SuperchargeDemo(RevvyApp):
 
         #status = status and self.configureMotor(self._motorFL, "good", "speed")
         #status = status and self.configureMotor(self._motorFR, "good", "speed")
-
-        return status
-
-    def configureMotor(self, motor, motor_type, control_type):
-        status = self._robot_control.motor_set_type(motor, self._robot_control.motors[motorTypeMap[control_type]])
-        status = status and self._robot_control.motor_set_state(motor, 0)
-        if controlTypeMap[control_type]:
-            status = status and self.setMotorPid(motor, controlTypeMap[control_type][motor_type])
 
         return status
 

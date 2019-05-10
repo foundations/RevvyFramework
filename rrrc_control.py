@@ -37,6 +37,9 @@ class RevvyControl:
     command_set_sensor_port_config = 0x23
     command_get_sensor_port_value = 0x24
 
+    command_get_ring_led_scenario_types = 0x30
+    command_set_ring_led_scenario = 0x31
+
     def __init__(self, transport: RevvyTransport):
         self._transport = transport
 
@@ -105,3 +108,9 @@ class RevvyControl:
 
     # ring led commands
 
+    def ring_led_get_scenario_types(self):
+        response = self._transport.send_command(self.command_get_ring_led_scenario_types)
+        return parse_string_list(response.payload)
+
+    def ring_led_set_scenario(self, scenario):
+        self._transport.send_command(self.command_set_ring_led_scenario, [scenario])

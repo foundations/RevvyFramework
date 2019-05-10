@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 import array
 
-import pybleno
 from functools import reduce
-from pybleno import Characteristic
+from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 
 
 # Device communication related services
-class BrainToMobileCharacteristic(pybleno.Characteristic):
+class BrainToMobileCharacteristic(Characteristic):
     def __init__(self):
         super().__init__({
             'uuid':       'd59bb321-7218-4fb9-abac-2f6814f31a4d',
@@ -16,7 +15,7 @@ class BrainToMobileCharacteristic(pybleno.Characteristic):
         })
 
 
-class MobileToBrainCharacteristic(pybleno.Characteristic):
+class MobileToBrainCharacteristic(Characteristic):
     def __init__(self):
         super().__init__({
             'uuid':       'b81239d9-260b-4945-bcfe-8b1ef1fc2879',
@@ -25,9 +24,9 @@ class MobileToBrainCharacteristic(pybleno.Characteristic):
         })
 
 
-class LongMessageService(pybleno.BlenoPrimaryService):
+class LongMessageService(BlenoPrimaryService):
     def __init__(self):
-        pybleno.BlenoPrimaryService.__init__(self, {
+        BlenoPrimaryService.__init__(self, {
             'uuid':            '97148a03-5b9d-11e9-8647-d663bd873d93',
             'characteristics': [
                 BrainToMobileCharacteristic(),
@@ -35,7 +34,7 @@ class LongMessageService(pybleno.BlenoPrimaryService):
             ]})
 
 
-class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
+class MobileToBrainFunctionCharacteristic(Characteristic):
     def __init__(self, uuid, min_length, max_length, description, callback):
         self._callbackFn = callback
         self._minLength = min_length
@@ -45,7 +44,7 @@ class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
             'properties':  ['write'],
             'value':       None,
             'descriptors': [
-                pybleno.Descriptor({
+                Descriptor({
                     'uuid':  '2901',
                     'value': description
                 }),
@@ -57,14 +56,14 @@ class MobileToBrainFunctionCharacteristic(pybleno.Characteristic):
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
 
         if len(data) < self._minLength or len(data) > self._maxLength:
-            callback(pybleno.Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+            callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         elif self._callbackFn(data):
-            callback(pybleno.Characteristic.RESULT_SUCCESS)
+            callback(Characteristic.RESULT_SUCCESS)
         else:
-            callback(pybleno.Characteristic.RESULT_UNLIKELY_ERROR)
+            callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
-class BrainToMobileFunctionCharacteristic(pybleno.Characteristic):
+class BrainToMobileFunctionCharacteristic(Characteristic):
     def __init__(self, description, uuid):
         self._value = None
         self._updateValueCallback = None
@@ -73,7 +72,7 @@ class BrainToMobileFunctionCharacteristic(pybleno.Characteristic):
             'properties':  ['read', 'notify'],
             'value':       None,
             'descriptors': [
-                pybleno.Descriptor({
+                Descriptor({
                     'uuid':  '2901',
                     'value': description
                 }),
@@ -99,7 +98,7 @@ class BrainToMobileFunctionCharacteristic(pybleno.Characteristic):
             self._updateValueCallback(self._value)
 
 
-class LiveMessageService(pybleno.BlenoPrimaryService):
+class LiveMessageService(BlenoPrimaryService):
     def __init__(self):
         def empty_fn(x): pass
 
@@ -172,7 +171,7 @@ class LiveMessageService(pybleno.BlenoPrimaryService):
 
 
 # Device Information Service
-class ReadOnlyCharacteristic(pybleno.Characteristic):
+class ReadOnlyCharacteristic(Characteristic):
     def __init__(self, uuid, value):
         super().__init__({
             'uuid':       uuid,
@@ -216,7 +215,7 @@ class SystemIdCharacteristic(ReadOnlyCharacteristic):
         super().__init__('2A23', system_id)
 
 
-class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
+class RevvyDeviceInforrmationService(BlenoPrimaryService):
     def __init__(self, device_name):
         super().__init__({
             'uuid':            '180A',
@@ -232,18 +231,18 @@ class RevvyDeviceInforrmationService(pybleno.BlenoPrimaryService):
 
 
 # BLE SIG battery service, that is differentiated via Characteristic Presentation Format
-class BatteryLevelCharacteristic(pybleno.Characteristic):
+class BatteryLevelCharacteristic(Characteristic):
     def __init__(self, description, char_id):
         super().__init__({
             'uuid':        '2A19',
             'properties':  ['read', 'notify'],
             'value':       None,
             'descriptors': [
-                pybleno.Descriptor({
+                Descriptor({
                     'uuid':  '2901',
                     'value': description
                 }),
-                pybleno.Descriptor({
+                Descriptor({
                     'uuid':  '2904',
                     'value': array.array('B', [0x04, 0x01, 0x27, 0xAD, 0x02, 0x00, char_id])
                     # unsigned 8 bit, descriptor defined by RR
@@ -252,7 +251,7 @@ class BatteryLevelCharacteristic(pybleno.Characteristic):
         })
 
 
-class BatteryService(pybleno.BlenoPrimaryService):
+class BatteryService(BlenoPrimaryService):
     def __init__(self, description, char_id):
         super().__init__({
             'uuid':            '180F',
@@ -262,14 +261,14 @@ class BatteryService(pybleno.BlenoPrimaryService):
 
 
 # Custom battery service that contains 2 characteristics
-class CustomBatteryLevelCharacteristic(pybleno.Characteristic):
+class CustomBatteryLevelCharacteristic(Characteristic):
     def __init__(self, uuid, description):
         super().__init__({
             'uuid':        uuid,
             'properties':  ['read', 'notify'],
             'value':       None,  # needs to be None because characteristic is not constant value
             'descriptors': [
-                pybleno.Descriptor({
+                Descriptor({
                     'uuid':  '2901',
                     'value': description
                 })
@@ -298,7 +297,7 @@ class CustomBatteryLevelCharacteristic(pybleno.Characteristic):
             self._updateValueCallback(self._value)
 
 
-class CustomBatteryService(pybleno.BlenoPrimaryService):
+class CustomBatteryService(BlenoPrimaryService):
     def __init__(self):
         self._mainBattery = CustomBatteryLevelCharacteristic('2A19', 'Main battery percentage')
         self._motorBattery = CustomBatteryLevelCharacteristic('00002a19-0000-1000-8000-00805f9b34fa',
@@ -339,7 +338,7 @@ class RevvyBLE:
             self._liveMessageService['uuid']
         ]
 
-        self._bleno = pybleno.Bleno()
+        self._bleno = Bleno()
         self._bleno.on('stateChange', self.onStateChange)
         self._bleno.on('advertisingStart', self.onAdvertisingStart)
 
@@ -352,14 +351,14 @@ class RevvyBLE:
             self._bleno.stopAdvertising()
 
     def onAdvertisingStart(self, error):
-        print('on -> advertisingStart: ' + ('error ' + str(error) if error else 'success'))
+        print('on -> advertisingStart: {0}'.format(('error ' + str(error) if error else 'success')))
 
         if not error:
             print('setServices')
 
             # noinspection PyShadowingNames
             def on_set_service_error(error):
-                print('setServices: %s' % ('error ' + str(error) if error else 'success'))
+                print('setServices: {}'.format('error ' + str(error) if error else 'success'))
 
             self._bleno.setServices(self._services, on_set_service_error)
 
