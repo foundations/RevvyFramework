@@ -268,11 +268,12 @@ class RevvyApp:
 
 
 def startRevvy(app):
-    t1 = Thread(target=app.handle, args=())
-    t1.start()
     service_name = 'Revvy_{}'.format(getserial().lstrip('0'))
     revvy = RevvyBLE(service_name)
     app.register(revvy)
+
+    t1 = Thread(target=app.handle, args=())
+    t1.start()
 
     try:
         revvy.start()
