@@ -294,7 +294,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
         self._value = value
 
         if self._updateValueCallback:
-            self._updateValueCallback(self._value)
+            self._updateValueCallback([value])
 
 
 class CustomBatteryService(BlenoPrimaryService):

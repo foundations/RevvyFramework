@@ -100,6 +100,8 @@ class RevvyApp:
         self._ring_led = None
         self._motor_ports = None
         self._sensor_ports = None
+        self._ble_interface = None
+        self._status_update_step = 0
 
     def prepare(self):
         print("Prepare")
@@ -156,6 +158,8 @@ class RevvyApp:
                     print("Init failed")
                     restart = True
 
+                self._status_update_step = 0
+
                 while not self._stop and not restart:
                     if self.event.wait(0.1):
                         # print('Packet received')
@@ -180,7 +184,7 @@ class RevvyApp:
 
                     if not self._stop:
                         self.run()
-                        self._interface.ping()
+                        self.update_status()
             except Exception as e:
                 print("Oops! {}".format(e))
 
@@ -235,12 +239,29 @@ class RevvyApp:
             revvy.registerButtonHandler(i, functools.partial(self._update_button, channel=i))
         revvy.registerKeepAliveHandler(self._handle_keepalive)
         revvy.registerConnectionChangedHandler(self._on_connection_changed)
+        self._ble_interface = revvy
 
     def init(self):
         return True
 
     def run(self):
         pass
+
+    def update_status(self):
+        """
+        Periodically read device status, small pieces of data at a time
+        """
+        if self._status_update_step == 0:
+            battery = self._interface.get_battery_status()
+            self._ble_interface.updateMainBattery(battery['main'])
+            self._ble_interface.updateMotorBattery(battery['motor'])
+        else:
+            self._interface.ping()
+
+        if self._status_update_step == 1:
+            self._status_update_step = 0
+        else:
+            self._status_update_step = self._status_update_step + 1
 
 
 def startRevvy(app):
