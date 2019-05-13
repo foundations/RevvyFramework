@@ -184,6 +184,7 @@ class RevvyApp:
                                 self.set_master_status(self.master_status_operational)
                                 comm_missing = True
                             restart = True
+                            time.sleep(1)
 
                     if not self._stop:
                         self.run()
