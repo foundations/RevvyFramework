@@ -156,7 +156,7 @@ class HcSr04(SensorPort):
 
 class RingLed:
     LED_RING_OFF = 0
-    LED_RING_COLOR_WHEEL = 6
+    LED_RING_COLOR_WHEEL = 2
 
     def __init__(self, interface: RevvyControl):
         self._interface = interface
@@ -209,6 +209,8 @@ class RevvyApp:
 
             self._ultrasound = HcSr04(self._interface, 0)
             self._ring_led = RingLed(self._interface)
+
+            self._ring_led.set_scenario(RingLed.LED_RING_COLOR_WHEEL)
 
             print("Init done")
             return True
