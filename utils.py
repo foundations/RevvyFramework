@@ -4,13 +4,12 @@ import math
 from threading import Lock, Event
 from threading import Thread
 import sys
-import struct
 import time
 from ble_revvy import *
 import functools
 
 from rrrc_transport import *
-from rrrc_control import RevvyControl
+from motor_controllers import *
 
 
 def empty_callback():
@@ -20,20 +19,6 @@ def empty_callback():
 class NullHandler:
     def handle(self, value):
         pass
-
-
-def clip(x, min_x, max_x):
-    if x < min_x:
-        return min_x
-    if x > max_x:
-        return max_x
-    return x
-
-
-def map_values(x, min_x, max_x, min_y, max_y):
-    full_scale_in = max_x - min_x
-    full_scale_out = max_y - min_y
-    return (x - min_x) * (full_scale_out / full_scale_in) + min_y
 
 
 def differentialControl(r, angle):
@@ -68,90 +53,6 @@ def _retry(fn, retries=5):
         retry_num = retry_num + 1
 
     return status
-
-
-class MotorController:
-    def __init__(self, interface: RevvyControl, port_idx):
-        self._interface = interface
-        self._port_idx = port_idx
-
-
-class OpenLoopMotorController(MotorController):
-    def __init__(self, interface, port_idx):
-        super().__init__(interface, port_idx)
-        self._interface.set_motor_port_type(port_idx, 1)
-
-    def set_speed(self, speed):
-        speed = clip(speed, -100, 100)
-        self._interface.set_motor_port_control_value(self._port_idx, [speed])
-
-    def set_max_speed(self, speed):
-        speed = clip(speed, 0, 100)
-        self._interface.set_motor_port_config(self._port_idx, [speed, 256 - speed])
-
-
-class PositionControlledMotorController(MotorController):
-    def __init__(self, interface, port_idx):
-        super().__init__(interface, port_idx)
-        self._interface.set_motor_port_type(port_idx, 3)
-        self._config = [1.5, 0.02, 0, -80, 80]
-        self._update_config()
-
-    def _update_config(self):
-        (p, i, d, ll, ul) = self._config
-        config = list(struct.pack(">{}".format("f" * 5), p, i, d, ll, ul))
-        self._interface.set_motor_port_config(self._port_idx, config)
-
-    def set_position(self, pos: int):
-        self._interface.set_motor_port_control_value(self._port_idx, list(pos.to_bytes(4, byteorder='big')))
-
-
-class SpeedControlledMotorController(MotorController):
-    def __init__(self, interface, port_idx):
-        super().__init__(interface, port_idx)
-        self._interface.set_motor_port_type(port_idx, 2)
-        self._config = [5, 0.25, 0, -90, 90]
-        self._update_config()
-
-    def _update_config(self):
-        (p, i, d, ll, ul) = self._config
-        config = list(struct.pack(">{}".format("f" * 5), p, i, d, ll, ul))
-        self._interface.set_motor_port_config(self._port_idx, config)
-
-    def set_max_speed(self, speed):
-        speed = clip(speed, 0, 100)
-        self._config[3] = -speed
-        self._config[4] = speed
-        self._update_config()
-
-    def set_speed(self, speed):
-        self._interface.set_motor_port_control_value(self._port_idx, list(struct.pack(">f", speed)))
-
-
-class SensorPort:
-    def __init__(self, interface: RevvyControl, port_idx):
-        self._interface = interface
-        self._port_idx = port_idx
-
-
-class BumperSwitch(SensorPort):
-    def __init__(self, interface: RevvyControl, port_idx):
-        super().__init__(interface, port_idx)
-        self._interface.set_sensor_port_type(port_idx, 1)
-
-    def is_pressed(self):
-        result = self._interface.get_sensor_port_value(self._port_idx)
-        return result[0] == 1
-
-
-class HcSr04(SensorPort):
-    def __init__(self, interface: RevvyControl, port_idx):
-        super().__init__(interface, port_idx)
-        self._interface.set_sensor_port_type(port_idx, 2)
-
-    def get_distance(self):
-        result = self._interface.get_sensor_port_value(self._port_idx)
-        return int.from_bytes(result, byteorder='little')
 
 
 class RingLed:
@@ -189,7 +90,6 @@ class RevvyApp:
         self._stop = False
         self._missedKeepAlives = 0
         self._is_connected = False
-        self._ultrasound = None
         self._ring_led = None
 
     def prepare(self):
@@ -207,15 +107,18 @@ class RevvyApp:
             print("Motor port types:\n{}".format(motor_port_types))
             print("Sensor port types:\n{}".format(sensor_port_types))
 
-            self._ultrasound = HcSr04(self._interface, 0)
             self._ring_led = RingLed(self._interface)
-
             self._ring_led.set_scenario(RingLed.LED_RING_COLOR_WHEEL)
+
+            handler = MotorPortHandler(self._interface)
+            spcm = handler.configure(4, 'SpeedControlled')
+            spcm.set_speed(20)
 
             print("Init done")
             return True
         except Exception as e:
             print("Prepare error: ", e)
+            raise e
             return False
 
     def set_master_status(self, status):
@@ -283,10 +186,9 @@ class RevvyApp:
                     if not self._stop:
                         self.run()
                         self._interface.ping()
-                        print(self._ultrasound.get_distance())
-                        #print(self._interface.get_battery_status())
             except Exception as e:
                 print("Oops! {}".format(e))
+                raise e
 
     def handleAnalogValues(self, analog_values):
         pass
