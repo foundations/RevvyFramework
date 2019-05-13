@@ -9,84 +9,52 @@
 from utils import *
 from activation import *
 from rrrc_transport import *
-
-pids = {
-    'pos':   {
-        'good': [1.5, 0.02, 0, -80, 20],
-        'bad':  [0.9, 0.05, 0, -80, 20]
-    },
-    'speed': {
-        'good': [5, 0.25, 0, -90, 90],
-        'bad':  [1, 0.2, 0, -90, 90]
-    }
-}
-
-motorSpeeds = {
-    'good': 90,
-    'bad':  22
-}
-
-ticks = {
-    'good': 12 * 2,
-    'bad':  3 * 2
-}
-
-motorResolutions = {
-    'good': 1168,
-    'bad':  292
-}
-
-motorTypeMap = {
-    'speed':    "MOTOR_SPEED_CONTROLLED",
-    'position': "MOTOR_POSITION_CONTROLLED",
-    'openLoop': "MOTOR_OPEN_LOOP"
-}
-
-controlTypeMap = {
-    'speed':    pids['speed'],
-    'position': pids['pos'],
-    'openLoop': None
-}
+from functions import *
 
 
 class SuperchargeDemo(RevvyApp):
     def __init__(self, interface):
         super().__init__(interface)
 
-        self._motorFL = self.motorPortMap[3]
-        self._motorFR = self.motorPortMap[6]
+        self._maxVl = 90
+        self._maxVr = 90
 
-        self._maxVl = motorSpeeds['good']
-        self._maxVr = motorSpeeds['good']
-
-        self._ledMode = 0
+        self._left_motors = None
+        self._right_motors = None
 
         button_led = ToggleButton()
-        button_led.onEnabled(lambda: self.setLedRingMode(RingLed.LED_RING_COLOR_WHEEL))
-        button_led.onDisabled(lambda: self.setLedRingMode(RingLed.LED_RING_OFF))
+        button_led.onEnabled(lambda: self.set_ring_led_mode(RingLed.LED_RING_COLOR_WHEEL))
+        button_led.onDisabled(lambda: self.set_ring_led_mode(RingLed.LED_RING_OFF))
         self._buttons[0] = button_led
 
     def init(self):
         status = True
 
-        #status = status and self.configureMotor(self._motorFL, "good", "speed")
-        #status = status and self.configureMotor(self._motorFR, "good", "speed")
+        self._left_motors = [
+            self._motor_ports.configure(self.motorPortMap[2], 'SpeedControlled'),
+            self._motor_ports.configure(self.motorPortMap[3], 'SpeedControlled')
+        ]
+
+        self._right_motors = [
+            self._motor_ports.configure(self.motorPortMap[5], 'SpeedControlled'),
+            self._motor_ports.configure(self.motorPortMap[6], 'SpeedControlled')
+        ]
 
         return status
 
-    def handleAnalogValues(self, analog_values):
-        analog_a = analog_values[0]  # 0...255
-        analog_b = analog_values[1]  # 0...255
-
-        x = clip((analog_a - 128) / 127.0, -1, 1)
-        y = clip((analog_b - 128) / 127.0, -1, 1)
+    def handle_analog_values(self, analog_values):
+        x = clip((analog_values[0] - 128) / 127.0, -1, 1)
+        y = clip((analog_values[1] - 128) / 127.0, -1, 1)
 
         vec_angle = math.atan2(y, x)
-        vec_len = math.sqrt(x * x + y * y) * 100
+        vec_len = math.sqrt(x * x + y * y)
         (sl, sr) = differentialControl(vec_len, vec_angle)
 
-        #self._robot_control.motor_set_state(self._motorFL, int(sl * self._maxVl))
-        #self._robot_control.motor_set_state(self._motorFR, int(sr * self._maxVr))
+        for motor in self._left_motors:
+            motor.set_speed(sl * self._maxVl)
+
+        for motor in self._right_motors:
+            motor.set_speed(sr * self._maxVr)
 
 
 def main():

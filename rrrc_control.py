@@ -30,6 +30,7 @@ class RevvyControl:
     command_set_motor_port_type = 0x12
     command_set_motor_port_config = 0x13
     command_set_motor_port_control_value = 0x14
+    command_get_motor_position = 0x15
 
     command_get_sensor_port_amount = 0x20
     command_get_sensor_port_types = 0x21
@@ -85,6 +86,10 @@ class RevvyControl:
     def set_motor_port_control_value(self, port_idx, value):
         self._transport.send_command(self.command_set_motor_port_control_value, [port_idx] + value)
 
+    def get_motor_position(self, port_idx):
+        response = self._transport.send_command(self.command_get_motor_position, [port_idx])
+        return int.from_bytes(response.payload, byteorder='little', signed=True)
+
     # sensor commands
 
     def get_sensor_port_amount(self):
@@ -114,3 +119,15 @@ class RevvyControl:
 
     def ring_led_set_scenario(self, scenario):
         self._transport.send_command(self.command_set_ring_led_scenario, [scenario])
+
+    def ring_led_create_user_animation(self):
+        return 0
+
+    def ring_led_clear_animation(self, idx):
+        pass
+
+    def ring_led_add_frame_to_user_animation(self, idx, frame):
+        pass
+
+    def ring_led_play_user_animation(self, idx):
+        pass

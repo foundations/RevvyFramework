@@ -50,11 +50,13 @@ class BaseMotorController:
         self._handler.uninitialize(self._port_idx)
         self._configured = False
 
+    def get_position(self):
+        return self._interface.get_motor_position(self._port_idx)
+
 
 class OpenLoopMotorController(BaseMotorController):
     def __init__(self, handler: MotorPortHandler, port_idx):
         super().__init__(handler, port_idx)
-        self._interface.set_motor_port_type(port_idx, 1)
 
     def set_speed(self, speed):
         if not self._configured:
@@ -74,7 +76,6 @@ class OpenLoopMotorController(BaseMotorController):
 class PositionControlledMotorController(BaseMotorController):
     def __init__(self, handler: MotorPortHandler, port_idx):
         super().__init__(handler, port_idx)
-        self._interface.set_motor_port_type(port_idx, 3)
         self._config = [1.5, 0.02, 0, -80, 80]
         self._update_config()
 
@@ -96,7 +97,6 @@ class PositionControlledMotorController(BaseMotorController):
 class SpeedControlledMotorController(BaseMotorController):
     def __init__(self, handler: MotorPortHandler, port_idx):
         super().__init__(handler, port_idx)
-        self._interface.set_motor_port_type(port_idx, 2)
         self._config = [5, 0.25, 0, -90, 90]
         self._update_config()
 

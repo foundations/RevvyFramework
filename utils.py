@@ -10,6 +10,7 @@ import functools
 
 from rrrc_transport import *
 from motor_controllers import *
+from sensor_port_handlers import *
 
 
 def empty_callback():
@@ -22,8 +23,14 @@ class NullHandler:
 
 
 def differentialControl(r, angle):
-    v = 0.4 * r * math.cos(angle + math.pi / 2) / 100
-    w = 0.4 * r * math.sin(angle + math.pi / 2) / 100
+    """
+    Calculates left and right wheel speeds
+    :param r: Vector magnitude, between 0 and 1
+    :param angle: Vector angle, between -pi/2 and pi/2
+    :return: wheel speeds
+    """
+    v = r * math.cos(angle + math.pi / 2)
+    w = r * math.sin(angle + math.pi / 2)
 
     sr = +(v + w)
     sl = -(v - w)
@@ -91,6 +98,8 @@ class RevvyApp:
         self._missedKeepAlives = 0
         self._is_connected = False
         self._ring_led = None
+        self._motor_ports = None
+        self._sensor_ports = None
 
     def prepare(self):
         print("Prepare")
@@ -98,40 +107,26 @@ class RevvyApp:
             self.set_master_status(self.master_status_stopped)
             hw = self._interface.get_hardware_version()
             fw = self._interface.get_firmware_version()
-            motor_port_amount = self._interface.get_motor_port_amount()
-            motor_port_types = self._interface.get_motor_port_types()
-            sensor_port_amount = self._interface.get_sensor_port_amount()
-            sensor_port_types = self._interface.get_sensor_port_types()
             print("Hardware Version: {}\nFirmware Version: {}".format(hw, fw))
-            print("Motor ports: {}\nSensor ports: {}".format(motor_port_amount, sensor_port_amount))
-            print("Motor port types:\n{}".format(motor_port_types))
-            print("Sensor port types:\n{}".format(sensor_port_types))
 
             self._ring_led = RingLed(self._interface)
-            self._ring_led.set_scenario(RingLed.LED_RING_COLOR_WHEEL)
 
-            handler = MotorPortHandler(self._interface)
-            spcm = handler.configure(4, 'SpeedControlled')
-            spcm.set_speed(20)
+            self._motor_ports = MotorPortHandler(self._interface)
+            self._sensor_ports = SensorPortHandler(self._interface)
 
             print("Init done")
             return True
         except Exception as e:
             print("Prepare error: ", e)
-            raise e
             return False
 
     def set_master_status(self, status):
         if self._interface:
             self._interface.set_master_status(status)
 
-    def setLedRingMode(self, mode):
+    def set_ring_led_mode(self, mode):
         if self._ring_led:
             self._ring_led.set_scenario(mode)
-
-    def handleButton(self, data):
-        for i in range(len(self._buttons)):
-            self._buttons[i].handle(data[i])
 
     def _setup_robot(self):
         status = _retry(self.prepare)
@@ -171,13 +166,13 @@ class RevvyApp:
                             button_data = self._buttonData
                             self.mutex.release()
 
-                            self.handleAnalogValues(analog_data)
-                            self.handleButton(button_data)
+                            self.handle_analog_values(analog_data)
+                            self.handle_button(button_data)
                             if comm_missing:
                                 self.set_master_status(self.master_status_operational_controlled)
                                 comm_missing = False
                     else:
-                        if not self._checkKeepAlive():
+                        if not self._check_keep_alive():
                             if not comm_missing:
                                 self.set_master_status(self.master_status_operational)
                                 comm_missing = True
@@ -188,35 +183,38 @@ class RevvyApp:
                         self._interface.ping()
             except Exception as e:
                 print("Oops! {}".format(e))
-                raise e
 
-    def handleAnalogValues(self, analog_values):
+    def handle_button(self, data):
+        for i in range(len(self._buttons)):
+            self._buttons[i].handle(data[i])
+
+    def handle_analog_values(self, analog_values):
         pass
 
-    def _handleKeepAlive(self, x):
+    def _handle_keepalive(self, x):
         self._missedKeepAlives = 0
         self.event.set()
 
-    def _checkKeepAlive(self):
+    def _check_keep_alive(self):
         if self._missedKeepAlives > 3:
             return False
         elif self._missedKeepAlives >= 0:
             self._missedKeepAlives = self._missedKeepAlives + 1
         return True
 
-    def _updateAnalog(self, channel, value):
+    def _update_analog(self, channel, value):
         self.mutex.acquire()
         if channel < len(self._analogData):
             self._analogData[channel] = value
         self.mutex.release()
 
-    def _updateButton(self, channel, value):
+    def _update_button(self, channel, value):
         self.mutex.acquire()
         if channel < len(self._analogData):
             self._buttonData[channel] = value
         self.mutex.release()
 
-    def _onConnectionChanged(self, is_connected):
+    def _on_connection_changed(self, is_connected):
         if is_connected != self._is_connected:
             print('Connected' if is_connected else 'Disconnected')
             self._is_connected = is_connected
@@ -232,11 +230,11 @@ class RevvyApp:
     def register(self, revvy):
         print('Registering callbacks')
         for i in range(10):
-            revvy.registerAnalogHandler(i, functools.partial(self._updateAnalog, channel=i))
+            revvy.registerAnalogHandler(i, functools.partial(self._update_analog, channel=i))
         for i in range(32):
-            revvy.registerButtonHandler(i, functools.partial(self._updateButton, channel=i))
-        revvy.registerKeepAliveHandler(self._handleKeepAlive)
-        revvy.registerConnectionChangedHandler(self._onConnectionChanged)
+            revvy.registerButtonHandler(i, functools.partial(self._update_button, channel=i))
+        revvy.registerKeepAliveHandler(self._handle_keepalive)
+        revvy.registerConnectionChangedHandler(self._on_connection_changed)
 
     def init(self):
         return True
