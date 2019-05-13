@@ -213,7 +213,7 @@ class VersionCharacteristic(Characteristic):
             callback(Characteristic.RESULT_SUCCESS, self._version)
 
     def update(self, version):
-        if len(version > self.version_max_length):
+        if len(version) > self.version_max_length:
             version = version[:self.version_max_length]
         self._version = version.encode("utf-8")
 

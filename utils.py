@@ -112,7 +112,7 @@ class RevvyApp:
 
             self._ble_interface.set_hw_version(hw)
             self._ble_interface.set_fw_version(fw)
-            self._ble_interface.set_sw_version("v0.0.1")
+            self._ble_interface.set_sw_version("0.0.1")
 
             self._ring_led = RingLed(self._interface)
 
