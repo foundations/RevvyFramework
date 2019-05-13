@@ -195,19 +195,42 @@ class ModelNumberCharacteristic(ReadOnlyCharacteristic):
         super().__init__('2A24', model_no)
 
 
-class HardwareRevisionCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, version):
-        super().__init__('2A27', version)
+class VersionCharacteristic(Characteristic):
+    version_max_length = 20
+
+    def __init__(self, uuid):
+        super().__init__({
+            'uuid':       uuid,
+            'properties': ['read'],
+            'value':      None
+        })
+        self._version = []
+
+    def onReadRequest(self, offset, callback):
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+        else:
+            callback(Characteristic.RESULT_SUCCESS, self._version)
+
+    def update(self, version):
+        if len(version > self.version_max_length):
+            version = version[:self.version_max_length]
+        self._version = version.encode("utf-8")
 
 
-class SoftwareRevisionCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, version):
-        super().__init__('2A28', version)
+class HardwareRevisionCharacteristic(VersionCharacteristic):
+    def __init__(self):
+        super().__init__('2A27')
 
 
-class FirmwareRevisionCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, version):
-        super().__init__('2A26', version)
+class FirmwareRevisionCharacteristic(VersionCharacteristic):
+    def __init__(self):
+        super().__init__('2A26')
+
+
+class SoftwareRevisionCharacteristic(VersionCharacteristic):
+    def __init__(self):
+        super().__init__('2A28')
 
 
 class SystemIdCharacteristic(ReadOnlyCharacteristic):
@@ -217,17 +240,29 @@ class SystemIdCharacteristic(ReadOnlyCharacteristic):
 
 class RevvyDeviceInforrmationService(BlenoPrimaryService):
     def __init__(self, device_name):
+        self._hw_version_characteristic = HardwareRevisionCharacteristic()
+        self._fw_version_characteristic = FirmwareRevisionCharacteristic()
+        self._sw_version_characteristic = SoftwareRevisionCharacteristic()
         super().__init__({
             'uuid':            '180A',
             'characteristics': [
                 SerialNumberCharacteristic(b'12345'),
                 ManufacturerNameCharacteristic(b'RevolutionRobotics'),
                 ModelNumberCharacteristic(b"RevvyAlpha"),
-                HardwareRevisionCharacteristic(b"v1.0.0"),
-                SoftwareRevisionCharacteristic(b"v0.0.1"),
-                FirmwareRevisionCharacteristic(b"v1.0.0"),
+                self._hw_version_characteristic,
+                self._fw_version_characteristic,
+                self._sw_version_characteristic,
                 SystemIdCharacteristic(device_name.encode()),
             ]})
+
+    def update_hw_version(self, version):
+        self._hw_version_characteristic.update(version)
+
+    def update_fw_version(self, version):
+        self._fw_version_characteristic.update(version)
+
+    def update_sw_version(self, version):
+        self._sw_version_characteristic.update(version)
 
 
 # BLE SIG battery service, that is differentiated via Characteristic Presentation Format
@@ -341,6 +376,15 @@ class RevvyBLE:
         self._bleno = Bleno()
         self._bleno.on('stateChange', self.onStateChange)
         self._bleno.on('advertisingStart', self.onAdvertisingStart)
+
+    def set_hw_version(self, version):
+        self._deviceInformationService.update_hw_version(version)
+
+    def set_fw_version(self, version):
+        self._deviceInformationService.update_fw_version(version)
+
+    def set_sw_version(self, version):
+        self._deviceInformationService.update_sw_version(version)
 
     def onStateChange(self, state):
         print('on -> stateChange: ' + state)
