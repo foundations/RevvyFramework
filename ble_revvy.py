@@ -233,9 +233,24 @@ class SoftwareRevisionCharacteristic(VersionCharacteristic):
         super().__init__('2A28')
 
 
-class SystemIdCharacteristic(ReadOnlyCharacteristic):
+class SystemIdCharacteristic(Characteristic):
     def __init__(self, system_id):
-        super().__init__('2A23', system_id)
+        super().__init__({
+            'uuid':       '2A23',
+            'properties': ['read', 'write'],
+            'value':      None
+        })
+        self._system_id = system_id
+
+    def onWriteRequest(self, data, offset, withoutResponse, callback):
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+
+        try:
+            self._system_id = data.decode('utf-8')
+            callback(Characteristic.RESULT_SUCCESS)
+        except:
+            callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
 class RevvyDeviceInforrmationService(BlenoPrimaryService):
