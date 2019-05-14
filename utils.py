@@ -112,7 +112,7 @@ class RevvyApp:
 
             self._ble_interface.set_hw_version(hw)
             self._ble_interface.set_fw_version(fw)
-            self._ble_interface.set_sw_version("0.1-r" + FRAMEWORK_VERSION)
+            self._ble_interface.set_sw_version("0.1-r" + str(FRAMEWORK_VERSION))
 
             self._ring_led = RingLed(self._interface)
 
@@ -207,7 +207,7 @@ class RevvyApp:
         if self._missedKeepAlives > 3:
             return False
         elif self._missedKeepAlives >= 0:
-            self._missedKeepAlives = self._missedKeepAlives + 1
+            self._missedKeepAlives += 1
         return True
 
     def _update_analog(self, channel, value):
