@@ -1,4 +1,5 @@
-from rrrc_transport import RevvyTransport
+from functools import reduce
+from rrrc_transport import RevvyTransport, Response, ResponseHeader
 
 
 def parse_string_list(data):
@@ -13,6 +14,207 @@ def parse_string_list(data):
         idx += sz
         val[name] = key
     return val
+
+
+class Command:
+    def get_payload_bytes(self, payload):
+        return payload
+
+    def on_success(self, payload):
+        return None
+
+    def on_command_error(self, payload):
+        return None
+
+    def process(self, response: Response):
+        if response.header == ResponseHeader.Status_Ok:
+            return CommandResult(response.header, self.on_success(response.payload))
+        elif response.header == ResponseHeader.Status_Error_CommandError:
+            return CommandResult(response.header, self.on_command_error(response.payload))
+        else:
+            return CommandResult(response.header, None)
+
+
+class PingCommand(Command):
+    pass
+
+
+class ReadStringCommand(Command):
+    def on_success(self, payload):
+        return "".join(map(chr, payload))
+
+
+class ReadStringListCommand(Command):
+    def on_success(self, payload):
+        return parse_string_list(payload)
+
+
+class ReadUint8Command(Command):
+    def on_success(self, payload):
+        return payload[0]
+
+
+class SendByteCommand(Command):
+    def get_payload_bytes(self, payload):
+        if len(payload) != 1:
+            raise ValueError('Command expect a single argument')
+        return payload
+
+
+class GetHardwareVersionCommand(ReadStringCommand):
+    pass
+
+
+class GetFirmwareVersionCommand(ReadStringCommand):
+    pass
+
+
+class CommandResult:
+    def __init__(self, status, data):
+        self._status = status
+        self._data = data
+
+    @property
+    def status(self):
+        return self._status
+
+    @property
+    def data(self):
+        return self._data
+
+
+class ReadBatteryStatusCommand(Command):
+    def on_success(self, payload):
+        return {'chargerStatus': payload[0], 'main': payload[1], 'motor': payload[2]}
+
+
+class SetMasterStatusCommand(SendByteCommand):
+    pass
+
+
+class SetBluetoothStatusCommand(SendByteCommand):
+    pass
+
+
+class MotorPort_GetPortAmountCommand(ReadUint8Command):
+    pass
+
+
+class MotorPort_GetPortTypesCommand(ReadStringListCommand):
+    pass
+
+
+class PortReadCommand(Command):
+    def get_payload_bytes(self, payload):
+        if len(payload) != 1:
+            raise ValueError("Command requires a port number")
+
+        return [payload[0]]
+
+
+class PortSendByteCommand(Command):
+    def get_payload_bytes(self, payload):
+        if len(payload) != 2:
+            raise ValueError("Command requires a port number and a data array")
+
+        return payload
+
+
+class PortSendByteListCommand(Command):
+    def get_payload_bytes(self, payload):
+        if len(payload) != 2:
+            raise ValueError("Command requires a port number and a data array")
+
+        return [payload[0]] + payload[1]
+
+
+class PortSendListCommand(Command):
+    def __init__(self, length):
+        self._length = length
+
+    def get_payload_bytes(self, payload):
+        if len(payload) != 2:
+            raise ValueError("Command requires a port number and a data array")
+
+        if len(payload[1]) != self._length:
+            raise ValueError('Data array must be {} bytes long'.format(self._length))
+
+        return [payload[0]] + payload[1]
+
+
+class MotorPort_SetPortTypeCommand(PortSendByteCommand):
+    pass
+
+
+class MotorPort_SetPortConfigCommand(PortSendByteListCommand):
+    pass
+
+
+class MotorPort_SetPortControlValueCommand(PortSendListCommand):
+    def __init__(self):
+        super().__init__(4)
+
+
+class MotorPort_GetMotorPositionCommand(PortReadCommand):
+    def on_success(self, payload):
+        return int.from_bytes(payload, byteorder='little', signed=True)
+
+
+class MotorPort_GetMotorStatusCommand(Command):
+    pass
+
+
+class SensorPort_GetPortAmountCommand(ReadUint8Command):
+    pass
+
+
+class SensorPort_GetPortTypesCommand(ReadStringListCommand):
+    pass
+
+
+class SensorPort_SetPortTypeCommand(PortSendByteCommand):
+    pass
+
+
+class SensorPort_SetPortConfigCommand(PortSendByteListCommand):
+    pass
+
+
+class SensorPort_GetValueCommand(Command):
+    def get_payload_bytes(self, payload):
+        if len(payload) == 1:
+            return payload
+        elif len(payload) == 2:
+            return [payload[0]] + payload[1]
+        else:
+            raise ValueError("SensorPort_GetValueCommand requires a port number and an optional parameter list")
+
+
+class RingLed_GetScenarioTypesCommand(ReadStringListCommand):
+    pass
+
+
+class RingLed_GetLedAmountCommand(ReadUint8Command):
+    pass
+
+
+class RingLed_SetRingScenarioCommand(Command):
+    pass
+
+
+class RingLed_SetUserFrameCommand(Command):
+    def get_payload_bytes(self, payload):
+
+        def rgb_to_rgb565_bytes(rgb):
+            r = (rgb & 0x00F80000) >> 19
+            g = (rgb & 0x0000FC00) >> 10
+            b = (rgb & 0x000000F8) >> 3
+            return [
+                (r << 5) | ((g & 0x38) >> 3),
+                ((g & 0x07) << 3) | b]
+
+        byte_pairs = map(rgb_to_rgb565_bytes, payload)
+        return reduce(lambda x, y: x + y, byte_pairs, [])
 
 
 class RevvyControl:
@@ -45,86 +247,107 @@ class RevvyControl:
 
     def __init__(self, transport: RevvyTransport):
         self._transport = transport
+        self._commands = {
+            0x00: PingCommand(),
+            0x01: GetHardwareVersionCommand(),
+            0x02: GetFirmwareVersionCommand(),
+            0x03: ReadBatteryStatusCommand(),
+            0x04: SetMasterStatusCommand(),
+            0x05: SetBluetoothStatusCommand(),
+
+            0x10: MotorPort_GetPortAmountCommand(),
+            0x11: MotorPort_GetPortTypesCommand(),
+            0x12: MotorPort_SetPortTypeCommand(),
+            0x13: MotorPort_SetPortConfigCommand(),
+            0x14: MotorPort_SetPortControlValueCommand(),
+            0x15: MotorPort_GetMotorPositionCommand(),
+            # 0x16: MotorPort_GetMotorStatusCommand(),  # combined position, speed, power
+
+            0x20: SensorPort_GetPortAmountCommand(),
+            0x21: SensorPort_GetPortTypesCommand(),
+            0x22: SensorPort_SetPortTypeCommand(),
+            0x23: SensorPort_SetPortConfigCommand(),
+            0x24: SensorPort_GetValueCommand(),
+
+            0x30: RingLed_GetScenarioTypesCommand(),
+            0x31: RingLed_SetRingScenarioCommand(),
+            0x32: RingLed_GetLedAmountCommand(),
+            0x33: RingLed_SetUserFrameCommand(),
+        }
+
+    def send(self, command, *args):
+        command_handler = self._commands[command]
+        response = self._transport.send_command(command, command_handler.get_payload_bytes(args))
+        return command_handler.process(response)
 
     # general commands
 
     def ping(self):
-        self._transport.send_command(self.command_ping)
+        return self.send(self.command_ping)
 
     def set_master_status(self, status):
-        self._transport.send_command(self.command_set_master_status, [status])
+        return self.send(self.command_set_master_status, status)
 
     def set_bluetooth_connection_status(self, status):
-        self._transport.send_command(self.command_set_bluetooth_status, [status])
+        self.send(self.command_set_bluetooth_status, status)
 
     def get_hardware_version(self):
-        response = self._transport.send_command(self.command_get_hardware_version)
-        return "".join(map(chr, response.payload))
+        return self.send(self.command_get_hardware_version)
 
     def get_firmware_version(self):
-        response = self._transport.send_command(self.command_get_firmware_version)
-        return "".join(map(chr, response.payload))
+        return self.send(self.command_get_firmware_version)
 
     def get_battery_status(self):
-        response = self._transport.send_command(self.command_get_battery_status)
-        return {'chargerStatus': response.payload[0], 'main': response.payload[1], 'motor': response.payload[2]}
+        return self.send(self.command_get_battery_status)
 
     # motor commands
 
     def get_motor_port_amount(self):
-        response = self._transport.send_command(self.command_get_motor_port_amount)
-        return response.payload[0]
+        return self.send(self.command_get_motor_port_amount)
 
     def get_motor_port_types(self):
-        response = self._transport.send_command(self.command_get_motor_port_types)
-        return parse_string_list(response.payload)
+        return self.send(self.command_get_motor_port_types)
 
     def set_motor_port_type(self, port_idx, type_idx):
-        self._transport.send_command(self.command_set_motor_port_type, [port_idx, type_idx])
+        return self.send(self.command_set_motor_port_type, port_idx, type_idx)
 
     def set_motor_port_config(self, port_idx, config):
-        self._transport.send_command(self.command_set_motor_port_config, [port_idx] + config)
+        return self.send(self.command_set_motor_port_config, port_idx, config)
 
     def set_motor_port_control_value(self, port_idx, value):
-        self._transport.send_command(self.command_set_motor_port_control_value, [port_idx] + value)
+        return self.send(self.command_set_motor_port_control_value, port_idx, value)
 
     def get_motor_position(self, port_idx):
-        response = self._transport.send_command(self.command_get_motor_position, [port_idx])
-        return int.from_bytes(response.payload, byteorder='little', signed=True)
+        return self.send(self.command_get_motor_position, port_idx)
 
     # sensor commands
 
     def get_sensor_port_amount(self):
-        response = self._transport.send_command(self.command_get_sensor_port_amount)
-        return response.payload[0]
+        return self.send(self.command_get_sensor_port_amount)
 
     def get_sensor_port_types(self):
-        response = self._transport.send_command(self.command_get_sensor_port_types)
-        return parse_string_list(response.payload)
+        return self.send(self.command_get_sensor_port_types)
 
     def set_sensor_port_type(self, port_idx, type_idx):
-        self._transport.send_command(self.command_set_sensor_port_type, [port_idx, type_idx])
+        return self.send(self.command_set_sensor_port_type, port_idx, type_idx)
 
     def set_sensor_port_config(self, port_idx, config):
-        self._transport.send_command(self.command_set_sensor_port_config, [port_idx] + config)
+        return self.send(self.command_set_sensor_port_config, port_idx, config)
 
     def get_sensor_port_value(self, port_idx, parameters=None):
         parameters = parameters if parameters else []
-        response = self._transport.send_command(self.command_get_sensor_port_value, [port_idx] + parameters)
-        return response.payload
+        return self.send(self.command_get_sensor_port_value, port_idx, parameters)
 
     # ring led commands
 
     def ring_led_get_scenario_types(self):
-        response = self._transport.send_command(self.command_get_ring_led_scenario_types)
-        return parse_string_list(response.payload)
+        return self.send(self.command_get_ring_led_scenario_types)
 
     def ring_led_set_scenario(self, scenario):
-        self._transport.send_command(self.command_set_ring_led_scenario, [scenario])
+        return self.send(self.command_set_ring_led_scenario, scenario)
 
     def ring_led_set_user_frame(self, frame):
-        self._transport.send_command(self.command_set_ring_led_user_frame, frame)
+        return self.send(self.command_set_ring_led_user_frame, frame)
 
     def ring_led_get_led_amount(self):
-        response = self._transport.send_command(self.command_ring_led_get_led_amount)
-        return response.payload[0]
+        return self.send(self.command_ring_led_get_led_amount)

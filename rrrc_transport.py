@@ -277,6 +277,10 @@ class Response:
         self._payload = payload
 
     @property
+    def success(self):
+        return self._header.status == ResponseHeader.Status_Ok
+
+    @property
     def header(self):
         return self._header
 
@@ -305,16 +309,12 @@ class RevvyTransport:
                     header = self._send_command(CommandGetResult(command))
 
                 # check result
-                if header.status == ResponseHeader.Status_Ok:
+                # return a result even in case of an error, except when we know we have to resend
+                if header.status == ResponseHeader.Status_Error_CommandIntegrityError:
+                    resend = True
+                else:
                     response_payload = self._read_payload(header)
                     response = Response(header, response_payload)
-                else:
-                    if header.status == ResponseHeader.Status_Error_CommandIntegrityError:
-                        resend = True
-                    else:
-                        # TODO use different error
-                        error_string = ResponseHeader.StatusStrings[header.status] if header.status < len(ResponseHeader.StatusStrings) else "Unknown status"
-                        raise BrokenPipeError('Send command: {}. Error code {}'.format(error_string, header.status))
             return response
         finally:
             self._mutex.release()
