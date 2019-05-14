@@ -40,6 +40,8 @@ class RevvyControl:
 
     command_get_ring_led_scenario_types = 0x30
     command_set_ring_led_scenario = 0x31
+    command_ring_led_get_led_amount = 0x32
+    command_set_ring_led_user_frame = 0x33
 
     def __init__(self, transport: RevvyTransport):
         self._transport = transport
@@ -120,14 +122,9 @@ class RevvyControl:
     def ring_led_set_scenario(self, scenario):
         self._transport.send_command(self.command_set_ring_led_scenario, [scenario])
 
-    def ring_led_create_user_animation(self):
-        return 0
+    def ring_led_set_user_frame(self, frame):
+        self._transport.send_command(self.command_set_ring_led_user_frame, frame)
 
-    def ring_led_clear_animation(self, idx):
-        pass
-
-    def ring_led_add_frame_to_user_animation(self, idx, frame):
-        pass
-
-    def ring_led_play_user_animation(self, idx):
-        pass
+    def ring_led_get_led_amount(self):
+        response = self._transport.send_command(self.command_ring_led_get_led_amount)
+        return response.payload[0]
