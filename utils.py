@@ -13,6 +13,7 @@ from motor_controllers import *
 from sensor_port_handlers import *
 from fw_version import *
 
+
 def empty_callback():
     pass
 
@@ -74,7 +75,6 @@ class RingLed:
 
 
 class RevvyApp:
-
     master_status_stopped = 0
     master_status_operational = 1
     master_status_operational_controlled = 2
