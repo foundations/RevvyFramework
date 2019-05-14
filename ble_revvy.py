@@ -5,6 +5,29 @@ from functools import reduce
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 
 
+class Observable:
+    def __init__(self, value):
+        self._value = value
+        self._observers = []
+
+    def update(self, value):
+        self._value = value
+        self._notify_observers(value)
+
+    def get(self):
+        return self._value
+
+    def subscribe(self, observer):
+        self._observers.append(observer)
+
+    def unsubscribe(self, observer):
+        self._observers.remove(observer)
+
+    def _notify_observers(self, new_value):
+        for observer in self._observers:
+            observer(new_value)
+
+
 # Device communication related services
 class BrainToMobileCharacteristic(Characteristic):
     def __init__(self):
@@ -182,7 +205,7 @@ class ReadOnlyCharacteristic(Characteristic):
 
 class SerialNumberCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, serial):
-        super().__init__('2A25', serial)
+        super().__init__('2A25', serial.encode())
 
 
 class ManufacturerNameCharacteristic(ReadOnlyCharacteristic):
@@ -234,7 +257,7 @@ class SoftwareRevisionCharacteristic(VersionCharacteristic):
 
 
 class SystemIdCharacteristic(Characteristic):
-    def __init__(self, system_id):
+    def __init__(self, system_id: Observable):
         super().__init__({
             'uuid':       '2A23',
             'properties': ['read', 'write'],
@@ -242,32 +265,38 @@ class SystemIdCharacteristic(Characteristic):
         })
         self._system_id = system_id
 
+    def onReadRequest(self, offset, callback):
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+        else:
+            callback(Characteristic.RESULT_SUCCESS, self._system_id.get().encode('utf-8'))
+
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
 
         try:
-            self._system_id = data.decode('utf-8')
+            self._system_id.update(data.decode('utf-8'))
             callback(Characteristic.RESULT_SUCCESS)
-        except:
+        except UnicodeDecodeError:
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
 class RevvyDeviceInforrmationService(BlenoPrimaryService):
-    def __init__(self, device_name):
+    def __init__(self, device_name: Observable, serial):
         self._hw_version_characteristic = HardwareRevisionCharacteristic()
         self._fw_version_characteristic = FirmwareRevisionCharacteristic()
         self._sw_version_characteristic = SoftwareRevisionCharacteristic()
         super().__init__({
             'uuid':            '180A',
             'characteristics': [
-                SerialNumberCharacteristic(b'12345'),
+                SerialNumberCharacteristic(serial),
                 ManufacturerNameCharacteristic(b'RevolutionRobotics'),
                 ModelNumberCharacteristic(b"RevvyAlpha"),
                 self._hw_version_characteristic,
                 self._fw_version_characteristic,
                 self._sw_version_characteristic,
-                SystemIdCharacteristic(device_name.encode()),
+                SystemIdCharacteristic(device_name),
             ]})
 
     def update_hw_version(self, version):
@@ -369,11 +398,11 @@ class CustomBatteryService(BlenoPrimaryService):
 
 
 class RevvyBLE:
-    def __init__(self, device_name):
+    def __init__(self, device_name: Observable, serial):
         print('Initializing {}'.format(device_name))
         self._deviceName = device_name
 
-        self._deviceInformationService = RevvyDeviceInforrmationService(device_name)
+        self._deviceInformationService = RevvyDeviceInforrmationService(device_name, serial)
         self._batteryService = CustomBatteryService()
         self._liveMessageService = LiveMessageService()
         self._longMessageService = LongMessageService()

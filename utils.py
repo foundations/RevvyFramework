@@ -38,21 +38,6 @@ def differentialControl(r, angle):
     return sl, sr
 
 
-def getserial():
-    # Extract serial from cpuinfo file
-    cpu_serial = "0000000000000000"
-    try:
-        f = open('/proc/cpuinfo', 'r')
-        for line in f:
-            if line[0:6] == 'Serial':
-                cpu_serial = line.rstrip()[-16:]
-        f.close()
-    except:
-        cpu_serial = "ERROR000000000"
-
-    return cpu_serial
-
-
 def _retry(fn, retries=5):
     status = False
     retry_num = 0
@@ -306,9 +291,53 @@ class RobotStateReader:
             self._data[name] = self._readers[name]()
 
 
+def getserial():
+    # Extract serial from cpuinfo file
+    cpu_serial = "0000000000000000"
+    try:
+        with open('/proc/cpuinfo', 'r') as f:
+            for line in f:
+                if line[0:6] == 'Serial':
+                    cpu_serial = line.rstrip()[-16:]
+                    break
+    except:
+        cpu_serial = "ERROR000000000"
+
+    return cpu_serial
+
+
+class DeviceNameProvider:
+    def __init__(self, filename):
+        self._filename = filename
+        try:
+            with open(filename, 'r') as f:
+                self._name = f.readline()
+        except FileNotFoundError:
+            self._name = 'Revvy_{}'.format(getserial().lstrip('0'))
+
+    def get_device_name(self):
+        return self._name
+
+    def update_device_name(self, new_device_name):
+        if new_device_name != self._name:
+            self._name = new_device_name
+            self._store()
+
+    def _store(self):
+        with open(self._filename, 'w') as f:
+            f.write(self._name)
+
+
+def on_device_name_changed(new_name):
+    print('Device name changed to {}'.format(new_name))
+
+
 def startRevvy(app):
-    service_name = 'Revvy_{}'.format(getserial().lstrip('0'))
-    revvy = RevvyBLE(service_name)
+    dnp = DeviceNameProvider('device_name.txt')
+    device_name = Observable(dnp.get_device_name())
+    device_name.subscribe(on_device_name_changed)
+
+    revvy = RevvyBLE(device_name, getserial())
     app.register(revvy)
 
     t1 = Thread(target=app.handle, args=())
