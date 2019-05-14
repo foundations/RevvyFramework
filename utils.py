@@ -65,6 +65,7 @@ def _retry(fn, retries=5):
 
 class RingLed:
     LED_RING_OFF = 0
+    LED_RING_USER_FRAME =1
     LED_RING_COLOR_WHEEL = 2
 
     def __init__(self, interface: RevvyControl):
@@ -79,20 +80,13 @@ class RingLed:
         :param frame: array of 12 RGB values
         """
         if len(frame) != self._ring_led_count:
-            raise ValueError("Number of colors ({}) does not match number of LEDs ({})", len(frame), self._ring_led_count)
+            raise ValueError("Number of colors ({}) does not match LEDs ({})", len(frame), self._ring_led_count)
 
-        def rgb_to_rgb565_bytes(rgb):
-            r = (rgb & 0x00F80000) >> 19
-            g = (rgb & 0x0000FC00) >> 10
-            b = (rgb & 0x000000F8) >> 3
-            return [
-                (r << 5) | ((g & 0x38) >> 3),
-                ((g & 0x07) << 3) | b]
+        self._interface.ring_led_set_user_frame(frame)
 
-        byte_pairs = map(rgb_to_rgb565_bytes, frame)
-        processed_frame = reduce(lambda x, y: x + y, byte_pairs, [])
-
-        self._interface.ring_led_set_user_frame(processed_frame)
+    def display_user_frame(self, frame):
+        self.upload_user_frame(frame)
+        self.set_scenario(self.LED_RING_USER_FRAME)
 
 
 class RevvyApp:
