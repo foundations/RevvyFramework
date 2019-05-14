@@ -55,10 +55,10 @@ def getserial():
 
 def _retry(fn, retries=5):
     status = False
-    retry_num = 1
-    while retry_num <= retries and not status:
+    retry_num = 0
+    while retry_num < retries and not status:
         status = fn()
-        retry_num = retry_num + 1
+        retry_num += 1
 
     return status
 
@@ -265,7 +265,30 @@ class RevvyApp:
         if self._status_update_step == 1:
             self._status_update_step = 0
         else:
-            self._status_update_step = self._status_update_step + 1
+            self._status_update_step += 1
+
+
+class RobotStateReader:
+    def __init__(self):
+        self._readers = {}
+        self._data = {}
+        pass
+
+    def add(self, name, reader):
+        self._readers[name] = reader
+        self._data[name] = None
+
+    def remove(self, name):
+        try:
+            del self._readers[name]
+            del self._data[name]
+            return True
+        except KeyError:
+            return False
+
+    def read(self):
+        for name in self._readers:
+            self._data[name] = self._readers[name]()
 
 
 def startRevvy(app):
