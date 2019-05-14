@@ -11,7 +11,7 @@ import functools
 from rrrc_transport import *
 from motor_controllers import *
 from sensor_port_handlers import *
-
+from fw_version import *
 
 def empty_callback():
     pass
@@ -112,7 +112,7 @@ class RevvyApp:
 
             self._ble_interface.set_hw_version(hw)
             self._ble_interface.set_fw_version(fw)
-            self._ble_interface.set_sw_version("0.0.1")
+            self._ble_interface.set_sw_version("0.1-r" + FRAMEWORK_VERSION)
 
             self._ring_led = RingLed(self._interface)
 
