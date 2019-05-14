@@ -69,9 +69,30 @@ class RingLed:
 
     def __init__(self, interface: RevvyControl):
         self._interface = interface
+        self._ring_led_count = self._interface.ring_led_get_led_amount()
 
     def set_scenario(self, scenario):
         self._interface.ring_led_set_scenario(scenario)
+
+    def upload_user_frame(self, frame):
+        """
+        :param frame: array of 12 RGB values
+        """
+        if len(frame) != self._ring_led_count:
+            raise ValueError("Number of colors ({}) does not match number of LEDs ({})", len(frame), self._ring_led_count)
+
+        def rgb_to_rgb565_bytes(rgb):
+            r = (rgb & 0x00F80000) >> 19
+            g = (rgb & 0x0000FC00) >> 10
+            b = (rgb & 0x000000F8) >> 3
+            return [
+                (r << 5) | ((g & 0x38) >> 3),
+                ((g & 0x07) << 3) | b]
+
+        byte_pairs = map(rgb_to_rgb565_bytes, frame)
+        processed_frame = reduce(lambda x, y: x + y, byte_pairs, [])
+
+        self._interface.ring_led_set_user_frame(processed_frame)
 
 
 class RevvyApp:
