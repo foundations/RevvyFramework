@@ -109,10 +109,13 @@ class RevvyApp:
             self.set_master_status(self.master_status_stopped)
             hw = self._interface.get_hardware_version()
             fw = self._interface.get_firmware_version()
+            sw = "0.1-r" + str(FRAMEWORK_VERSION)
+
+            print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
             self._ble_interface.set_hw_version(hw)
             self._ble_interface.set_fw_version(fw)
-            self._ble_interface.set_sw_version("0.1-r" + str(FRAMEWORK_VERSION))
+            self._ble_interface.set_sw_version(sw)
 
             self._ring_led = RingLed(self._interface)
 
