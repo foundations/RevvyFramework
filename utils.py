@@ -173,10 +173,9 @@ class RevvyApp:
                         # print('Packet received')
                         if not self._stop:
                             self.event.clear()
-                            self.mutex.acquire()
-                            analog_data = self._analogData
-                            button_data = self._buttonData
-                            self.mutex.release()
+                            with self.mutex:
+                                analog_data = self._analogData
+                                button_data = self._buttonData
 
                             self.handle_analog_values(analog_data)
                             self.handle_button(button_data)
@@ -216,16 +215,14 @@ class RevvyApp:
         return True
 
     def _update_analog(self, channel, value):
-        self.mutex.acquire()
-        if channel < len(self._analogData):
-            self._analogData[channel] = value
-        self.mutex.release()
+        with self.mutex:
+            if channel < len(self._analogData):
+                self._analogData[channel] = value
 
     def _update_button(self, channel, value):
-        self.mutex.acquire()
-        if channel < len(self._analogData):
-            self._buttonData[channel] = value
-        self.mutex.release()
+        with self.mutex:
+            if channel < len(self._buttonData):
+                self._buttonData[channel] = value
 
     def _on_connection_changed(self, is_connected):
         if is_connected != self._is_connected:
