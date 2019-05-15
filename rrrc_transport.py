@@ -295,12 +295,9 @@ class RevvyTransport:
         self._mutex = Lock()
 
     def send_command(self, command, payload=None) -> Response:
-        self._mutex.acquire()
-        try:
-            resend = True
-            response = None
-            while resend:
-                resend = False
+        with self._mutex:
+            # once a command gets through and a valid response is read, this loop will exit
+            while True:
                 # send command and read back status
                 header = self._send_command(CommandStart(command, payload))
 
@@ -310,14 +307,10 @@ class RevvyTransport:
 
                 # check result
                 # return a result even in case of an error, except when we know we have to resend
-                if header.status == ResponseHeader.Status_Error_CommandIntegrityError:
-                    resend = True
-                else:
+                if header.status != ResponseHeader.Status_Error_CommandIntegrityError:
                     response_payload = self._read_payload(header)
                     response = Response(header, response_payload)
-            return response
-        finally:
-            self._mutex.release()
+                    return response
 
     def _read_response_header(self, retries=5):
         has_valid_response = False
@@ -351,12 +344,11 @@ class RevvyTransport:
 
     def _send_command(self, command: Command):
         """
-        Send a command, waits for a proper response and returns with the header
+        Send a command, wait for a proper response and returns with the header
         """
+        # TODO: for safety, a timeout should be added later
         self._transport.write(command.get_bytes())
-        busy = True
-        while busy:
+        while True:
             response = self._read_response_header()
-            busy = response.status == ResponseHeader.Status_Busy
-            if not busy:
+            if response.status != ResponseHeader.Status_Busy:
                 return response
