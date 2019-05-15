@@ -23,16 +23,11 @@ class Command:
     def on_success(self, payload):
         return None
 
-    def on_command_error(self, payload):
-        return None
-
     def process(self, response: Response):
-        if response.header == ResponseHeader.Status_Ok:
-            return CommandResult(response.header, self.on_success(response.payload))
-        elif response.header == ResponseHeader.Status_Error_CommandError:
-            return CommandResult(response.header, self.on_command_error(response.payload))
+        if response.header.status == ResponseHeader.Status_Ok:
+            return self.on_success(response.payload)
         else:
-            return CommandResult(response.header, None)
+            raise ValueError('Command status: {} payload: {}'.format(response.header.status, repr(response.payload)))
 
 
 class PingCommand(Command):
@@ -67,20 +62,6 @@ class GetHardwareVersionCommand(ReadStringCommand):
 
 class GetFirmwareVersionCommand(ReadStringCommand):
     pass
-
-
-class CommandResult:
-    def __init__(self, status, data):
-        self._status = status
-        self._data = data
-
-    @property
-    def status(self):
-        return self._status
-
-    @property
-    def data(self):
-        return self._data
 
 
 class ReadBatteryStatusCommand(Command):
@@ -279,7 +260,7 @@ class RevvyControl:
 
     def send(self, command, *args):
         command_handler = self._commands[command]
-        response = self._transport.send_command(command, command_handler.get_payload_bytes(args))
+        response = self._transport.send_command(command, command_handler.get_payload_bytes(list(args)))
         return command_handler.process(response)
 
     # general commands

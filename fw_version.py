@@ -1,3 +1,3 @@
 
 # This file is generated before each commit
-FRAMEWORK_VERSION = 76
+FRAMEWORK_VERSION = 77

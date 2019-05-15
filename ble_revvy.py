@@ -474,7 +474,7 @@ class CustomBatteryService(BlenoPrimaryService):
 class RevvyBLE:
     def __init__(self, device_name: Observable, serial):
         print('Initializing {}'.format(device_name))
-        self._deviceName = device_name
+        self._deviceName = device_name.get()
 
         self._deviceInformationService = RevvyDeviceInforrmationService(device_name, serial)
         self._batteryService = CustomBatteryService()
