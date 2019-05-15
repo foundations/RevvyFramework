@@ -28,6 +28,80 @@ class Observable:
             observer(new_value)
 
 
+class LongMessageChunk:
+    InitMessage = 1
+    UploadMessage = 2
+    FinalizeMessage = 3
+
+    def __init__(self, chunk):
+        self._type = chunk[0]
+        self._payload = chunk[1:]
+        pass
+
+    @property
+    def chunk_type(self):
+        return self._type
+
+    @property
+    def payload(self):
+        return self._payload
+
+
+class LongMessage:
+    def __init__(self, message_id, checksum):
+        self._message_id = message_id
+        self._checksum = checksum
+        self._payload = ""
+
+    def append(self, payload):
+        self._payload += payload.decode('utf-8')
+
+    @property
+    def message_id(self):
+        return self._message_id
+
+    @property
+    def is_valid(self):
+        return True
+
+
+class LongMessageParser:
+    def __init__(self, handler):
+        self._message_received_handler = handler
+        self._current_message = None
+
+    def process_chunk(self, chunk: LongMessageChunk):
+        if chunk.chunk_type == LongMessageChunk.InitMessage:
+            self._current_message = None
+
+        if not self._current_message:
+            if chunk.chunk_type == LongMessageChunk.InitMessage:
+                self._current_message = LongMessage(chunk.payload[0], chunk.payload[1:])
+            else:
+                raise ValueError('Expected init message')
+        else:
+            if chunk.chunk_type == LongMessageChunk.InitMessage:
+                raise ValueError('Unreachable code')
+            elif chunk.chunk_type == LongMessageChunk.UploadMessage:
+                self._current_message.append(chunk.payload)
+            elif chunk.chunk_type == LongMessageChunk.FinalizeMessage:
+                self._message_received_handler(self._current_message)
+                self._current_message = None
+            else:
+                raise ValueError('Unknown chunk type')
+
+    @property
+    def is_processing(self):
+        return self._current_message is None
+
+
+class LongMessageType:
+    FirmwareData = 1,
+    FrameworkData = 2,
+    ConfigurationData = 3,
+    TestKit = 4
+
+
 # Device communication related services
 class BrainToMobileCharacteristic(Characteristic):
     def __init__(self):
