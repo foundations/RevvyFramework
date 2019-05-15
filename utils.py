@@ -5,6 +5,8 @@ from threading import Lock, Event
 from threading import Thread
 import sys
 import time
+from typing import Any
+
 from ble_revvy import *
 import functools
 
@@ -275,23 +277,33 @@ class RobotStateReader:
     def __init__(self):
         self._readers = {}
         self._data = {}
-        pass
+        self._reader_lock = Lock()
+        self._data_lock = Lock()
+
+    def __getitem__(self, name: str) -> Any:
+        with self._data_lock:
+            return self._data[name]
 
     def add(self, name, reader):
-        self._readers[name] = reader
-        self._data[name] = None
+        with self._reader_lock:
+            self._readers[name] = reader
+            self._data[name] = None
 
     def remove(self, name):
-        try:
-            del self._readers[name]
-            del self._data[name]
-            return True
-        except KeyError:
-            return False
+        with self._reader_lock, self._data_lock:
+            try:
+                del self._readers[name]
+                del self._data[name]
+                return True
+            except KeyError:
+                return False
 
     def read(self):
-        for name in self._readers:
-            self._data[name] = self._readers[name]()
+        with self._reader_lock:
+            for name in self._readers:
+                value = self._readers[name]()
+                with self._data_lock:
+                    self._data[name] = value
 
 
 def getserial():
