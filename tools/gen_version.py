@@ -4,7 +4,7 @@ import os
 file = "fw_version.py"
 template = """
 # This file is generated before each commit
-FRAMEWORK_VERSION = 0.1-r{{VERSION}}
+FRAMEWORK_VERSION = "0.1-r{{VERSION}}"
 """
 
 version = os.popen('git rev-list --count HEAD').read()

@@ -109,7 +109,7 @@ class RevvyApp:
             self.set_master_status(self.master_status_stopped)
             hw = self._interface.get_hardware_version()
             fw = self._interface.get_firmware_version()
-            sw = str(FRAMEWORK_VERSION)
+            sw = FRAMEWORK_VERSION
 
             print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
