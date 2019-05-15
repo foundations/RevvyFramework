@@ -209,11 +209,13 @@ class RingLed_SetUserFrameCommand(Command):
             r = (rgb & 0x00F80000) >> 19
             g = (rgb & 0x0000FC00) >> 10
             b = (rgb & 0x000000F8) >> 3
-            return [
-                (r << 5) | ((g & 0x38) >> 3),
-                ((g & 0x07) << 3) | b]
 
-        byte_pairs = map(rgb_to_rgb565_bytes, payload)
+            rgb565 = [
+                (r << 3) | ((g & 0x38) >> 3),
+                ((g & 0x07) << 3) | b]
+            return rgb565
+
+        byte_pairs = map(rgb_to_rgb565_bytes, payload[0])
         return reduce(lambda x, y: x + y, byte_pairs, [])
 
 
