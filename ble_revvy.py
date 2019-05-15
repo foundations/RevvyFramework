@@ -473,8 +473,10 @@ class CustomBatteryService(BlenoPrimaryService):
 
 class RevvyBLE:
     def __init__(self, device_name: Observable, serial):
-        print('Initializing {}'.format(device_name))
         self._deviceName = device_name.get()
+        print('Initializing {}'.format(self._deviceName))
+
+        device_name.subscribe(self._device_name_changed)
 
         self._deviceInformationService = RevvyDeviceInforrmationService(device_name, serial)
         self._batteryService = CustomBatteryService()
@@ -494,6 +496,10 @@ class RevvyBLE:
         self._bleno = Bleno()
         self._bleno.on('stateChange', self.onStateChange)
         self._bleno.on('advertisingStart', self.onAdvertisingStart)
+
+    def _device_name_changed(self, name):
+        self._deviceName = name
+        self._bleno.stopAdvertising(lambda: self._bleno.startAdvertising(self._deviceName, self._advertisedUuids))
 
     def set_hw_version(self, version):
         self._deviceInformationService.update_hw_version(version)
