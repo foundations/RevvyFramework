@@ -6,48 +6,73 @@ from functions import clip
 class MotorPortHandler:
     def __init__(self, interface: RevvyControl):
         self._interface = interface
-        count = interface.get_motor_port_amount()
-        self._ports = [None] * count
         self._types = interface.get_motor_port_types()
-        self._handlers = {
-            'NotConfigured': None,
-            'OpenLoop': lambda port: OpenLoopMotorController(self, port),
-            'PositionControlled': lambda port: PositionControlledMotorController(self, port),
-            'SpeedControlled': lambda port: SpeedControlledMotorController(self, port)
-        }
+        count = interface.get_motor_port_amount()
+        self._ports = [MotorPortInstance(i, self) for i in range(count)]
 
-    def configure(self, port_idx, port_type):
-        if port_idx >= len(self._ports):
-            raise ValueError('Trying to configure port #{} but there are only {} ports'.format(port_idx, len(self._ports)))
+    @property
+    def available_types(self):
+        return list(self._types.keys())
 
-        if self._ports[port_idx]:
-            self._ports[port_idx].uninitialize()
-
-        self._interface.set_motor_port_type(port_idx, self._types[port_type])
-        handler = self._handlers[port_type](port_idx)
-        self._ports[port_idx] = handler
-        return handler
-
-    def handler(self, port_idx):
-        return self._ports[port_idx]
-
-    def uninitialize(self, port_idx):
-        self._interface.set_motor_port_type(port_idx, 0)
+    @property
+    def port_count(self):
+        return len(self._ports)
 
     @property
     def interface(self):
         return self._interface
 
+    def port(self, port_idx):
+        return self._ports[port_idx]
+
+
+class MotorPortInstance:
+    def __init__(self, port_idx, owner: MotorPortHandler):
+        self._port_idx = port_idx
+        self._owner = owner
+        self._available_types = owner.available_types
+        self._handlers = {
+            'NotConfigured': lambda: None,
+            'OpenLoop': lambda: OpenLoopMotorController(self, port_idx),
+            'PositionControlled': lambda: PositionControlledMotorController(self, port_idx),
+            'SpeedControlled': lambda: SpeedControlledMotorController(self, port_idx)
+        }
+        self._handler = None
+        self._current_port_type = "NotConfigured"
+
+    def configure(self, port_type):
+        if self._current_port_type == port_type:
+            return self._handler
+
+        if self._handler is not None:
+            self._handler.uninitialize()
+
+        self._current_port_type = port_type
+        self._owner.interface.set_motor_port_type(self._port_idx, self._available_types[port_type])
+        handler = self._handlers[port_type]()
+        self._handler = handler
+        return handler
+
+    def uninitialize(self):
+        self.configure("NotConfigured")
+
+    def handler(self):
+        return self._handler
+
+    @property
+    def interface(self):
+        return self._owner.interface
+
 
 class BaseMotorController:
-    def __init__(self, handler: MotorPortHandler, port_idx):
+    def __init__(self, handler: MotorPortInstance, port_idx):
         self._handler = handler
         self._interface = handler.interface
         self._port_idx = port_idx
         self._configured = True
 
     def uninitialize(self):
-        self._handler.uninitialize(self._port_idx)
+        self._handler.uninitialize()
         self._configured = False
 
     def get_position(self):
@@ -71,7 +96,7 @@ class OpenLoopMotorController(BaseMotorController):
 
 
 class PositionControlledMotorController(BaseMotorController):
-    def __init__(self, handler: MotorPortHandler, port_idx):
+    def __init__(self, handler: MotorPortInstance, port_idx):
         super().__init__(handler, port_idx)
         self._config = [1.5, 0.02, 0, -80, 80]
         self._update_config()
@@ -92,7 +117,7 @@ class PositionControlledMotorController(BaseMotorController):
 
 
 class SpeedControlledMotorController(BaseMotorController):
-    def __init__(self, handler: MotorPortHandler, port_idx):
+    def __init__(self, handler: MotorPortInstance, port_idx):
         super().__init__(handler, port_idx)
         self._config = [5, 0.25, 0, -90, 90]
         self._update_config()
