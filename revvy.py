@@ -9,18 +9,16 @@
 from utils import *
 from activation import *
 from rrrc_transport import *
-from functions import *
 
 
 class SuperchargeDemo(RevvyApp):
     def __init__(self, interface):
         super().__init__(interface)
 
+        self._drivetrain = DifferentialDrivetrain()
+
         self._maxVl = 90
         self._maxVr = 90
-
-        self._left_motors = None
-        self._right_motors = None
 
         button_led = ToggleButton()
         button_led.onEnabled(lambda: self.set_ring_led_mode(RingLed.LED_RING_COLOR_WHEEL))
@@ -30,31 +28,19 @@ class SuperchargeDemo(RevvyApp):
     def init(self):
         status = True
 
-        self._left_motors = [
-            self._motor_ports.configure(self.motorPortMap[2], 'SpeedControlled'),
-            self._motor_ports.configure(self.motorPortMap[3], 'SpeedControlled')
-        ]
+        self._drivetrain.add_left_motor(self._motor_ports.configure(self.motorPortMap[2], 'SpeedControlled'))
+        self._drivetrain.add_left_motor(self._motor_ports.configure(self.motorPortMap[3], 'SpeedControlled'))
 
-        self._right_motors = [
-            self._motor_ports.configure(self.motorPortMap[5], 'SpeedControlled'),
-            self._motor_ports.configure(self.motorPortMap[6], 'SpeedControlled')
-        ]
+        self._drivetrain.add_right_motor(self._motor_ports.configure(self.motorPortMap[5], 'SpeedControlled'))
+        self._drivetrain.add_right_motor(self._motor_ports.configure(self.motorPortMap[6], 'SpeedControlled'))
 
         return status
 
     def handle_analog_values(self, analog_values):
-        x = clip((analog_values[0] - 128) / 127.0, -1, 1)
-        y = clip((analog_values[1] - 128) / 127.0, -1, 1)
+        (angle, length) = joystick(analog_values[0], analog_values[1])
+        (sl, sr) = differentialControl(length, angle)
 
-        vec_angle = math.atan2(y, x)
-        vec_len = math.sqrt(x * x + y * y)
-        (sl, sr) = differentialControl(vec_len, vec_angle)
-
-        for motor in self._left_motors:
-            motor.set_speed(sl * self._maxVl)
-
-        for motor in self._right_motors:
-            motor.set_speed(sr * self._maxVr)
+        self._drivetrain.set_speeds(sl * self._maxVl, sr * self._maxVr)
 
 
 def main():

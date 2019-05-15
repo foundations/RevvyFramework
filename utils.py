@@ -25,6 +25,25 @@ class NullHandler:
         pass
 
 
+class DifferentialDrivetrain:
+    def __init__(self):
+        self._left_motors = []
+        self._right_motors = []
+
+    def add_left_motor(self, motor):
+        self._left_motors.append(motor)
+
+    def add_right_motor(self, motor):
+        self._right_motors.append(motor)
+
+    def set_speeds(self, left, right):
+        for motor in self._left_motors:
+            motor.set_speed(left)
+
+        for motor in self._right_motors:
+            motor.set_speed(right)
+
+
 def differentialControl(r, angle):
     """
     Calculates left and right wheel speeds
@@ -38,6 +57,15 @@ def differentialControl(r, angle):
     sr = +(v + w)
     sl = -(v - w)
     return sl, sr
+
+
+def joystick(a, b):
+    x = clip((a - 128) / 127.0, -1, 1)
+    y = clip((b - 128) / 127.0, -1, 1)
+
+    angle = math.atan2(y, x)
+    len = math.sqrt(x * x + y * y)
+    return angle, len
 
 
 def _retry(fn, retries=5):
