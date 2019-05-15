@@ -18,7 +18,7 @@ class MotorPortHandler:
 
     def configure(self, port_idx, port_type):
         if port_idx >= len(self._ports):
-            raise ValueError('Trying to configure port #{} but there are only {} ports', port_idx, len(self._ports))
+            raise ValueError('Trying to configure port #{} but there are only {} ports'.format(port_idx, len(self._ports)))
 
         if self._ports[port_idx]:
             self._ports[port_idx].uninitialize()
@@ -55,9 +55,6 @@ class BaseMotorController:
 
 
 class OpenLoopMotorController(BaseMotorController):
-    def __init__(self, handler: MotorPortHandler, port_idx):
-        super().__init__(handler, port_idx)
-
     def set_speed(self, speed):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
