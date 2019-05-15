@@ -50,7 +50,7 @@ def _retry(fn, retries=5):
 
 class RingLed:
     LED_RING_OFF = 0
-    LED_RING_USER_FRAME =1
+    LED_RING_USER_FRAME = 1
     LED_RING_COLOR_WHEEL = 2
 
     def __init__(self, interface: RevvyControl):
@@ -109,7 +109,7 @@ class RevvyApp:
             self.set_master_status(self.master_status_stopped)
             hw = self._interface.get_hardware_version()
             fw = self._interface.get_firmware_version()
-            sw = "0.1-r" + str(FRAMEWORK_VERSION)
+            sw = str(FRAMEWORK_VERSION)
 
             print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
