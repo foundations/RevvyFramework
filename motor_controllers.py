@@ -12,7 +12,7 @@ class MotorPortHandler:
 
     @property
     def available_types(self):
-        return list(self._types.keys())
+        return self._types
 
     @property
     def port_count(self):
@@ -30,7 +30,6 @@ class MotorPortInstance:
     def __init__(self, port_idx, owner: MotorPortHandler):
         self._port_idx = port_idx
         self._owner = owner
-        self._available_types = owner.available_types
         self._handlers = {
             'NotConfigured': lambda: None,
             'OpenLoop': lambda: OpenLoopMotorController(self, port_idx),
@@ -47,8 +46,8 @@ class MotorPortInstance:
         if self._handler is not None:
             self._handler.uninitialize()
 
+        self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[port_type])
         self._current_port_type = port_type
-        self._owner.interface.set_motor_port_type(self._port_idx, self._available_types[port_type])
         handler = self._handlers[port_type]()
         self._handler = handler
         return handler
