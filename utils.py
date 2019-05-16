@@ -131,7 +131,6 @@ class RevvyApp:
         self._motor_ports = None
         self._sensor_ports = None
         self._ble_interface = None
-        self._status_update_step = 0
 
         self._reader = RobotStateReader()
         self._reader.add('ping', self._interface.ping)
@@ -142,8 +141,6 @@ class RevvyApp:
 
         self._thread1 = Thread(target=self.handle, args=())
         self._thread2 = Thread(target=self.read_status_thread, args=())
-        self._thread1.start()
-        self._thread2.start()
 
     def _update_battery(self, battery):
         self._ble_interface.updateMainBattery(battery['main'])
@@ -209,8 +206,6 @@ class RevvyApp:
                 else:
                     print("Init failed")
                     restart = True
-
-                self._status_update_step = 0
 
                 while not self._stop and not restart:
                     if self.event.wait(0.1):
@@ -303,10 +298,16 @@ class RevvyApp:
     def run(self):
         pass
 
+    def start(self):
+        self._ble_interface.start()
+        self._thread1.start()
+        self._thread2.start()
+
     def stop(self):
         self._stop = True
         self._thread1.join()
         self._thread2.join()
+        self._ble_interface.stop()
 
 
 class RobotStateReader:
@@ -432,7 +433,7 @@ def startRevvy(app):
     app.register(revvy)
 
     try:
-        revvy.start()
+        app.start()
         print("Press enter to exit")
         input()
     except KeyboardInterrupt:
@@ -443,8 +444,6 @@ def startRevvy(app):
             time.sleep(1)
     finally:
         print('stopping')
-        revvy.stop()
-
         app.stop()
 
     print('terminated.')
