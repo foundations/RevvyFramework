@@ -133,6 +133,9 @@ class RevvyApp:
         self._ble_interface = None
         self._status_update_step = 0
 
+        self._thread1 = Thread(target=self.handle, args=())
+        self._thread1.start()
+
     def prepare(self):
         print("Prepare")
         try:
@@ -222,6 +225,7 @@ class RevvyApp:
                         self.run()
                         self.update_status()
             except Exception as e:
+                raise e
                 print("Oops! {}".format(e))
 
     def handle_button(self, data):
@@ -296,6 +300,11 @@ class RevvyApp:
             self._status_update_step = 0
         else:
             self._status_update_step += 1
+
+    def stop(self):
+        self._stop = True
+        self.event.set()
+        self._thread1.join()
 
 
 class RobotStateReader:
@@ -397,9 +406,6 @@ def startRevvy(app):
     revvy = RevvyBLE(device_name, getserial())
     app.register(revvy)
 
-    t1 = Thread(target=app.handle, args=())
-    t1.start()
-
     try:
         revvy.start()
         print("Press enter to exit")
@@ -414,9 +420,7 @@ def startRevvy(app):
         print('stopping')
         revvy.stop()
 
-        app._stop = True
-        app.event.set()
-        t1.join()
+        app.stop()
 
     print('terminated.')
     sys.exit(1)
