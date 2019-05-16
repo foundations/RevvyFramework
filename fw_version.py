@@ -1,3 +1,3 @@
 
 # This file is generated before each commit
-FRAMEWORK_VERSION = "0.1-r94-runtime"
+FRAMEWORK_VERSION = "0.1-r95-runtime"

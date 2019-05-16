@@ -133,8 +133,20 @@ class RevvyApp:
         self._ble_interface = None
         self._status_update_step = 0
 
+        self._reader = RobotStateReader()
+        self._reader.add('ping', self._interface.ping)
+        self._reader.add('battery', self._interface.get_battery_status)
+
+        self._data_dispatcher = DataDispatcher()
+        self._data_dispatcher.add('battery', self._update_battery)
+
         self._thread1 = Thread(target=self.handle, args=())
         self._thread1.start()
+
+    def _update_battery(self, battery):
+        print(battery)
+        self._ble_interface.updateMainBattery(battery['main'])
+        self._ble_interface.updateMotorBattery(battery['motor'])
 
     def prepare(self):
         print("Prepare")
@@ -223,9 +235,9 @@ class RevvyApp:
 
                     if not self._stop:
                         self.run()
-                        self.update_status()
+                        self._reader.read()
+                        self._data_dispatcher.dispatch(self._reader)
             except Exception as e:
-                raise e
                 print("Oops! {}".format(e))
 
     def handle_button(self, data):
@@ -285,22 +297,6 @@ class RevvyApp:
     def run(self):
         pass
 
-    def update_status(self):
-        """
-        Periodically read device status, small pieces of data at a time
-        """
-        if self._status_update_step == 0:
-            battery = self._interface.get_battery_status()
-            self._ble_interface.updateMainBattery(battery['main'])
-            self._ble_interface.updateMotorBattery(battery['motor'])
-        else:
-            self._interface.ping()
-
-        if self._status_update_step == 1:
-            self._status_update_step = 0
-        else:
-            self._status_update_step += 1
-
     def stop(self):
         self._stop = True
         self.event.set()
@@ -317,6 +313,9 @@ class RobotStateReader:
     def __getitem__(self, name: str) -> Any:
         with self._data_lock:
             return self._data[name]
+
+    def __iter__(self):
+        return self._data.__iter__
 
     def add(self, name, reader):
         with self._reader_lock:
@@ -338,6 +337,26 @@ class RobotStateReader:
                 value = self._readers[name]()
                 with self._data_lock:
                     self._data[name] = value
+
+
+class DataDispatcher:
+    def __init__(self):
+        self._handlers = {}
+        self._lock = Lock()
+
+    def add(self, name, handler):
+        with self._lock:
+            self._handlers[name] = handler
+
+    def remove(self, name):
+        with self._lock:
+            del self._handlers[name]
+
+    def dispatch(self, data):
+        for key in self._handlers:
+            with self._lock:
+                if key in self._handlers:
+                    self._handlers[key](data[key])
 
 
 def getserial():
