@@ -28,11 +28,11 @@ class SuperchargeDemo(RevvyApp):
     def init(self):
         status = True
 
-        self._drivetrain.add_left_motor(self._motor_ports.configure(self.motorPortMap[2], 'SpeedControlled'))
-        self._drivetrain.add_left_motor(self._motor_ports.configure(self.motorPortMap[3], 'SpeedControlled'))
+        self._drivetrain.add_left_motor(self._motor_ports.port(self.motorPortMap[2]).configure('SpeedControlled'))
+        self._drivetrain.add_left_motor(self._motor_ports.port(self.motorPortMap[3]).configure('SpeedControlled'))
 
-        self._drivetrain.add_right_motor(self._motor_ports.configure(self.motorPortMap[5], 'SpeedControlled'))
-        self._drivetrain.add_right_motor(self._motor_ports.configure(self.motorPortMap[6], 'SpeedControlled'))
+        self._drivetrain.add_right_motor(self._motor_ports.port(self.motorPortMap[5]).configure('SpeedControlled'))
+        self._drivetrain.add_right_motor(self._motor_ports.port(self.motorPortMap[6]).configure('SpeedControlled'))
 
         return status
 
