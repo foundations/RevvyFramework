@@ -41,6 +41,25 @@ class MotorPortHandler:
         return self._ports[self.motorPortMap[port_idx]]
 
 
+class MotorPorts:
+    def __init__(self, handler: MotorPortHandler):
+        self._handler = handler
+        self._names = {}
+
+    def add_alias(self, name, port):
+        self._names[name] = port
+
+    def reset(self):
+        self._names = {}
+        self._handler.reset()
+
+    def __getitem__(self, item):
+        if item is str:
+            item = self._names[item]
+
+        return self._handler[item]
+
+
 class MotorPortInstance:
     def __init__(self, port_idx, owner: MotorPortHandler):
         self._port_idx = port_idx

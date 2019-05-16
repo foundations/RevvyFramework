@@ -15,10 +15,10 @@ class SuperchargeDemo(RevvyApp):
     def __init__(self, interface):
         super().__init__(interface)
 
-        self._drivetrain = DifferentialDrivetrain()
-
         self._maxVl = 90
         self._maxVr = 90
+
+        self._drivetrain = None
 
         button_led = ToggleButton()
         button_led.onEnabled(lambda: self.set_ring_led_mode(RingLed.LED_RING_COLOR_WHEEL))
@@ -26,12 +26,12 @@ class SuperchargeDemo(RevvyApp):
         self._buttons[0] = button_led
 
     def init(self):
-        status = True
-
         self._motor_ports[2].configure('SpeedControlled')
         self._motor_ports[3].configure('SpeedControlled')
         self._motor_ports[5].configure('SpeedControlled')
         self._motor_ports[6].configure('SpeedControlled')
+
+        self._drivetrain = DifferentialDrivetrain()
 
         self._drivetrain.add_left_motor(self._motor_ports[2])
         self._drivetrain.add_left_motor(self._motor_ports[3])
@@ -39,13 +39,12 @@ class SuperchargeDemo(RevvyApp):
         self._drivetrain.add_right_motor(self._motor_ports[5])
         self._drivetrain.add_right_motor(self._motor_ports[6])
 
-        return status
-
     def handle_analog_values(self, analog_values):
         (angle, length) = joystick(analog_values[0], analog_values[1])
         (sl, sr) = differentialControl(length, angle)
 
-        self._drivetrain.set_speeds(sl * self._maxVl, sr * self._maxVr)
+        if self._drivetrain:
+            self._drivetrain.set_speeds(sl * self._maxVl, sr * self._maxVr)
 
 
 def main():

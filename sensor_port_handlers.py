@@ -39,6 +39,25 @@ class SensorPortHandler:
         return self._ports[self.sensorPortMap[port_idx]]
 
 
+class SensorPorts:
+    def __init__(self, handler: SensorPortHandler):
+        self._handler = handler
+        self._names = {}
+
+    def add_alias(self, name, port):
+        self._names[name] = port
+
+    def reset(self):
+        self._names = {}
+        self._handler.reset()
+
+    def __getitem__(self, item):
+        if item is str:
+            item = self._names[item]
+
+        return self._handler[item]
+
+
 class SensorPortInstance:
     def __init__(self, port_idx, owner: SensorPortHandler):
         self._port_idx = port_idx

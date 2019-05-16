@@ -122,8 +122,8 @@ class RevvyApp:
         self._missedKeepAlives = 0
         self._is_connected = False
         self._ring_led = None
-        self._motor_ports = MotorPortHandler(self._interface)
-        self._sensor_ports = SensorPortHandler(self._interface)
+        self._motor_ports = MotorPorts(MotorPortHandler(self._interface))
+        self._sensor_ports = SensorPorts(SensorPortHandler(self._interface))
         self._ble_interface = None
 
         self._reader = RobotStateReader()
