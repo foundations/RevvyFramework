@@ -5,6 +5,7 @@ from threading import Lock, Event
 from threading import Thread
 import sys
 import time
+import traceback
 from typing import Any
 
 from ble_revvy import *
@@ -72,7 +73,13 @@ def _retry(fn, retries=5):
     status = False
     retry_num = 0
     while retry_num < retries and not status:
-        status = fn()
+        try:
+            status = fn()
+            if status is None:
+                status = True
+        except:
+            print(traceback.format_exc())
+            status = False
         retry_num += 1
 
     return status
@@ -142,48 +149,31 @@ class RevvyApp:
 
     def prepare(self):
         print("Prepare")
-        try:
-            self.set_master_status(self.master_status_stopped)
-            hw = self._interface.get_hardware_version()
-            fw = self._interface.get_firmware_version()
-            sw = FRAMEWORK_VERSION
+        self._interface.set_master_status(self.master_status_stopped)
+        hw = self._interface.get_hardware_version()
+        fw = self._interface.get_firmware_version()
+        sw = FRAMEWORK_VERSION
 
-            print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
+        print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
-            self._ble_interface.set_hw_version(hw)
-            self._ble_interface.set_fw_version(fw)
-            self._ble_interface.set_sw_version(sw)
+        self._ble_interface.set_hw_version(hw)
+        self._ble_interface.set_fw_version(fw)
+        self._ble_interface.set_sw_version(sw)
 
-            self._ring_led = RingLed(self._interface)
+        self._ring_led = RingLed(self._interface)
 
-            self._motor_ports.reset()
-            self._sensor_ports.reset()
-
-            print("Init done")
-            return True
-        except Exception as e:
-            print("Prepare error: ", e)
-            return False
-
-    def set_master_status(self, status):
-        if self._interface:
-            self._interface.set_master_status(status)
+        self._motor_ports.reset()
+        self._sensor_ports.reset()
+        return True
 
     def set_ring_led_mode(self, mode):
         if self._ring_led:
             self._ring_led.set_scenario(mode)
 
     def _setup_robot(self):
-        status = _retry(self.prepare)
-        if status:
-            self.set_master_status(self.master_status_stopped)
-            status = _retry(self.init)
-            if not status:
-                print('Init failed')
-        else:
-            print('Prepare failed')
-
-        return status
+        self.prepare()
+        self._interface.set_master_status(self.master_status_stopped)
+        self.init()
 
     def handle(self):
         comm_missing = True
@@ -194,7 +184,7 @@ class RevvyApp:
 
                 if status:
                     print("Init ok")
-                    self.set_master_status(self.master_status_operational)
+                    self._interface.set_master_status(self.master_status_operational)
                     self._update_ble_connection_indication()
                     self._missedKeepAlives = -1
                 else:
@@ -211,20 +201,20 @@ class RevvyApp:
                         self.handle_analog_values(analog_data)
                         self.handle_button(button_data)
                         if comm_missing:
-                            self.set_master_status(self.master_status_operational_controlled)
+                            self._interface.set_master_status(self.master_status_operational_controlled)
                             comm_missing = False
                     else:
                         if not self._check_keep_alive():
                             if not comm_missing:
-                                self.set_master_status(self.master_status_operational)
+                                self._interface.set_master_status(self.master_status_operational)
                                 comm_missing = True
                             restart = True
                             time.sleep(1)
 
                     if not self._stop:
                         self.run()
-            except Exception as e:
-                print("Oops! {}".format(e))
+            except:
+                print(traceback.format_exc())
 
     def read_status_thread(self):
         while not self._stop:
@@ -232,8 +222,8 @@ class RevvyApp:
                 self._reader.read()
                 self._data_dispatcher.dispatch(self._reader)
                 time.sleep(0.1)
-            except Exception as e:
-                print("Oops! {}".format(e))
+            except:
+                print(traceback.format_exc())
 
     def handle_button(self, data):
         for i in range(len(self._buttons)):
@@ -287,7 +277,7 @@ class RevvyApp:
         self._ble_interface = revvy
 
     def init(self):
-        return True
+        pass
 
     def run(self):
         pass
