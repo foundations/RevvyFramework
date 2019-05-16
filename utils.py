@@ -267,9 +267,9 @@ class RevvyApp:
 
     def register(self, revvy):
         print('Registering callbacks')
-        for i in range(10):
+        for i in range(len(self._analogInputs)):
             revvy.registerAnalogHandler(i, functools.partial(self._update_analog, channel=i))
-        for i in range(32):
+        for i in range(len(self._buttons)):
             revvy.registerButtonHandler(i, functools.partial(self._update_button, channel=i))
         revvy.registerKeepAliveHandler(self._handle_keepalive)
         revvy.registerConnectionChangedHandler(self._on_connection_changed)
