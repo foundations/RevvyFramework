@@ -141,10 +141,11 @@ class RevvyApp:
         self._data_dispatcher.add('battery', self._update_battery)
 
         self._thread1 = Thread(target=self.handle, args=())
+        self._thread2 = Thread(target=self.read_status_thread, args=())
         self._thread1.start()
+        self._thread2.start()
 
     def _update_battery(self, battery):
-        print(battery)
         self._ble_interface.updateMainBattery(battery['main'])
         self._ble_interface.updateMotorBattery(battery['motor'])
 
@@ -213,18 +214,16 @@ class RevvyApp:
 
                 while not self._stop and not restart:
                     if self.event.wait(0.1):
-                        # print('Packet received')
-                        if not self._stop:
-                            self.event.clear()
-                            with self.mutex:
-                                analog_data = self._analogData
-                                button_data = self._buttonData
+                        self.event.clear()
+                        with self.mutex:
+                            analog_data = self._analogData
+                            button_data = self._buttonData
 
-                            self.handle_analog_values(analog_data)
-                            self.handle_button(button_data)
-                            if comm_missing:
-                                self.set_master_status(self.master_status_operational_controlled)
-                                comm_missing = False
+                        self.handle_analog_values(analog_data)
+                        self.handle_button(button_data)
+                        if comm_missing:
+                            self.set_master_status(self.master_status_operational_controlled)
+                            comm_missing = False
                     else:
                         if not self._check_keep_alive():
                             if not comm_missing:
@@ -235,8 +234,15 @@ class RevvyApp:
 
                     if not self._stop:
                         self.run()
-                        self._reader.read()
-                        self._data_dispatcher.dispatch(self._reader)
+            except Exception as e:
+                print("Oops! {}".format(e))
+
+    def read_status_thread(self):
+        while not self._stop:
+            try:
+                self._reader.read()
+                self._data_dispatcher.dispatch(self._reader)
+                time.sleep(0.1)
             except Exception as e:
                 print("Oops! {}".format(e))
 
@@ -299,8 +305,8 @@ class RevvyApp:
 
     def stop(self):
         self._stop = True
-        self.event.set()
         self._thread1.join()
+        self._thread2.join()
 
 
 class RobotStateReader:
