@@ -2,11 +2,26 @@ from rrrc_control import RevvyControl
 
 
 class SensorPortHandler:
+    # index: logical number; value: physical number
+    sensorPortMap = [-1, 0, 1, 2, 3]
+
     def __init__(self, interface: RevvyControl):
         self._interface = interface
-        self._types = interface.get_sensor_port_types()
-        count = interface.get_sensor_port_amount()
+        self._types = {"NotConfigured": 0}
+        self._ports = []
+
+    def reset(self):
+        for port in self._ports:
+            port.uninitialize()
+
+        self._types = self._interface.get_sensor_port_types()
+        count = self._interface.get_sensor_port_amount()
+        if count != len(self.sensorPortMap) - 1:
+            raise ValueError('Unexpected sensor port count ({} instead of {})'.format(count, len(self.sensorPortMap)))
         self._ports = [SensorPortInstance(i, self) for i in range(count)]
+
+    def __getitem__(self, item):
+        return self.port(item)
 
     @property
     def available_types(self):
@@ -21,7 +36,7 @@ class SensorPortHandler:
         return self._interface
 
     def port(self, port_idx):
-        return self._ports[port_idx]
+        return self._ports[self.sensorPortMap[port_idx]]
 
 
 class SensorPortInstance:
@@ -56,6 +71,9 @@ class SensorPortInstance:
     @property
     def interface(self):
         return self._owner.interface
+
+    def __getattr__(self, name):
+        return self._handler.__getattribute__(name)
 
 
 class BaseSensorPort:

@@ -4,11 +4,26 @@ from functions import clip
 
 
 class MotorPortHandler:
+    # index: logical number; value: physical number
+    motorPortMap = [-1, 3, 4, 5, 2, 1, 0]
+
     def __init__(self, interface: RevvyControl):
         self._interface = interface
-        self._types = interface.get_motor_port_types()
-        count = interface.get_motor_port_amount()
+        self._types = {"NotConfigured": 0}
+        self._ports = []
+
+    def reset(self):
+        for port in self._ports:
+            port.uninitialize()
+
+        self._types = self._interface.get_motor_port_types()
+        count = self._interface.get_motor_port_amount()
+        if count != len(self.motorPortMap) - 1:
+            raise ValueError('Unexpected motor port count ({} instead of {})'.format(count, len(self.motorPortMap)))
         self._ports = [MotorPortInstance(i, self) for i in range(count)]
+
+    def __getitem__(self, item):
+        return self.port(item)
 
     @property
     def available_types(self):
@@ -23,7 +38,7 @@ class MotorPortHandler:
         return self._interface
 
     def port(self, port_idx):
-        return self._ports[port_idx]
+        return self._ports[self.motorPortMap[port_idx]]
 
 
 class MotorPortInstance:
@@ -61,6 +76,9 @@ class MotorPortInstance:
     @property
     def interface(self):
         return self._owner.interface
+
+    def __getattr__(self, name):
+        return self._handler.__getattribute__(name)
 
 
 class BaseMotorController:

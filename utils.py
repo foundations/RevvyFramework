@@ -109,12 +109,6 @@ class RevvyApp:
     master_status_operational = 1
     master_status_operational_controlled = 2
 
-    # index: logical number; value: physical number
-    motorPortMap = [-1, 3, 4, 5, 2, 1, 0]
-
-    # index: logical number; value: physical number
-    sensorPortMap = [-1, 0, 1, 2, 3]
-
     mutex = Lock()
     event = Event()
 
@@ -128,8 +122,8 @@ class RevvyApp:
         self._missedKeepAlives = 0
         self._is_connected = False
         self._ring_led = None
-        self._motor_ports = None
-        self._sensor_ports = None
+        self._motor_ports = MotorPortHandler(self._interface)
+        self._sensor_ports = SensorPortHandler(self._interface)
         self._ble_interface = None
 
         self._reader = RobotStateReader()
@@ -162,8 +156,8 @@ class RevvyApp:
 
             self._ring_led = RingLed(self._interface)
 
-            self._motor_ports = MotorPortHandler(self._interface)
-            self._sensor_ports = SensorPortHandler(self._interface)
+            self._motor_ports.reset()
+            self._sensor_ports.reset()
 
             print("Init done")
             return True
