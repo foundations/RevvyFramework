@@ -346,13 +346,33 @@ def getserial():
     return cpu_serial
 
 
-class DeviceNameProvider:
+class StorageInterface:
+    def store(self, data):
+        raise NotImplementedError
+
+    def read(self):
+        raise NotImplementedError
+
+
+class FileStorage(StorageInterface):
     def __init__(self, filename):
         self._filename = filename
+
+    def store(self, data):
+        with open(self._filename, 'w') as f:
+            f.write(data)
+
+    def read(self):
+        with open(self._filename, 'r') as f:
+            return f.read()
+
+
+class DeviceNameProvider:
+    def __init__(self, storage: StorageInterface):
+        self._storage = storage
         try:
-            with open(filename, 'r') as f:
-                self._name = f.readline()
-        except FileNotFoundError:
+            self._name = storage.read()
+        except:
             self._name = 'Revvy_{}'.format(getserial().lstrip('0'))
 
     def get_device_name(self):
@@ -361,15 +381,11 @@ class DeviceNameProvider:
     def update_device_name(self, new_device_name):
         if new_device_name != self._name:
             self._name = new_device_name
-            self._store()
-
-    def _store(self):
-        with open(self._filename, 'w') as f:
-            f.write(self._name)
+            self._storage.store(self._name)
 
 
 def startRevvy(app):
-    dnp = DeviceNameProvider('device_name.txt')
+    dnp = DeviceNameProvider(FileStorage('device_name.txt'))
     device_name = Observable(dnp.get_device_name())
 
     def on_device_name_changed(new_name):
