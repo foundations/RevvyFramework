@@ -72,7 +72,7 @@ class SensorPortInstance:
         if self._current_port_type == port_type:
             return self._handler
 
-        if self._handler is not None:
+        if self._handler is not None and port_type != 'NotConfigured':
             self._handler.uninitialize()
 
         self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[port_type])
