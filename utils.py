@@ -9,12 +9,13 @@ import traceback
 from typing import Any
 
 from ble_revvy import *
-import functools
 
 from rrrc_transport import *
 from motor_controllers import *
 from sensor_port_handlers import *
 from fw_version import *
+from activation import EdgeTrigger
+from functions import *
 
 
 def empty_callback():
@@ -61,8 +62,8 @@ def differentialControl(r, angle):
 
 
 def joystick(a, b):
-    x = clip((a - 128) / 127.0, -1, 1)
-    y = clip((b - 128) / 127.0, -1, 1)
+    x = clip((a - 127) / 127.0, -1, 1)
+    y = clip((b - 127) / 127.0, -1, 1)
 
     angle = math.atan2(y, x)
     len = math.sqrt(x * x + y * y)
@@ -86,16 +87,22 @@ def _retry(fn, retries=5):
 
 
 class RingLed:
-    LED_RING_OFF = 0
-    LED_RING_USER_FRAME = 1
-    LED_RING_COLOR_WHEEL = 2
+    Off = 0
+    UserFrame = 1
+    ColorWheel = 2
 
     def __init__(self, interface: RevvyControl):
         self._interface = interface
         self._ring_led_count = self._interface.ring_led_get_led_amount()
+        self._current_scenario = self.Off
 
     def set_scenario(self, scenario):
+        self._current_scenario = scenario
         self._interface.ring_led_set_scenario(scenario)
+
+    @property
+    def scenario(self):
+        return self._current_scenario
 
     def upload_user_frame(self, frame):
         """
@@ -108,40 +115,130 @@ class RingLed:
 
     def display_user_frame(self, frame):
         self.upload_user_frame(frame)
-        self.set_scenario(self.LED_RING_USER_FRAME)
+        self.set_scenario(self.UserFrame)
+
+
+class RemoteController:
+    def __init__(self):
+        self._mutex = Lock()
+        self._enabled_event = Event()
+        self._data_ready_event = Event()
+
+        self._analogActions = []
+        self._buttonActions = [lambda: None] * 32
+        self._buttonHandlers = [None] * 32
+        self._controller_detected = lambda: None
+        self._controller_disappeared = lambda: None
+        self._stop = False
+
+        self._message = None
+        self._missedKeepAlives = -1
+
+        for i in range(len(self._buttonHandlers)):
+            self._buttonHandlers[i] = EdgeTrigger()
+            self._buttonHandlers[i].onRisingEdge(lambda idx=i: self._buttonActions[idx]())
+
+        self._handler_thread = Thread(target=self._background_thread, args=())
+        self._handler_thread.start()
+
+    def _background_thread(self):
+        while not self._stop:
+            # Only run if we're enabled
+            self._enabled_event.wait()
+
+            # Wait for data
+            if self._data_ready_event.wait(0.1):
+                self._data_ready_event.clear()
+
+                if self._missedKeepAlives == -1:
+                    self._controller_detected()
+                self._missedKeepAlives = 0
+
+                # copy data
+                with self._mutex:
+                    message = self._message
+
+                # handle analog channels
+                for handler in self._analogActions:
+                    values = list(map(lambda x: message['analog'][x], handler['channels']))
+                    handler['action'](values)
+
+                # handle button presses
+                for idx in range(len(self._buttonHandlers)):
+                    with self._mutex:
+                        self._buttonHandlers[idx].handle(message['buttons'][idx])
+            else:
+                # timeout
+                if not self._handle_keep_alive_missed():
+                    self._controller_disappeared()
+
+    def _handle_keep_alive_missed(self):
+        if self._missedKeepAlives > 3:
+            self._missedKeepAlives = -1
+            return False
+        elif self._missedKeepAlives >= 0:
+            self._missedKeepAlives += 1
+        return True
+
+    def on_controller_detected(self, action):
+        self._controller_detected = action
+
+    def on_controller_disappeared(self, action):
+        self._controller_disappeared = action
+
+    def on_button_pressed(self, button, action):
+        self._buttonActions[button] = action
+
+    def on_analog_values(self, channels, action):
+        self._analogActions.append({'channels': channels, 'action': action})
+
+    def update(self, message):
+        with self._mutex:
+            self._message = message
+        self._data_ready_event.set()
+
+    def start(self):
+        self._missedKeepAlives = -1
+        self._enabled_event.set()
+
+    def stop(self):
+        self._enabled_event.clear()
+
+    def cleanup(self):
+        self._stop = True
+        self._enabled_event.set()
+        self._handler_thread.join()
 
 
 class RevvyApp:
-    master_status_stopped = 0
-    master_status_operational = 1
-    master_status_operational_controlled = 2
-
-    mutex = Lock()
-    event = Event()
+    StatusStopped = 0
+    StatusOperational = 1
+    StatusOperationalControlled = 2
 
     def __init__(self, interface):
-        self._interface = RevvyControl(RevvyTransport(interface))
-        self._buttons = [NullHandler()] * 32
-        self._buttonData = [False] * 32
-        self._analogInputs = [NullHandler()] * 10
-        self._analogData = [128] * 10
+        self._robot = RevvyControl(RevvyTransport(interface))
+        self._remote_controller = RemoteController()
         self._stop = False
-        self._missedKeepAlives = 0
         self._is_connected = False
         self._ring_led = None
-        self._motor_ports = MotorPorts(MotorPortHandler(self._interface))
-        self._sensor_ports = SensorPorts(SensorPortHandler(self._interface))
+        self._motor_ports = MotorPorts(MotorPortHandler(self._robot))
+        self._sensor_ports = SensorPorts(SensorPortHandler(self._robot))
         self._ble_interface = None
+        self._read_thread_enabled = Event()
 
+        # register default status update steps
         self._reader = RobotStateReader()
-        self._reader.add('ping', self._interface.ping)
-        self._reader.add('battery', self._interface.get_battery_status)
+        # self._reader.add('ping', self._interface.ping)
+        self._reader.add('battery', self._robot.get_battery_status)
+
+        self._remote_controller.on_controller_detected(lambda: self._robot.set_master_status(self.StatusOperationalControlled))
+        self._remote_controller.on_controller_disappeared(lambda: self._robot.set_master_status(self.StatusOperational))
 
         self._data_dispatcher = DataDispatcher()
         self._data_dispatcher.add('battery', self._update_battery)
 
-        self._thread1 = Thread(target=self.handle, args=())
-        self._thread2 = Thread(target=self.read_status_thread, args=())
+        self._reader_thread = Thread(target=self.read_status_thread, args=())
+        self._reader_thread.start()
 
     def _update_battery(self, battery):
         self._ble_interface.updateMainBattery(battery['main'])
@@ -149,9 +246,18 @@ class RevvyApp:
 
     def prepare(self):
         print("Prepare")
-        self._interface.set_master_status(self.master_status_stopped)
-        hw = self._interface.get_hardware_version()
-        fw = self._interface.get_firmware_version()
+        # force reset
+        self._read_thread_enabled.clear()
+        self._robot.ping()
+        time.sleep(1)
+        self._read_thread_enabled.set()
+
+        # signal status
+        self._robot.set_master_status(self.StatusStopped)
+
+        # read versions
+        hw = self._robot.get_hardware_version()
+        fw = self._robot.get_firmware_version()
         sw = FRAMEWORK_VERSION
 
         print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
@@ -160,64 +266,20 @@ class RevvyApp:
         self._ble_interface.set_fw_version(fw)
         self._ble_interface.set_sw_version(sw)
 
-        self._ring_led = RingLed(self._interface)
+        self._ring_led = RingLed(self._robot)
 
         self._motor_ports.reset()
         self._sensor_ports.reset()
         return True
 
-    def set_ring_led_mode(self, mode):
-        if self._ring_led:
-            self._ring_led.set_scenario(mode)
-
     def _setup_robot(self):
         self.prepare()
-        self._interface.set_master_status(self.master_status_stopped)
+        self._robot.set_master_status(self.StatusStopped)
         self.init()
-
-    def handle(self):
-        comm_missing = True
-        while not self._stop:
-            try:
-                restart = False
-                status = _retry(self._setup_robot)
-
-                if status:
-                    print("Init ok")
-                    self._interface.set_master_status(self.master_status_operational)
-                    self._interface.set_bluetooth_connection_status(self._is_connected)
-                    self._missedKeepAlives = -1
-                else:
-                    print("Init failed")
-                    restart = True
-
-                while not self._stop and not restart:
-                    if self.event.wait(0.1):
-                        self.event.clear()
-                        with self.mutex:
-                            analog_data = self._analogData
-                            button_data = self._buttonData
-
-                        self.handle_analog_values(analog_data)
-                        self.handle_button(button_data)
-                        if comm_missing:
-                            self._interface.set_master_status(self.master_status_operational_controlled)
-                            comm_missing = False
-                    else:
-                        if not self._check_keep_alive():
-                            if not comm_missing:
-                                self._interface.set_master_status(self.master_status_operational)
-                                comm_missing = True
-                            restart = True
-                            time.sleep(1)
-
-                    if not self._stop:
-                        self.run()
-            except:
-                print(traceback.format_exc())
 
     def read_status_thread(self):
         while not self._stop:
+            self._read_thread_enabled.wait()
             try:
                 self._reader.read()
                 self._data_dispatcher.dispatch(self._reader)
@@ -225,65 +287,41 @@ class RevvyApp:
             except:
                 print(traceback.format_exc())
 
-    def handle_button(self, data):
-        for i in range(len(self._buttons)):
-            self._buttons[i].handle(data[i])
-
-    def handle_analog_values(self, analog_values):
-        pass
-
-    def _handle_keepalive(self, x):
-        self._missedKeepAlives = 0
-        self.event.set()
-
-    def _check_keep_alive(self):
-        if self._missedKeepAlives > 3:
-            return False
-        elif self._missedKeepAlives >= 0:
-            self._missedKeepAlives += 1
-        return True
-
-    def _update_analog(self, channel, value):
-        with self.mutex:
-            if channel < len(self._analogData):
-                self._analogData[channel] = value
-
-    def _update_button(self, channel, value):
-        with self.mutex:
-            if channel < len(self._buttonData):
-                self._buttonData[channel] = value
-
     def _on_connection_changed(self, is_connected):
         if is_connected != self._is_connected:
             print('Connected' if is_connected else 'Disconnected')
             self._is_connected = is_connected
-        self._interface.set_bluetooth_connection_status(self._is_connected)
+        self._robot.set_bluetooth_connection_status(self._is_connected)
 
-    def register(self, revvy):
-        print('Registering callbacks')
-        for i in range(len(self._analogInputs)):
-            revvy.registerAnalogHandler(i, functools.partial(self._update_analog, channel=i))
-        for i in range(len(self._buttons)):
-            revvy.registerButtonHandler(i, functools.partial(self._update_button, channel=i))
-        revvy.registerKeepAliveHandler(self._handle_keepalive)
+    def _handle_controller_message(self, message):
+        self._remote_controller.update(message)
+
+    def register(self, revvy: RevvyBLE):
+        revvy.register_remote_controller_handler(self._handle_controller_message)
         revvy.registerConnectionChangedHandler(self._on_connection_changed)
         self._ble_interface = revvy
 
     def init(self):
         pass
 
-    def run(self):
-        pass
-
     def start(self):
+        status = _retry(self._setup_robot)
+
+        if status:
+            print("Init ok")
+            self._robot.set_master_status(self.StatusOperational)
+            self._robot.set_bluetooth_connection_status(self._is_connected)
+        else:
+            print("Init failed")
+
+        self._remote_controller.start()
         self._ble_interface.start()
-        self._thread1.start()
-        self._thread2.start()
 
     def stop(self):
         self._stop = True
-        self._thread1.join()
-        self._thread2.join()
+        self._remote_controller.cleanup()
+        self._read_thread_enabled.set()
+        self._reader_thread.join()
         self._ble_interface.stop()
 
 
@@ -341,21 +379,6 @@ class DataDispatcher:
             with self._lock:
                 if key in self._handlers:
                     self._handlers[key](data[key])
-
-
-def getserial():
-    # Extract serial from cpuinfo file
-    cpu_serial = "0000000000000000"
-    try:
-        with open('/proc/cpuinfo', 'r') as f:
-            for line in f:
-                if line[0:6] == 'Serial':
-                    cpu_serial = line.rstrip()[-16:]
-                    break
-    except:
-        cpu_serial = "ERROR000000000"
-
-    return cpu_serial
 
 
 class StorageInterface:

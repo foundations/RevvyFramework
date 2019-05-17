@@ -7,23 +7,20 @@
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
 
 from utils import *
-from activation import *
 from rrrc_transport import *
 
 
 class SuperchargeDemo(RevvyApp):
-    def __init__(self, interface):
-        super().__init__(interface)
+    def __init__(self, robot: RevvyControl):
+        super().__init__(robot)
 
         self._maxVl = 90
         self._maxVr = 90
 
         self._drivetrain = None
 
-        button_led = ToggleButton()
-        button_led.onEnabled(lambda: self.set_ring_led_mode(RingLed.LED_RING_COLOR_WHEEL))
-        button_led.onDisabled(lambda: self.set_ring_led_mode(RingLed.LED_RING_OFF))
-        self._buttons[0] = button_led
+        self._remote_controller.on_analog_values([0, 1], self._handle_joystick)
+        self._remote_controller.on_button_pressed(0, self._toggle_ring_led)
 
     def init(self):
         self._motor_ports[2].configure('SpeedControlled')
@@ -39,12 +36,19 @@ class SuperchargeDemo(RevvyApp):
         self._drivetrain.add_right_motor(self._motor_ports[5])
         self._drivetrain.add_right_motor(self._motor_ports[6])
 
-    def handle_analog_values(self, analog_values):
-        (angle, length) = joystick(analog_values[0], analog_values[1])
-        (sl, sr) = differentialControl(length, angle)
-
+    def _handle_joystick(self, channels):
         if self._drivetrain:
+            (angle, length) = joystick(channels[0], channels[1])
+            (sl, sr) = differentialControl(length, angle)
+
             self._drivetrain.set_speeds(sl * self._maxVl, sr * self._maxVr)
+
+    def _toggle_ring_led(self):
+        if self._ring_led:
+            if self._ring_led.scenario == RingLed.ColorWheel:
+                self._ring_led.set_scenario(RingLed.Off)
+            else:
+                self._ring_led.set_scenario(RingLed.ColorWheel)
 
 
 def main():
