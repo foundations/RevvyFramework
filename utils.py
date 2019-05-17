@@ -185,7 +185,7 @@ class RevvyApp:
                 if status:
                     print("Init ok")
                     self._interface.set_master_status(self.master_status_operational)
-                    self._update_ble_connection_indication()
+                    self._interface.set_bluetooth_connection_status(self._is_connected)
                     self._missedKeepAlives = -1
                 else:
                     print("Init failed")
@@ -257,14 +257,7 @@ class RevvyApp:
         if is_connected != self._is_connected:
             print('Connected' if is_connected else 'Disconnected')
             self._is_connected = is_connected
-            self._update_ble_connection_indication()
-
-    def _update_ble_connection_indication(self):
-        if self._interface:
-            if self._is_connected:
-                self._interface.set_bluetooth_connection_status(1)
-            else:
-                self._interface.set_bluetooth_connection_status(0)
+        self._interface.set_bluetooth_connection_status(self._is_connected)
 
     def register(self, revvy):
         print('Registering callbacks')
