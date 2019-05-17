@@ -227,11 +227,11 @@ class RevvyApp:
         self._read_thread_enabled = Event()
 
         # register default status update steps
-        self._reader = RobotStateReader()
-        # self._reader.add('ping', self._interface.ping)
+        self._reader = RobotStateReader(self._robot.ping)
         self._reader.add('battery', self._robot.get_battery_status)
 
-        self._remote_controller.on_controller_detected(lambda: self._robot.set_master_status(self.StatusOperationalControlled))
+        self._remote_controller.on_controller_detected(
+            lambda: self._robot.set_master_status(self.StatusOperationalControlled))
         self._remote_controller.on_controller_disappeared(lambda: self._robot.set_master_status(self.StatusOperational))
 
         self._data_dispatcher = DataDispatcher()
@@ -326,11 +326,12 @@ class RevvyApp:
 
 
 class RobotStateReader:
-    def __init__(self):
+    def __init__(self, default_action=lambda: None):
         self._readers = {}
         self._data = {}
         self._reader_lock = Lock()
         self._data_lock = Lock()
+        self._default_action = default_action
 
     def __getitem__(self, name: str) -> Any:
         with self._data_lock:
@@ -355,10 +356,13 @@ class RobotStateReader:
 
     def read(self):
         with self._reader_lock:
-            for name in self._readers:
-                value = self._readers[name]()
-                with self._data_lock:
-                    self._data[name] = value
+            if len(self._readers) == 0:
+                self._default_action()
+            else:
+                for name in self._readers:
+                    value = self._readers[name]()
+                    with self._data_lock:
+                        self._data[name] = value
 
 
 class DataDispatcher:
