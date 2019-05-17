@@ -419,7 +419,7 @@ class DeviceNameProvider:
             self._storage.store(self._name)
 
 
-def startRevvy(app):
+def startRevvy(app: RevvyApp):
     dnp = DeviceNameProvider(FileStorage('device_name.txt'))
     device_name = Observable(dnp.get_device_name())
 
