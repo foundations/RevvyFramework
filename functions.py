@@ -1,3 +1,6 @@
+import traceback
+
+
 def clip(x, min_x, max_x):
     if x < min_x:
         return min_x
@@ -25,3 +28,19 @@ def getserial():
         cpu_serial = "ERROR000000000"
 
     return cpu_serial
+
+
+def _retry(fn, retries=5):
+    status = False
+    retry_num = 0
+    while retry_num < retries and not status:
+        try:
+            status = fn()
+            if status is None:
+                status = True
+        except:
+            print(traceback.format_exc())
+            status = False
+        retry_num += 1
+
+    return status

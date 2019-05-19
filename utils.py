@@ -66,24 +66,8 @@ def joystick(a, b):
     y = clip((b - 127) / 127.0, -1, 1)
 
     angle = math.atan2(y, x)
-    len = math.sqrt(x * x + y * y)
-    return angle, len
-
-
-def _retry(fn, retries=5):
-    status = False
-    retry_num = 0
-    while retry_num < retries and not status:
-        try:
-            status = fn()
-            if status is None:
-                status = True
-        except:
-            print(traceback.format_exc())
-            status = False
-        retry_num += 1
-
-    return status
+    length = math.sqrt(x * x + y * y)
+    return angle, length
 
 
 class RingLed:
