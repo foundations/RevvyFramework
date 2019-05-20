@@ -318,6 +318,10 @@ class RobotManager:
         if self._status == self.StatusConfigured:
             self._robot.set_master_status(self.status_led_configured)
 
+    def _update_sensor(self, sid, value):
+        print('Sensor {}: {}'.format(sid, value['converted']))
+        self._ble.update_sensor(sid, value['raw'])
+
     def configure(self, config):
         if not config:
             config = self._default_configuration
@@ -349,7 +353,7 @@ class RobotManager:
                 if sensor.configure(config.sensors[sensor.id]):
                     sensor_name = 'sensor_{}'.format(sensor.id)
                     self._reader.add(sensor_name, lambda s=sensor: s.read())
-                    self._data_dispatcher.add(sensor_name, lambda value, sid=sensor.id: print('Sensor {}: {}'.format(sid, value['converted'])))
+                    self._data_dispatcher.add(sensor_name, lambda value, sid=sensor.id: self._update_sensor(sid, value))
 
             # set up scripts
             self._scripts.reset()

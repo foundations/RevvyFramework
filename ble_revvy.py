@@ -143,7 +143,7 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description
+                    'value': description.encode()
                 }),
             ]
         })
@@ -161,8 +161,8 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
 
 
 class BrainToMobileFunctionCharacteristic(Characteristic):
-    def __init__(self, description, uuid):
-        self._value = None
+    def __init__(self, uuid, description):
+        self._value = []
         self._updateValueCallback = None
         super().__init__({
             'uuid':        uuid,
@@ -171,7 +171,7 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description
+                    'value': description.encode()
                 }),
             ]
         })
@@ -188,7 +188,7 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
     def onUnsubscribe(self):
         self._updateValueCallback = None
 
-    def updateValue(self, value):
+    def update(self, value):
         self._value = value
 
         if self._updateValueCallback:
@@ -199,12 +199,24 @@ class LiveMessageService(BlenoPrimaryService):
     def __init__(self):
         self._message_handler = lambda x: None
 
+        self._sensor_characteristics = [
+                BrainToMobileFunctionCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', 'Sensor 1'),
+                BrainToMobileFunctionCharacteristic('36e944ef-34fe-4de2-9310-394d482e20e6', 'Sensor 2'),
+                BrainToMobileFunctionCharacteristic('b3a71566-9af2-4c9d-bc4a-6f754ab6fcf0', 'Sensor 3'),
+                BrainToMobileFunctionCharacteristic('9ace575c-0b70-4ed5-96f1-979a8eadbc6b', 'Sensor 4'),
+        ]
+
         super().__init__({
             'uuid':            'd2d5558c-5b9d-11e9-8647-d663bd873d93',
             'characteristics': [
                 MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, 'simpleControl',
                                                     self.simple_control_callback),
-            ]})
+                self._sensor_characteristics[0],
+                self._sensor_characteristics[1],
+                self._sensor_characteristics[2],
+                self._sensor_characteristics[3],
+            ]
+        })
 
     def register_message_handler(self, callback):
         self._message_handler = callback
@@ -217,6 +229,10 @@ class LiveMessageService(BlenoPrimaryService):
 
         self._message_handler({'counter': counter, 'analog': analog_values, 'buttons': button_values})
         return True
+
+    def update_sensor(self, sensor, value):
+        if 0 < sensor <= len(self._sensor_characteristics):
+            self._sensor_characteristics[sensor - 1].update(value)
 
     @staticmethod
     def extract_button_states(data):
@@ -359,7 +375,7 @@ class BatteryLevelCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description
+                    'value': description.encode()
                 }),
                 Descriptor({
                     'uuid':  '2904',
@@ -389,7 +405,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description
+                    'value': description.encode()
                 })
             ]
         })
@@ -512,6 +528,9 @@ class RevvyBLE:
 
     def updateMotorBattery(self, level):
         self._batteryService.updateMotorBatteryValue(level)
+
+    def update_sensor(self, sensor, value):
+        self._liveMessageService.update_sensor(sensor, value)
 
     def register_remote_controller_handler(self, callback):
         self._liveMessageService.register_message_handler(callback)
