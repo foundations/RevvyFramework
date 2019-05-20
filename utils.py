@@ -339,14 +339,13 @@ class RobotManager:
             # set up motors
             for motor in self._motor_ports:
                 motor_config = config.motors[motor.id]
-                if motor_config == "Drivetrain_Left":
-                    motor.configure("SpeedControlled")
-                    self._drivetrain.add_left_motor(motor)
-                elif motor_config == "Drivetrain_Right":
-                    motor.configure("SpeedControlled")
-                    self._drivetrain.add_right_motor(motor)
-                else:
-                    motor.configure(motor_config)
+                motor.configure(motor_config)
+
+            for motor_id in config.drivetrain['left']:
+                self._drivetrain.add_left_motor(self._motor_ports[motor_id])
+
+            for motor_id in config.drivetrain['right']:
+                self._drivetrain.add_right_motor(self._motor_ports[motor_id])
 
             # set up sensors
             for sensor in self._sensor_ports:

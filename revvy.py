@@ -31,10 +31,13 @@ if robot._ring_led:
 def main():
 
     default_config = RobotConfig()
-    default_config.motors[2] = "Drivetrain_Left"
-    default_config.motors[3] = "Drivetrain_Left"
-    default_config.motors[5] = "Drivetrain_Right"
-    default_config.motors[6] = "Drivetrain_Right"
+    default_config.motors[2] = "SpeedControlled"
+    default_config.motors[3] = "SpeedControlled"
+    default_config.motors[5] = "SpeedControlled"
+    default_config.motors[6] = "SpeedControlled"
+
+    default_config.drivetrain['left'] = [2, 3]
+    default_config.drivetrain['right'] = [5, 6]
 
     default_config.sensors[1] = "HC_SR04"
     # default_config.analog_handlers.push({'channels': [0, 1], )
