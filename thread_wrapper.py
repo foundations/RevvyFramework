@@ -48,6 +48,7 @@ class ThreadWrapper:
         self._exiting = True
         self.stop()
         print("{}: exiting".format(self._name))
+        self._control.set()
         self._thread.join()
         print("{}: exited".format(self._name))
 
