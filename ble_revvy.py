@@ -189,7 +189,7 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
         self._updateValueCallback = None
 
     def update(self, value):
-        self._value = value
+        self._value = [len(value)] + value
 
         if self._updateValueCallback:
             self._updateValueCallback(self._value)
