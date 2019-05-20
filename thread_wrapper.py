@@ -9,8 +9,9 @@ class ThreadWrapper:
     context object that is passed to the thread function
     """
 
-    def __init__(self, func):
+    def __init__(self, func, name="WorkerThread"):
         self._exiting = False
+        self._name = name
         self._stopping = False
         self._func = func
         self._stopped_callback = lambda: None
@@ -34,17 +35,21 @@ class ThreadWrapper:
     def start(self):
         if self._exiting:
             raise AssertionError("Can't restart thread")
+        print("{}: starting".format(self._name))
         self._stopping = False
         self._control.set()
 
     def stop(self):
+        print("{}: stopping".format(self._name))
         self._stopping = True
         self._stopped_callback()
 
     def exit(self):
         self._exiting = True
         self.stop()
+        print("{}: exiting".format(self._name))
         self._thread.join()
+        print("{}: exited".format(self._name))
 
     def on_stopped(self, callback):
         self._stopped_callback = callback
