@@ -139,6 +139,15 @@ class RemoteController:
 
         self._handler_thread = ThreadWrapper(self._background_thread, "RemoteControllerThread")
 
+    def reset(self):
+        self.stop()
+        with self._mutex:
+            self._analogActions = []
+            self._buttonActions = [lambda: None] * 32
+            self._buttonHandlers = [None] * 32
+            self._message = None
+            self._missedKeepAlives = -1
+
     def _background_thread(self, ctx: ThreadContext):
         while not ctx.stop_requested:
             # Wait for data
@@ -305,6 +314,7 @@ class RobotManager:
             # apply new configuration
             print("Applying new configuration")
             self._drivetrain.reset()
+            self._remote_controller.reset()
             # set up motors
             for motor in self._motor_ports:
                 motor_config = config.motors[motor.id]
@@ -333,6 +343,7 @@ class RobotManager:
         else:
             print("Deinitialize robot")
             self._ring_led.set_scenario(RingLed.Off)
+            self._remote_controller.reset()
             self._robot.set_master_status(self.status_led_not_configured)
             self._drivetrain.reset()
             self._motor_ports.reset()
