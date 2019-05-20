@@ -347,8 +347,9 @@ class RobotManager:
             # set up sensors
             for sensor in self._sensor_ports:
                 if sensor.configure(config.sensors[sensor.id]):
-                    self._reader.add('sensor_{}'.format(sensor.id), lambda s=sensor: s.read())
-                    self._data_dispatcher.add('sensor_{}'.format(sensor.id), lambda x: print(str(x)))
+                    sensor_name = 'sensor_{}'.format(sensor.id)
+                    self._reader.add(sensor_name, lambda s=sensor: s.read())
+                    self._data_dispatcher.add(sensor_name, lambda value, sid=sensor.id: print('Sensor {}: {}'.format(sid, value['converted'])))
 
             # set up scripts
             self._scripts.reset()

@@ -126,7 +126,7 @@ class BumperSwitch(BaseSensorPort):
             raise EnvironmentError("Port is not configured")
 
         result = self._interface.get_sensor_port_value(self._port_idx)
-        return result[0] == 1
+        return {'raw': result, 'converted': result[0] == 1}
 
 
 class HcSr04(BaseSensorPort):
@@ -135,4 +135,4 @@ class HcSr04(BaseSensorPort):
             raise EnvironmentError("Port is not configured")
 
         result = self._interface.get_sensor_port_value(self._port_idx)
-        return int.from_bytes(result, byteorder='little')
+        return {'raw': result, 'converted':  int.from_bytes(result, byteorder='little')}
