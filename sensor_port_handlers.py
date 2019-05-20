@@ -23,6 +23,9 @@ class SensorPortHandler:
     def __getitem__(self, item):
         return self.port(item)
 
+    def __iter__(self):
+        return self._ports.__iter__()
+
     @property
     def available_types(self):
         return self._types
@@ -64,6 +67,8 @@ class SensorPortInstance:
         self._owner = owner
         self._handlers = {
             'NotConfigured': lambda: None,
+            'AnalogButton': lambda: BumperSwitch(self, port_idx),
+            'HC_SR04': lambda: HcSr04(self, port_idx)
         }
         self._handler = None
         self._current_port_type = "NotConfigured"
@@ -75,7 +80,8 @@ class SensorPortInstance:
         if self._handler is not None and port_type != 'NotConfigured':
             self._handler.uninitialize()
 
-        self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[port_type])
+        print('SensorPort: Configuring port {}'.format(self._port_idx))
+        self._owner.interface.set_sensor_port_type(self._port_idx, self._owner.available_types[port_type])
         self._current_port_type = port_type
         handler = self._handlers[port_type]()
         self._handler = handler
@@ -86,6 +92,10 @@ class SensorPortInstance:
 
     def handler(self):
         return self._handler
+
+    @property
+    def id(self):
+        return SensorPortHandler.sensorPortMap.index(self._port_idx)
 
     @property
     def interface(self):
@@ -106,12 +116,12 @@ class BaseSensorPort:
         self._handler.uninitialize()
         self._configured = False
 
-    def get_position(self):
-        return self._interface.get_motor_position(self._port_idx)
+    def read(self):
+        pass
 
 
 class BumperSwitch(BaseSensorPort):
-    def is_pressed(self):
+    def read(self):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
@@ -120,7 +130,7 @@ class BumperSwitch(BaseSensorPort):
 
 
 class HcSr04(BaseSensorPort):
-    def get_distance(self):
+    def read(self):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 

@@ -8,8 +8,9 @@
 
 from utils import *
 from rrrc_transport import *
+from robot_config import *
 
-
+"""
 class SuperchargeDemo(RevvyApp):
     def __init__(self, robot: RevvyControl):
         super().__init__(robot)
@@ -36,24 +37,27 @@ class SuperchargeDemo(RevvyApp):
         self._drivetrain.add_right_motor(self._motor_ports[5])
         self._drivetrain.add_right_motor(self._motor_ports[6])
 
-    def _handle_joystick(self, channels):
-        if self._drivetrain:
-            (angle, length) = joystick(channels[0], channels[1])
-            (sl, sr) = differentialControl(length, angle)
-
-            self._drivetrain.set_speeds(sl * self._maxVl, sr * self._maxVr)
-
     def _toggle_ring_led(self):
         if self._ring_led:
             if self._ring_led.scenario == RingLed.ColorWheel:
                 self._ring_led.set_scenario(RingLed.Off)
             else:
                 self._ring_led.set_scenario(RingLed.ColorWheel)
-
+"""
 
 def main():
+
+    default_config = RobotConfig()
+    default_config.motors[2] = "Drivetrain_Left"
+    default_config.motors[3] = "Drivetrain_Left"
+    default_config.motors[5] = "Drivetrain_Right"
+    default_config.motors[6] = "Drivetrain_Right"
+
+    default_config.sensors[1] = "HC_SR04"
+    # default_config.analog_handlers.push({'channels': [0, 1], )
+
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
-        startRevvy(SuperchargeDemo(robot_interface))
+        startRevvy(robot_interface, default_config)
 
 
 if __name__ == "__main__":

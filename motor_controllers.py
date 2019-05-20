@@ -25,6 +25,9 @@ class MotorPortHandler:
     def __getitem__(self, item):
         return self.port(item)
 
+    def __iter__(self):
+        return self._ports.__iter__()
+
     @property
     def available_types(self):
         return self._types
@@ -80,6 +83,7 @@ class MotorPortInstance:
         if self._handler is not None and port_type != 'NotConfigured':
             self._handler.uninitialize()
 
+        print('MotorPort: Configuring port {}'.format(self._port_idx))
         self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[port_type])
         self._current_port_type = port_type
         handler = self._handlers[port_type]()
@@ -95,6 +99,10 @@ class MotorPortInstance:
     @property
     def interface(self):
         return self._owner.interface
+
+    @property
+    def id(self):
+        return MotorPortHandler.motorPortMap.index(self._port_idx)
 
     def __getattr__(self, name):
         return self._handler.__getattribute__(name)

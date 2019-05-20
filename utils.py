@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
 import math
-from threading import Lock, Event
-from threading import Thread
+
+from robot_config import RobotConfig
+from thread_wrapper import *
 import sys
 import time
-import traceback
-from typing import Any
 
 from ble_revvy import *
 
@@ -31,12 +30,23 @@ class DifferentialDrivetrain:
     def __init__(self):
         self._left_motors = []
         self._right_motors = []
+        self._max_speed = 90
+
+    def reset(self):
+        self._left_motors = []
+        self._right_motors = []
+        self._max_speed = 90
 
     def add_left_motor(self, motor):
         self._left_motors.append(motor)
 
     def add_right_motor(self, motor):
         self._right_motors.append(motor)
+
+    def update(self, channels):
+        (angle, length) = joystick(channels[0], channels[1])
+        (sl, sr) = differentialControl(angle, length)
+        self.set_speeds(self._max_speed * sl, self._max_speed * sr)
 
     def set_speeds(self, left, right):
         for motor in self._left_motors:
@@ -77,8 +87,12 @@ class RingLed:
 
     def __init__(self, interface: RevvyControl):
         self._interface = interface
-        self._ring_led_count = self._interface.ring_led_get_led_amount()
+        self._ring_led_count = 0
         self._current_scenario = self.Off
+
+    def reset(self):
+        self._ring_led_count = self._interface.ring_led_get_led_amount()
+        self.set_scenario(RingLed.Off)
 
     def set_scenario(self, scenario):
         self._current_scenario = scenario
@@ -92,12 +106,14 @@ class RingLed:
         """
         :param frame: array of 12 RGB values
         """
+        # TODO what to do if called before first reset?
         if len(frame) != self._ring_led_count:
             raise ValueError("Number of colors ({}) does not match LEDs ({})", len(frame), self._ring_led_count)
 
         self._interface.ring_led_set_user_frame(frame)
 
     def display_user_frame(self, frame):
+        # TODO what to do if called before first reset?
         self.upload_user_frame(frame)
         self.set_scenario(self.UserFrame)
 
@@ -105,7 +121,6 @@ class RingLed:
 class RemoteController:
     def __init__(self):
         self._mutex = Lock()
-        self._enabled_event = Event()
         self._data_ready_event = Event()
 
         self._analogActions = []
@@ -113,23 +128,19 @@ class RemoteController:
         self._buttonHandlers = [None] * 32
         self._controller_detected = lambda: None
         self._controller_disappeared = lambda: None
-        self._stop = False
 
         self._message = None
         self._missedKeepAlives = -1
 
         for i in range(len(self._buttonHandlers)):
-            self._buttonHandlers[i] = EdgeTrigger()
-            self._buttonHandlers[i].onRisingEdge(lambda idx=i: self._buttonActions[idx]())
+            handler = EdgeTrigger()
+            handler.onRisingEdge(lambda idx=i: self._buttonActions[idx]())
+            self._buttonHandlers[i] = handler
 
-        self._handler_thread = Thread(target=self._background_thread, args=())
-        self._handler_thread.start()
+        self._handler_thread = ThreadWrapper(self._background_thread, "RemoteControllerThread")
 
-    def _background_thread(self):
-        while not self._stop:
-            # Only run if we're enabled
-            self._enabled_event.wait()
-
+    def _background_thread(self, ctx: ThreadContext):
+        while not ctx.stop_requested:
             # Wait for data
             if self._data_ready_event.wait(0.1):
                 self._data_ready_event.clear()
@@ -183,61 +194,74 @@ class RemoteController:
 
     def start(self):
         self._missedKeepAlives = -1
-        self._enabled_event.set()
+        self._data_ready_event.clear()
+        self._handler_thread.start()
 
     def stop(self):
-        self._enabled_event.clear()
+        self._handler_thread.stop()
 
     def cleanup(self):
-        self._stop = True
-        self._enabled_event.set()
-        self._handler_thread.join()
+        print("RemoteController: stopping")
+        self._handler_thread.exit()
+        print("RemoteController: stopped")
 
 
-class RevvyApp:
-    StatusStopped = 0
-    StatusOperational = 1
-    StatusOperationalControlled = 2
+class RobotManager:
+    StatusStartingUp = 0
+    StatusNotConfigured = 1
+    StatusConfigured = 2
 
-    def __init__(self, interface):
+    status_led_not_configured = 0
+    status_led_configured = 1
+    status_led_controlled = 2
+
+    def __init__(self, interface: RevvyTransportInterface, revvy: RevvyBLE, default_config=None):
         self._robot = RevvyControl(RevvyTransport(interface))
-        self._remote_controller = RemoteController()
-        self._stop = False
+        self._ble = revvy
         self._is_connected = False
-        self._ring_led = None
-        self._motor_ports = MotorPorts(MotorPortHandler(self._robot))
-        self._sensor_ports = SensorPorts(SensorPortHandler(self._robot))
-        self._ble_interface = None
-        self._read_thread_enabled = Event()
+        self._default_configuration = default_config
 
-        # register default status update steps
-        self._reader = RobotStateReader(self._robot.ping)
-        self._reader.add('battery', self._robot.get_battery_status)
-
-        self._remote_controller.on_controller_detected(
-            lambda: self._robot.set_master_status(self.StatusOperationalControlled))
-        self._remote_controller.on_controller_disappeared(lambda: self._robot.set_master_status(self.StatusOperational))
-
+        self._reader = FunctionSerializer(self._robot.ping)
         self._data_dispatcher = DataDispatcher()
-        self._data_dispatcher.add('battery', self._update_battery)
 
-        self._reader_thread = Thread(target=self.read_status_thread, args=())
-        self._reader_thread.start()
+        self._status_update_thread = ThreadWrapper(self._update_thread, "RobotUpdateThread")
+        self._remote_controller = RemoteController()
+        self._remote_controller.on_controller_detected(self._on_controller_detected)
+        self._remote_controller.on_controller_disappeared(self._on_controller_lost)
 
-    def _update_battery(self, battery):
-        self._ble_interface.updateMainBattery(battery['main'])
-        self._ble_interface.updateMotorBattery(battery['motor'])
+        self._drivetrain = DifferentialDrivetrain()
+        self._ring_led = RingLed(self._robot)
+        self._motor_ports = MotorPortHandler(self._robot)
+        self._sensor_ports = SensorPortHandler(self._robot)
 
-    def prepare(self):
-        print("Prepare")
-        # force reset
-        self._read_thread_enabled.clear()
-        self._robot.ping()
-        time.sleep(1)
-        self._read_thread_enabled.set()
+        revvy.register_remote_controller_handler(self._remote_controller.update)
+        revvy.registerConnectionChangedHandler(self._on_connection_changed)
+        # revvy.on_configuration_received(self._process_new_configuration)
 
-        # signal status
-        self._robot.set_master_status(self.StatusStopped)
+        self._status = self.StatusStartingUp
+
+    def start(self):
+        if self._status != self.StatusStartingUp:
+            return
+
+        print("Waiting for MCU")
+        # TODO if we are getting stuck here (> ~3s), firmware is probably not valid
+        retry = True
+        while retry:
+            retry = False
+            try:
+                self._robot.ping()
+            # TODO do NACK responses raise exceptions?
+            except (BrokenPipeError, IOError):
+                retry = True
+
+        # start reader thread (do it here to prevent unwanted reset)
+        self._status_update_thread.start()
+
+        # call reset to read port counts, types
+        self._ring_led.reset()
+        self._sensor_ports.reset()
+        self._motor_ports.reset()
 
         # read versions
         hw = self._robot.get_hardware_version()
@@ -246,113 +270,128 @@ class RevvyApp:
 
         print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
-        self._ble_interface.set_hw_version(hw)
-        self._ble_interface.set_fw_version(fw)
-        self._ble_interface.set_sw_version(sw)
+        self._ble.set_hw_version(hw)
+        self._ble.set_fw_version(fw)
+        self._ble.set_sw_version(sw)
 
-        self._ring_led = RingLed(self._robot)
+        self._ble.start()
 
-        self._motor_ports.reset()
-        self._sensor_ports.reset()
-        return True
+        self.configure(None)
 
-    def _setup_robot(self):
-        self.prepare()
-        self._robot.set_master_status(self.StatusStopped)
-        self.init()
-
-    def read_status_thread(self):
-        while not self._stop:
-            self._read_thread_enabled.wait()
-            try:
-                self._reader.read()
-                self._data_dispatcher.dispatch(self._reader)
-                time.sleep(0.1)
-            except:
-                print(traceback.format_exc())
+    def _update_thread(self, ctx: ThreadContext):
+        while not ctx.stop_requested:
+            data = self._reader.run()
+            self._data_dispatcher.dispatch(data)
+            time.sleep(0.1)
 
     def _on_connection_changed(self, is_connected):
-        if is_connected != self._is_connected:
-            print('Connected' if is_connected else 'Disconnected')
-            self._is_connected = is_connected
-        self._robot.set_bluetooth_connection_status(self._is_connected)
+        self._robot.set_bluetooth_connection_status(is_connected)
+        if not is_connected:
+            self.configure(None)
 
-    def _handle_controller_message(self, message):
-        self._remote_controller.update(message)
+    def _on_controller_detected(self):
+        if self._status == self.StatusConfigured:
+            self._robot.set_master_status(self.status_led_controlled)
 
-    def register(self, revvy: RevvyBLE):
-        revvy.register_remote_controller_handler(self._handle_controller_message)
-        revvy.registerConnectionChangedHandler(self._on_connection_changed)
-        self._ble_interface = revvy
+    def _on_controller_lost(self):
+        if self._status == self.StatusConfigured:
+            self._robot.set_master_status(self.status_led_configured)
 
-    def init(self):
-        pass
+    def configure(self, config):
+        if not config:
+            config = self._default_configuration
 
-    def start(self):
-        status = _retry(self._setup_robot)
+        if config:
+            # apply new configuration
+            print("Applying new configuration")
+            self._drivetrain.reset()
+            # set up motors
+            for motor in self._motor_ports:
+                motor_config = config.motors[motor.id]
+                if motor_config == "Drivetrain_Left":
+                    motor.configure("SpeedControlled")
+                    self._drivetrain.add_left_motor(motor)
+                elif motor_config == "Drivetrain_Right":
+                    motor.configure("SpeedControlled")
+                    self._drivetrain.add_right_motor(motor)
+                else:
+                    motor.configure(motor_config)
 
-        if status:
-            print("Init ok")
-            self._robot.set_master_status(self.StatusOperational)
-            self._robot.set_bluetooth_connection_status(self._is_connected)
+            # set up sensors
+            for sensor in self._sensor_ports:
+                sensor.configure(config.sensors[sensor.id])
+                self._reader.add('sensor_{}'.format(sensor.id), lambda: sensor.read())
+            # set up status reader, data dispatcher (based on sensors?)
+            self._reader.reset()
+            self._data_dispatcher.reset()
+            # set up scripts?
+            # set up remote controller
+            self._remote_controller.on_analog_values([0, 1], self._drivetrain.update)
+            self._remote_controller.start()
+            self._robot.set_master_status(self.status_led_configured)
+            self._status = self.StatusConfigured
         else:
-            print("Init failed")
-
-        self._remote_controller.start()
-        self._ble_interface.start()
+            print("Deinitialize robot")
+            self._ring_led.set_scenario(RingLed.Off)
+            self._robot.set_master_status(self.status_led_not_configured)
+            self._drivetrain.reset()
+            self._motor_ports.reset()
+            self._sensor_ports.reset()
+            self._reader.reset()
+            self._remote_controller.stop()
+            self._status = self.StatusNotConfigured
 
     def stop(self):
-        self._stop = True
+        # todo
+        print("Stopping robot manager")
         self._remote_controller.cleanup()
-        self._read_thread_enabled.set()
-        self._reader_thread.join()
-        self._ble_interface.stop()
+        self._ble.stop()
+        self._status_update_thread.exit()
 
 
-class RobotStateReader:
+class FunctionSerializer:
     def __init__(self, default_action=lambda: None):
-        self._readers = {}
-        self._data = {}
-        self._reader_lock = Lock()
-        self._data_lock = Lock()
+        self._functions = {}
+        self._returnValues = {}
+        self._fn_lock = Lock()
         self._default_action = default_action
 
-    def __getitem__(self, name: str) -> Any:
-        with self._data_lock:
-            return self._data[name]
-
-    def __iter__(self):
-        return self._data.__iter__
+    def reset(self):
+        with self._fn_lock:
+            self._functions = {}
 
     def add(self, name, reader):
-        with self._reader_lock:
-            self._readers[name] = reader
-            self._data[name] = None
+        with self._fn_lock:
+            self._functions[name] = reader
+            self._returnValues[name] = None
 
     def remove(self, name):
-        with self._reader_lock, self._data_lock:
+        with self._fn_lock:
             try:
-                del self._readers[name]
-                del self._data[name]
+                del self._functions[name]
                 return True
             except KeyError:
                 return False
 
-    def read(self):
-        with self._reader_lock:
-            if len(self._readers) == 0:
+    def run(self):
+        data = {}
+        with self._fn_lock:
+            if len(self._functions) == 0:
                 self._default_action()
             else:
-                for name in self._readers:
-                    value = self._readers[name]()
-                    with self._data_lock:
-                        self._data[name] = value
+                for name in self._functions:
+                    data[name] = self._functions[name]()
+        return data
 
 
 class DataDispatcher:
     def __init__(self):
         self._handlers = {}
         self._lock = Lock()
+
+    def reset(self):
+        with self._lock:
+            self._handlers = {}
 
     def add(self, name, handler):
         with self._lock:
@@ -407,7 +446,7 @@ class DeviceNameProvider:
             self._storage.store(self._name)
 
 
-def startRevvy(app: RevvyApp):
+def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     dnp = DeviceNameProvider(FileStorage('device_name.txt'))
     device_name = Observable(dnp.get_device_name())
 
@@ -417,11 +456,11 @@ def startRevvy(app: RevvyApp):
 
     device_name.subscribe(on_device_name_changed)
 
-    revvy = RevvyBLE(device_name, getserial())
-    app.register(revvy)
+    ble = RevvyBLE(device_name, getserial())
+    robot = RobotManager(interface, ble, config)
 
     try:
-        app.start()
+        robot.start()
         print("Press enter to exit")
         input()
     except KeyboardInterrupt:
@@ -432,7 +471,7 @@ def startRevvy(app: RevvyApp):
             time.sleep(1)
     finally:
         print('stopping')
-        app.stop()
+        robot.stop()
 
     print('terminated.')
     sys.exit(1)
