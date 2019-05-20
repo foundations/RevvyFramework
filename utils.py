@@ -46,7 +46,7 @@ class DifferentialDrivetrain:
 
     def update(self, channels):
         (angle, length) = joystick(channels[0], channels[1])
-        (sl, sr) = differentialControl(angle, length)
+        (sl, sr) = differentialControl(length, angle)
         self.set_speeds(self._max_speed * sl, self._max_speed * sr)
 
     def set_speeds(self, left, right):
