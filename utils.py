@@ -328,6 +328,10 @@ class RobotManager:
             self._drivetrain.reset()
             self._remote_controller.reset()
 
+            # set up status reader, data dispatcher
+            self._reader.reset()
+            self._data_dispatcher.reset()
+
             # set up motors
             for motor in self._motor_ports:
                 motor_config = config.motors[motor.id]
@@ -342,12 +346,9 @@ class RobotManager:
 
             # set up sensors
             for sensor in self._sensor_ports:
-                sensor.configure(config.sensors[sensor.id])
-                self._reader.add('sensor_{}'.format(sensor.id), lambda: sensor.read())
-
-            # set up status reader, data dispatcher (based on sensors?)
-            self._reader.reset()
-            self._data_dispatcher.reset()
+                if sensor.configure(config.sensors[sensor.id]):
+                    self._reader.add('sensor_{}'.format(sensor.id), lambda s=sensor: s.read())
+                    self._data_dispatcher.add('sensor_{}'.format(sensor.id), lambda x: print(str(x)))
 
             # set up scripts
             self._scripts.reset()
