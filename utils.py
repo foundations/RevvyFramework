@@ -3,6 +3,7 @@
 import math
 
 from robot_config import RobotConfig
+from runtime import ScriptManager
 from thread_wrapper import *
 import sys
 import time
@@ -134,17 +135,22 @@ class RemoteController:
 
         for i in range(len(self._buttonHandlers)):
             handler = EdgeTrigger()
-            handler.onRisingEdge(lambda idx=i: self._buttonActions[idx]())
+            handler.onRisingEdge(lambda idx=i: self._button_pressed(idx))
             self._buttonHandlers[i] = handler
 
         self._handler_thread = ThreadWrapper(self._background_thread, "RemoteControllerThread")
+
+    def _button_pressed(self, idx):
+        print('Button {} pressed'.format(idx))
+        action = self._buttonActions[idx]
+        if action:
+            action()
 
     def reset(self):
         self.stop()
         with self._mutex:
             self._analogActions = []
             self._buttonActions = [lambda: None] * 32
-            self._buttonHandlers = [None] * 32
             self._message = None
             self._missedKeepAlives = -1
 
@@ -247,6 +253,8 @@ class RobotManager:
         revvy.registerConnectionChangedHandler(self._on_connection_changed)
         # revvy.on_configuration_received(self._process_new_configuration)
 
+        self._scripts = ScriptManager()
+
         self._status = self.StatusStartingUp
 
     def start(self):
@@ -315,6 +323,7 @@ class RobotManager:
             print("Applying new configuration")
             self._drivetrain.reset()
             self._remote_controller.reset()
+
             # set up motors
             for motor in self._motor_ports:
                 motor_config = config.motors[motor.id]
@@ -331,12 +340,24 @@ class RobotManager:
             for sensor in self._sensor_ports:
                 sensor.configure(config.sensors[sensor.id])
                 self._reader.add('sensor_{}'.format(sensor.id), lambda: sensor.read())
+
             # set up status reader, data dispatcher (based on sensors?)
             self._reader.reset()
             self._data_dispatcher.reset()
-            # set up scripts?
+
+            # set up scripts
+            self._scripts.reset()
+            self._scripts.assign('robot', self)
+            for name in config.scripts.keys():
+                self._scripts[name] = config.scripts[name]['script']
+
             # set up remote controller
             self._remote_controller.on_analog_values([0, 1], self._drivetrain.update)
+            for button in range(len(config.controller.buttons)):
+                script = config.controller.buttons[button]
+                if script:
+                    self._remote_controller.on_button_pressed(button, self._scripts[script].start)
+
             self._remote_controller.start()
             self._robot.set_master_status(self.status_led_configured)
             self._status = self.StatusConfigured
@@ -344,6 +365,7 @@ class RobotManager:
             print("Deinitialize robot")
             self._ring_led.set_scenario(RingLed.Off)
             self._remote_controller.reset()
+            self._scripts.reset()
             self._robot.set_master_status(self.status_led_not_configured)
             self._drivetrain.reset()
             self._motor_ports.reset()
@@ -357,6 +379,7 @@ class RobotManager:
         print("Stopping robot manager")
         self._remote_controller.cleanup()
         self._ble.stop()
+        self._scripts.reset()
         self._status_update_thread.exit()
 
 

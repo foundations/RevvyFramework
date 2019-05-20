@@ -1,4 +1,5 @@
 import traceback
+import sys
 
 
 def clip(x, min_x, max_x):
@@ -44,3 +45,11 @@ def _retry(fn, retries=5):
         retry_num += 1
 
     return status
+
+
+def is_callable(callback):
+    if sys.version_info[0] < 3 or sys.version_info[1] >= 2:
+        # Python 2.x or 3.2+
+        return callable(callback)
+    else:
+        return hasattr(callback, '__call__')

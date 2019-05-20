@@ -45,6 +45,15 @@ class SuperchargeDemo(RevvyApp):
                 self._ring_led.set_scenario(RingLed.ColorWheel)
 """
 
+
+def toggle_ring_led(args):
+    if args['robot']._ring_led:
+        if args['robot']._ring_led.scenario == RingLed.ColorWheel:
+            args['robot']._ring_led.set_scenario(RingLed.Off)
+        else:
+            args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
+
+
 def main():
 
     default_config = RobotConfig()
@@ -55,6 +64,9 @@ def main():
 
     default_config.sensors[1] = "HC_SR04"
     # default_config.analog_handlers.push({'channels': [0, 1], )
+    default_config.controller.buttons[0] = 'toggle_ring_led'
+
+    default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         startRevvy(robot_interface, default_config)

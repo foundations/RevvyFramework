@@ -26,7 +26,7 @@ class RemoteControlConfig:
             # for now, analog[0] and analog[1] are hardwired to drivetrain
             {'channels': [0, 1], 'script': 'drivetrain'}
         ]
-        self.button_scripts = [None] * 32
+        self.buttons = [None] * 32
 
 
 class RobotConfig:
@@ -38,3 +38,4 @@ class RobotConfig:
         self.motors = MotorConfig()
         self.sensors = SensorConfig()
         self.controller = RemoteControlConfig()
+        self.scripts = {}

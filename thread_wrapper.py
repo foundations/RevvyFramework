@@ -26,6 +26,7 @@ class ThreadWrapper:
             self._control.clear()
             if not self._exiting:
                 self._func(ctx)
+                print('{}: stopped'.format(self._name))
                 self.on_stopped(lambda: None)
 
     @property
