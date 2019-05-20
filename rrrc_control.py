@@ -21,7 +21,7 @@ class Command:
         return payload
 
     def on_success(self, payload):
-        return None
+        return payload
 
     def process(self, response: Response):
         if response.header.status == ResponseHeader.Status_Ok:

@@ -7,59 +7,45 @@
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
 
 from utils import *
-from activation import *
 from rrrc_transport import *
-from functions import *
+from robot_config import *
 
 
-class SuperchargeDemo(RevvyApp):
-    def __init__(self, interface):
-        super().__init__(interface)
+def toggle_ring_led(args):
+    if args['robot']._ring_led:
+        if args['robot']._ring_led.scenario == RingLed.ColorWheel:
+            args['robot']._ring_led.set_scenario(RingLed.Off)
+        else:
+            args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
 
-        self._maxVl = 90
-        self._maxVr = 90
 
-        self._left_motors = None
-        self._right_motors = None
-
-        button_led = ToggleButton()
-        button_led.onEnabled(lambda: self.set_ring_led_mode(RingLed.LED_RING_COLOR_WHEEL))
-        button_led.onDisabled(lambda: self.set_ring_led_mode(RingLed.LED_RING_OFF))
-        self._buttons[0] = button_led
-
-    def init(self):
-        status = True
-
-        self._left_motors = [
-            self._motor_ports.configure(self.motorPortMap[2], 'SpeedControlled'),
-            self._motor_ports.configure(self.motorPortMap[3], 'SpeedControlled')
-        ]
-
-        self._right_motors = [
-            self._motor_ports.configure(self.motorPortMap[5], 'SpeedControlled'),
-            self._motor_ports.configure(self.motorPortMap[6], 'SpeedControlled')
-        ]
-
-        return status
-
-    def handle_analog_values(self, analog_values):
-        x = clip((analog_values[0] - 128) / 127.0, -1, 1)
-        y = clip((analog_values[1] - 128) / 127.0, -1, 1)
-
-        vec_angle = math.atan2(y, x)
-        vec_len = math.sqrt(x * x + y * y)
-        (sl, sr) = differentialControl(vec_len, vec_angle)
-
-        for motor in self._left_motors:
-            motor.set_speed(sl * self._maxVl)
-
-        for motor in self._right_motors:
-            motor.set_speed(sr * self._maxVr)
+toggle_ring_led_str = """
+if robot._ring_led:
+    if robot._ring_led.scenario == RingLed.ColorWheel:
+        robot._ring_led.set_scenario(RingLed.Off)
+    else:
+        robot._ring_led.set_scenario(RingLed.ColorWheel)
+"""
 
 
 def main():
+
+    default_config = RobotConfig()
+    default_config.motors[2] = "Drivetrain_Left"
+    default_config.motors[3] = "Drivetrain_Left"
+    default_config.motors[5] = "Drivetrain_Right"
+    default_config.motors[6] = "Drivetrain_Right"
+
+    default_config.sensors[1] = "HC_SR04"
+    # default_config.analog_handlers.push({'channels': [0, 1], )
+    default_config.controller.buttons[0] = 'toggle_ring_led'
+    default_config.controller.buttons[1] = 'toggle_ring_led_str'
+
+    default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
+    default_config.scripts['toggle_ring_led_str'] = {'script': toggle_ring_led_str, 'priority': 0}
+
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
-        startRevvy(SuperchargeDemo(robot_interface))
+        startRevvy(robot_interface, default_config)
 
 
 if __name__ == "__main__":

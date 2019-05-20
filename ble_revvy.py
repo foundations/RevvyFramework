@@ -143,7 +143,7 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description
+                    'value': description.encode()
                 }),
             ]
         })
@@ -161,8 +161,8 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
 
 
 class BrainToMobileFunctionCharacteristic(Characteristic):
-    def __init__(self, description, uuid):
-        self._value = None
+    def __init__(self, uuid, description):
+        self._value = []
         self._updateValueCallback = None
         super().__init__({
             'uuid':        uuid,
@@ -171,7 +171,7 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description
+                    'value': description.encode()
                 }),
             ]
         })
@@ -188,7 +188,7 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
     def onUnsubscribe(self):
         self._updateValueCallback = None
 
-    def updateValue(self, value):
+    def update(self, value):
         self._value = value
 
         if self._updateValueCallback:
@@ -197,60 +197,42 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
 
 class LiveMessageService(BlenoPrimaryService):
     def __init__(self):
-        def empty_fn(x): pass
+        self._message_handler = lambda x: None
 
-        self._keepAliveHandler = empty_fn
-        self._buttonHandlers = [empty_fn] * 32
-        self._analogHandlers = [empty_fn] * 10
-
-        print('Created {} button handlers'.format(len(self._buttonHandlers)))
-        print('Created {} analog handlers'.format(len(self._analogHandlers)))
+        self._sensor_characteristics = [
+                BrainToMobileFunctionCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', 'Sensor 1'),
+                BrainToMobileFunctionCharacteristic('36e944ef-34fe-4de2-9310-394d482e20e6', 'Sensor 2'),
+                BrainToMobileFunctionCharacteristic('b3a71566-9af2-4c9d-bc4a-6f754ab6fcf0', 'Sensor 3'),
+                BrainToMobileFunctionCharacteristic('9ace575c-0b70-4ed5-96f1-979a8eadbc6b', 'Sensor 4'),
+        ]
 
         super().__init__({
             'uuid':            'd2d5558c-5b9d-11e9-8647-d663bd873d93',
             'characteristics': [
                 MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, 'simpleControl',
-                                                    self.simpleControlCallback),
-            ]})
+                                                    self.simple_control_callback),
+                self._sensor_characteristics[0],
+                self._sensor_characteristics[1],
+                self._sensor_characteristics[2],
+                self._sensor_characteristics[3],
+            ]
+        })
 
-    def registerKeepAliveHandler(self, callback):
-        self._keepAliveHandler = callback
+    def register_message_handler(self, callback):
+        self._message_handler = callback
 
-    def registerAnalogHandler(self, channel_id, callback):
-        if channel_id < len(self._analogHandlers):
-            self._analogHandlers[channel_id] = callback
-        else:
-            print('Incorrect analog handler id {}'.format(channel_id))
-
-    def registerButtonHandler(self, channel_id, callback):
-        if channel_id < len(self._buttonHandlers):
-            self._buttonHandlers[channel_id] = callback
-        else:
-            print('Incorrect button handler id {}'.format(channel_id))
-
-    def _fireButtonHandler(self, idx, state):
-        if idx < len(self._buttonHandlers):
-            self._buttonHandlers[idx](value=state)
-
-    def _fireAnalogHandler(self, idx, state):
-        if idx < len(self._analogHandlers):
-            self._analogHandlers[idx](value=state)
-
-    def simpleControlCallback(self, data):
+    def simple_control_callback(self, data):
         # print(repr(data))
         counter = data[0]
         analog_values = data[1:11]
+        button_values = self.extract_button_states(data[11:15])
 
-        button_values = self.extract_button_states(data)
-
-        for i in range(len(analog_values)):
-            self._fireAnalogHandler(i, analog_values[i])
-
-        for i in range(len(button_values)):
-            self._fireButtonHandler(i, button_values[i])
-
-        self._keepAliveHandler(counter)
+        self._message_handler({'counter': counter, 'analog': analog_values, 'buttons': button_values})
         return True
+
+    def update_sensor(self, sensor, value):
+        if 0 < sensor <= len(self._sensor_characteristics):
+            self._sensor_characteristics[sensor - 1].update(value)
 
     @staticmethod
     def extract_button_states(data):
@@ -262,7 +244,7 @@ class LiveMessageService(BlenoPrimaryService):
 
         return reduce(
             lambda x, y: x + y,
-            map(expand_byte, data[11:15]),
+            map(expand_byte, data),
             []
         )
 
@@ -393,7 +375,7 @@ class BatteryLevelCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description
+                    'value': description.encode()
                 }),
                 Descriptor({
                     'uuid':  '2904',
@@ -423,7 +405,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description
+                    'value': description.encode()
                 })
             ]
         })
@@ -547,11 +529,8 @@ class RevvyBLE:
     def updateMotorBattery(self, level):
         self._batteryService.updateMotorBatteryValue(level)
 
-    def registerButtonHandler(self, channel_idx, callback):
-        self._liveMessageService.registerButtonHandler(channel_idx, callback)
+    def update_sensor(self, sensor, value):
+        self._liveMessageService.update_sensor(sensor, value)
 
-    def registerAnalogHandler(self, channel_idx, callback):
-        self._liveMessageService.registerAnalogHandler(channel_idx, callback)
-
-    def registerKeepAliveHandler(self, callback):
-        self._liveMessageService.registerKeepAliveHandler(callback)
+    def register_remote_controller_handler(self, callback):
+        self._liveMessageService.register_message_handler(callback)
