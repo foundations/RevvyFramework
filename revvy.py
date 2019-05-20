@@ -10,41 +10,6 @@ from utils import *
 from rrrc_transport import *
 from robot_config import *
 
-"""
-class SuperchargeDemo(RevvyApp):
-    def __init__(self, robot: RevvyControl):
-        super().__init__(robot)
-
-        self._maxVl = 90
-        self._maxVr = 90
-
-        self._drivetrain = None
-
-        self._remote_controller.on_analog_values([0, 1], self._handle_joystick)
-        self._remote_controller.on_button_pressed(0, self._toggle_ring_led)
-
-    def init(self):
-        self._motor_ports[2].configure('SpeedControlled')
-        self._motor_ports[3].configure('SpeedControlled')
-        self._motor_ports[5].configure('SpeedControlled')
-        self._motor_ports[6].configure('SpeedControlled')
-
-        self._drivetrain = DifferentialDrivetrain()
-
-        self._drivetrain.add_left_motor(self._motor_ports[2])
-        self._drivetrain.add_left_motor(self._motor_ports[3])
-
-        self._drivetrain.add_right_motor(self._motor_ports[5])
-        self._drivetrain.add_right_motor(self._motor_ports[6])
-
-    def _toggle_ring_led(self):
-        if self._ring_led:
-            if self._ring_led.scenario == RingLed.ColorWheel:
-                self._ring_led.set_scenario(RingLed.Off)
-            else:
-                self._ring_led.set_scenario(RingLed.ColorWheel)
-"""
-
 
 def toggle_ring_led(args):
     if args['robot']._ring_led:
@@ -52,6 +17,15 @@ def toggle_ring_led(args):
             args['robot']._ring_led.set_scenario(RingLed.Off)
         else:
             args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
+
+
+toggle_ring_led_str = """
+if robot._ring_led:
+    if robot._ring_led.scenario == RingLed.ColorWheel:
+        robot._ring_led.set_scenario(RingLed.Off)
+    else:
+        robot._ring_led.set_scenario(RingLed.ColorWheel)
+"""
 
 
 def main():
@@ -65,8 +39,10 @@ def main():
     default_config.sensors[1] = "HC_SR04"
     # default_config.analog_handlers.push({'channels': [0, 1], )
     default_config.controller.buttons[0] = 'toggle_ring_led'
+    default_config.controller.buttons[1] = 'toggle_ring_led_str'
 
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
+    default_config.scripts['toggle_ring_led_str'] = {'script': toggle_ring_led_str, 'priority': 0}
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         startRevvy(robot_interface, default_config)

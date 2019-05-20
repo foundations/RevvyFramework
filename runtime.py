@@ -11,10 +11,8 @@ class ScriptHandle:
 
         if is_callable(script):
             self._runnable = script
-        elif script is str:
-            self._runnable = lambda x: exec(script, x)
         else:
-            raise TypeError('Script is not callable')
+            self._runnable = lambda x: exec(script, x)
 
     def assign(self, name, value):
         self._globals[name] = value

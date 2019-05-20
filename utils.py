@@ -121,7 +121,8 @@ class RingLed:
 
 class RemoteController:
     def __init__(self):
-        self._mutex = Lock()
+        self._data_mutex = Lock()
+        self._button_mutex = Lock()
         self._data_ready_event = Event()
 
         self._analogActions = []
@@ -148,7 +149,7 @@ class RemoteController:
 
     def reset(self):
         self.stop()
-        with self._mutex:
+        with self._button_mutex:
             self._analogActions = []
             self._buttonActions = [lambda: None] * 32
             self._message = None
@@ -165,7 +166,7 @@ class RemoteController:
                 self._missedKeepAlives = 0
 
                 # copy data
-                with self._mutex:
+                with self._data_mutex:
                     message = self._message
 
                 # handle analog channels
@@ -175,7 +176,7 @@ class RemoteController:
 
                 # handle button presses
                 for idx in range(len(self._buttonHandlers)):
-                    with self._mutex:
+                    with self._button_mutex:
                         self._buttonHandlers[idx].handle(message['buttons'][idx])
             else:
                 # timeout
@@ -183,10 +184,11 @@ class RemoteController:
                     self._controller_disappeared()
 
     def _handle_keep_alive_missed(self):
-        if self._missedKeepAlives > 3:
+        if self._missedKeepAlives > 5:
             self._missedKeepAlives = -1
             return False
         elif self._missedKeepAlives >= 0:
+            print('RemoteController: Missed {}'.format(self._missedKeepAlives))
             self._missedKeepAlives += 1
         return True
 
@@ -203,22 +205,24 @@ class RemoteController:
         self._analogActions.append({'channels': channels, 'action': action})
 
     def update(self, message):
-        with self._mutex:
+        with self._data_mutex:
             self._message = message
         self._data_ready_event.set()
 
     def start(self):
+        print('RemoteController: start')
         self._missedKeepAlives = -1
         self._data_ready_event.clear()
         self._handler_thread.start()
 
     def stop(self):
+        print('RemoteController: stop')
         self._handler_thread.stop()
 
     def cleanup(self):
-        print("RemoteController: stopping")
+        print("RemoteController: exiting")
         self._handler_thread.exit()
-        print("RemoteController: stopped")
+        print("RemoteController: exited")
 
 
 class RobotManager:
@@ -348,6 +352,7 @@ class RobotManager:
             # set up scripts
             self._scripts.reset()
             self._scripts.assign('robot', self)
+            self._scripts.assign('RingLed', RingLed)
             for name in config.scripts.keys():
                 self._scripts[name] = config.scripts[name]['script']
 
