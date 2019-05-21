@@ -60,6 +60,7 @@ class LongMessageStorage:
         self._callback = callback
 
     def read_status(self, long_message_type):
+        print("LongMessageStorage:read_status")
         """Return status with triplet of (LongMessageStatus, md5-hexdigest, length). Last two fields might be None)."""
         self._validate_long_message_type(long_message_type)
         with open(os.path.join(self._storage_dir, "{}.meta".format(long_message_type)), "rb") as meta_file:
@@ -67,6 +68,7 @@ class LongMessageStorage:
             return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
 
     def set_long_message(self, long_message_type, data, md5):
+        print("LongMessageStorage:set_long_message")
         self._validate_long_message_type(long_message_type)
         with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "wb") as data_file, open(
                 os.path.join(self._storage_dir, "{}.meta".format(long_message_type)), "wb") as meta_file:
@@ -81,6 +83,7 @@ class LongMessageStorage:
         self._callback(long_message_type)
 
     def get_long_message(self, long_message_type):
+        print("LongMessageStorage:get_long_message")
         with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "rb") as data_file:
             return data_file.read()
 
@@ -118,6 +121,7 @@ class LongMessageHandler:
         self._aggregator = None
 
     def read_status(self):
+        print("LongMessageHandler:read_status")
         if self._long_message_type is None:
             return LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None)
         if self._status == "READ":
@@ -128,19 +132,23 @@ class LongMessageHandler:
         return LongMessageStatusInfo(LongMessageStatus.UPLOAD, self._aggregator.md5, len(self._aggregator.data))
 
     def select_long_message_type(self, long_message_type):
+        print("LongMessageHandler:select_long_message_type")
         self._long_message_type = long_message_type
         self._status = "READ"
 
     def init_transfer(self, md5):
+        print("LongMessageHandler:init_transfer")
         self._status = "WRITE"
         self._aggregator = LongMessageAggregator(md5)
 
     def upload_message(self, data):
+        print("LongMessageHandler:upload_message")
         if self._aggregator is None:
             raise LongMessageError("init-transfer needs to be called before upload_message")
         self._aggregator.append_data(data)
 
     def finalize_message(self):
+        print("LongMessageHandler:finalize_message")
         if self._aggregator is None:
             raise LongMessageError("init-transfer needs to be called before finalize_message")
         if self._aggregator.finalize():
