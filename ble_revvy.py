@@ -50,7 +50,6 @@ class LongMessageCharacteristic(Characteristic):
             callback(Characteristic.RESULT_SUCCESS, value)
 
     def onWriteRequest(self, data, offset, without_response, callback):
-        print(data)
         try:
             if offset:
                 callback(Characteristic.RESULT_ATTR_NOT_LONG)

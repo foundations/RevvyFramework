@@ -62,7 +62,6 @@ class LongMessageStorage:
             return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
 
     def set_long_message(self, long_message_type, data, md5):
-        print(data)
         self._validate_long_message_type(long_message_type)
         with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "wb") as data_file, open(os.path.join(self._storage_dir, "{}.meta".format(long_message_type)), "wb") as meta_file:
             metadata = {
@@ -111,7 +110,7 @@ class LongMessageHandler:
         if self._long_message_type is None:
             return LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None)
         if self._status == "READ":
-            return LongMessageStorage.read_status(self._long_message_type)
+            return self._long_message_storage.read_status(self._long_message_type)
         if self._status == "INVALID":
             return LongMessageStatusInfo(LongMessageStatus.VALIDATION_ERROR, None, None)
         assert self._status == "WRITE"
@@ -135,5 +134,6 @@ class LongMessageHandler:
             raise LongMessageError("init-transfer needs to be called before finalize_message")
         if self._aggregator.finalize():
             self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data, self._aggregator.md5)
+            self._status = "READ"
         else:
             self._status = "INVALID"
