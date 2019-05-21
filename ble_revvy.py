@@ -3,7 +3,7 @@ import array
 
 from functools import reduce
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
-
+from longmessage import hexdigest2bytes, bytes2hexdigest, MessageType, LongMessageError
 
 class Observable:
     def __init__(self, value):
@@ -28,106 +28,70 @@ class Observable:
             observer(new_value)
 
 
-class LongMessageChunk:
-    InitMessage = 1
-    UploadMessage = 2
-    FinalizeMessage = 3
-
-    def __init__(self, chunk):
-        self._type = chunk[0]
-        self._payload = chunk[1:]
-        pass
-
-    @property
-    def chunk_type(self):
-        return self._type
-
-    @property
-    def payload(self):
-        return self._payload
-
-
-class LongMessage:
-    def __init__(self, message_id, checksum):
-        self._message_id = message_id
-        self._checksum = checksum
-        self._payload = ""
-
-    def append(self, payload):
-        self._payload += payload.decode('utf-8')
-
-    @property
-    def message_id(self):
-        return self._message_id
-
-    @property
-    def is_valid(self):
-        return True
-
-
-class LongMessageParser:
-    def __init__(self, handler):
-        self._message_received_handler = handler
-        self._current_message = None
-
-    def process_chunk(self, chunk: LongMessageChunk):
-        if chunk.chunk_type == LongMessageChunk.InitMessage:
-            self._current_message = None
-
-        if not self._current_message:
-            if chunk.chunk_type == LongMessageChunk.InitMessage:
-                self._current_message = LongMessage(chunk.payload[0], chunk.payload[1:])
-            else:
-                raise ValueError('Expected init message')
-        else:
-            if chunk.chunk_type == LongMessageChunk.InitMessage:
-                raise ValueError('Unreachable code')
-            elif chunk.chunk_type == LongMessageChunk.UploadMessage:
-                self._current_message.append(chunk.payload)
-            elif chunk.chunk_type == LongMessageChunk.FinalizeMessage:
-                self._message_received_handler(self._current_message)
-                self._current_message = None
-            else:
-                raise ValueError('Unknown chunk type')
-
-    @property
-    def is_processing(self):
-        return self._current_message is None
-
-
-class LongMessageType:
-    FirmwareData = 1,
-    FrameworkData = 2,
-    ConfigurationData = 3,
-    TestKit = 4
-
-
 # Device communication related services
-class BrainToMobileCharacteristic(Characteristic):
-    def __init__(self):
+class LongMessageCharacteristic(Characteristic):
+    def __init__(self, handler):
         super().__init__({
             'uuid':       'd59bb321-7218-4fb9-abac-2f6814f31a4d',
             'properties': ['read', 'write'],
             'value':      None
         })
+        self._handler = handler
 
+    def onReadRequest(self, offset, callback):
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+        else:
+            status = self._handler.read_status()
+            value = status.status.to_bytes(1, byteorder="big")
+            if status.md5 is not None:
+                value += hexdigest2bytes(status.md5)
+                value += status.length.to_bytes(4, byteorder="big")
+            callback(Characteristic.RESULT_SUCCESS, value)
 
-class MobileToBrainCharacteristic(Characteristic):
-    def __init__(self):
-        super().__init__({
-            'uuid':       'b81239d9-260b-4945-bcfe-8b1ef1fc2879',
-            'properties': ['read', 'write'],
-            'value':      None
-        })
+    def onWriteRequest(self, data, offset, without_response, callback):
+        print(data)
+        try:
+            if offset:
+                callback(Characteristic.RESULT_ATTR_NOT_LONG)
+            elif len(data) < 1:
+                callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+            elif data[0] == MessageType.SELECT_LONG_MESSAGE_TYPE:
+                if len(data) == 2:
+                    self._handler.select_long_message_type(data[1])
+                    callback(Characteristic.RESULT_SUCCESS)
+                else:
+                    callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+            elif data[0] == MessageType.INIT_TRANSFER:
+                if len(data) == 17:
+                    self._handler.init_transfer(bytes2hexdigest(data[1:17]))
+                    callback(Characteristic.RESULT_SUCCESS)
+                else:
+                    callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+            elif data[0] == MessageType.UPLOAD_MESSAGE:
+                if len(data) < 2:
+                    callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+                else:
+                    self._handler.upload_message(data[1:])
+                    callback(Characteristic.RESULT_SUCCESS)
+            elif data[0] == MessageType.FINALIZE_MESSAGE:
+                if len(data) == 1:
+                    self._handler.finalize_message()
+                    callback(Characteristic.RESULT_SUCCESS)
+                else:
+                    callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+            else:
+                callback(Characteristic.RESULT_UNLIKELY_ERROR)
+        except LongMessageError:
+            callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
 class LongMessageService(BlenoPrimaryService):
-    def __init__(self):
+    def __init__(self, handler):
         BlenoPrimaryService.__init__(self, {
             'uuid':            '97148a03-5b9d-11e9-8647-d663bd873d93',
             'characteristics': [
-                BrainToMobileCharacteristic(),
-                MobileToBrainCharacteristic()
+                LongMessageCharacteristic(handler),
             ]})
 
 
@@ -454,7 +418,7 @@ class CustomBatteryService(BlenoPrimaryService):
 
 
 class RevvyBLE:
-    def __init__(self, device_name: Observable, serial):
+    def __init__(self, device_name: Observable, serial, long_message_handler):
         self._deviceName = device_name.get()
         print('Initializing {}'.format(self._deviceName))
 
@@ -463,7 +427,7 @@ class RevvyBLE:
         self._deviceInformationService = RevvyDeviceInforrmationService(device_name, serial)
         self._batteryService = CustomBatteryService()
         self._liveMessageService = LiveMessageService()
-        self._longMessageService = LongMessageService()
+        self._longMessageService = LongMessageService(long_message_handler)
 
         self._services = [
             self._liveMessageService,
