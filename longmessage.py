@@ -5,7 +5,7 @@ import hashlib
 
 
 def hexdigest2bytes(hexdigest):
-    return b"".join([int(hexdigest[i:i+2],16).to_bytes(1, byteorder="big") for i in range(0, len(hexdigest), 2)])
+    return b"".join([int(hexdigest[i:i + 2], 16).to_bytes(1, byteorder="big") for i in range(0, len(hexdigest), 2)])
 
 
 def bytes2hexdigest(bytes):
@@ -51,8 +51,13 @@ class LongMessageStorage:
       x.meta: stores md5 and length in json format for the data
       x.data: stores the actual data
     """
+
     def __init__(self, storage_dir):
         self._storage_dir = storage_dir
+        self._callback = lambda x: None
+
+    def on_message_updated(self, callback):
+        self._callback = callback
 
     def read_status(self, long_message_type):
         """Return status with triplet of (LongMessageStatus, md5-hexdigest, length). Last two fields might be None)."""
@@ -63,13 +68,17 @@ class LongMessageStorage:
 
     def set_long_message(self, long_message_type, data, md5):
         self._validate_long_message_type(long_message_type)
-        with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "wb") as data_file, open(os.path.join(self._storage_dir, "{}.meta".format(long_message_type)), "wb") as meta_file:
+        with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "wb") as data_file, open(
+                os.path.join(self._storage_dir, "{}.meta".format(long_message_type)), "wb") as meta_file:
             metadata = {
-                "md5": md5,
-                "length" : len(data)
+                "md5":    md5,
+                "length": len(data)
             }
             data_file.write(data)
             meta_file.write(json.dumps(metadata).encode("utf-8"))
+
+    def activate(self, long_message_type):
+        self._callback(long_message_type)
 
     def get_long_message(self, long_message_type):
         with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "rb") as data_file:
@@ -82,6 +91,7 @@ class LongMessageStorage:
 
 class LongMessageAggregator:
     """Helper class for building long messages"""
+
     def __init__(self, md5):
         self.md5 = md5
         self.data = bytearray()
@@ -100,6 +110,7 @@ class LongMessageAggregator:
 
 class LongMessageHandler:
     """Implements the long message writer/status reader protocol"""
+
     def __init__(self, long_message_storage):
         self._long_message_storage = long_message_storage
         self._long_message_type = None
@@ -125,15 +136,16 @@ class LongMessageHandler:
         self._aggregator = LongMessageAggregator(md5)
 
     def upload_message(self, data):
-        if self._aggregator == None:
+        if self._aggregator is None:
             raise LongMessageError("init-transfer needs to be called before upload_message")
         self._aggregator.append_data(data)
 
     def finalize_message(self):
-        if self._aggregator == None:
+        if self._aggregator is None:
             raise LongMessageError("init-transfer needs to be called before finalize_message")
         if self._aggregator.finalize():
-            self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data, self._aggregator.md5)
+            self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data,
+                                                        self._aggregator.md5)
             self._status = "READ"
         else:
             self._status = "INVALID"

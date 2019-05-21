@@ -5,6 +5,7 @@ from functools import reduce
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 from longmessage import hexdigest2bytes, bytes2hexdigest, MessageType, LongMessageError
 
+
 class Observable:
     def __init__(self, value):
         self._value = value

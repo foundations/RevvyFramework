@@ -2,6 +2,7 @@ from utils import *
 from ble_revvy import *
 from longmessage import LongMessageStorage, LongMessageHandler
 
+
 def main():
     dnp = DeviceNameProvider(FileStorage('device_name.txt'))
     device_name = Observable(dnp.get_device_name())
@@ -22,6 +23,7 @@ def main():
         ble.stop()
 
     print('terminated.')
+
 
 if __name__ == "__main__":
     main()

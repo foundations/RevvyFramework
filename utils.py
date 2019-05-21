@@ -2,6 +2,7 @@
 
 import math
 
+from longmessage import LongMessageStorage, LongMessageHandler
 from robot_config import RobotConfig
 from runtime import ScriptManager
 from thread_wrapper import *
@@ -492,7 +493,7 @@ class DeviceNameProvider:
 
 
 def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
-    dnp = DeviceNameProvider(FileStorage('device_name.txt'))
+    dnp = DeviceNameProvider(FileStorage('./data/device_name'))
     device_name = Observable(dnp.get_device_name())
 
     def on_device_name_changed(new_name):
@@ -500,8 +501,8 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
         dnp.update_device_name(new_name)
 
     device_name.subscribe(on_device_name_changed)
-
-    ble = RevvyBLE(device_name, getserial())
+    long_message_handler = LongMessageHandler(LongMessageStorage("./data/"))
+    ble = RevvyBLE(device_name, getserial(), long_message_handler)
     robot = RobotManager(interface, ble, config)
 
     try:
