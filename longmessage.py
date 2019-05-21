@@ -58,9 +58,9 @@ class LongMessageStorage:
         try:
             with open(os.path.join(self._storage_dir, "access-test"), "wb") as fp:
                 fp.write("true")
-        except IOError, e:
+        except IOError as err:
             print("Invalid storage directory set. Not writable.")
-            print(e)
+            print(err)
             raise
 
     def on_message_updated(self, callback):
