@@ -55,6 +55,13 @@ class LongMessageStorage:
     def __init__(self, storage_dir):
         self._storage_dir = storage_dir
         self._callback = lambda x: None
+        try:
+            with open(os.path.join(self._storage_dir, "access-test"), "wb") as fp:
+                fp.write("true")
+        except IOError, e:
+            print("Invalid storage directory set. Not writable.")
+            print(e)
+            raise
 
     def on_message_updated(self, callback):
         self._callback = callback
