@@ -39,10 +39,10 @@ def main():
     default_config.sensors[1] = "HC_SR04"
     # default_config.analog_handlers.push({'channels': [0, 1], )
     default_config.controller.buttons[0] = 'toggle_ring_led'
-    default_config.controller.buttons[1] = 'toggle_ring_led_str'
+    # default_config.controller.buttons[1] = 'toggle_ring_led_str'
 
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
-    default_config.scripts['toggle_ring_led_str'] = {'script': toggle_ring_led_str, 'priority': 0}
+    # default_config.scripts['toggle_ring_led_str'] = {'script': toggle_ring_led_str, 'priority': 0}
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         startRevvy(robot_interface, default_config)
