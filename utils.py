@@ -7,6 +7,7 @@ from robot_config import RobotConfig
 from runtime import ScriptManager
 from thread_wrapper import *
 import sys
+import os
 import time
 
 from ble_revvy import *
@@ -493,6 +494,9 @@ class DeviceNameProvider:
 
 
 def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
+    directory = os.path.dirname(__file__)
+    print(directory)
+    os.chdir(directory)
     dnp = DeviceNameProvider(FileStorage('./data/device_name'))
     device_name = Observable(dnp.get_device_name())
 
