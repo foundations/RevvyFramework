@@ -306,6 +306,7 @@ class RobotManager:
             time.sleep(0.1)
 
     def _on_connection_changed(self, is_connected):
+        self._is_connected = is_connected
         self._robot.set_bluetooth_connection_status(is_connected)
         if not is_connected:
             self.configure(None)
@@ -315,8 +316,7 @@ class RobotManager:
             self._robot.set_master_status(self.status_led_controlled)
 
     def _on_controller_lost(self):
-        if self._status == self.StatusConfigured:
-            self._robot.set_master_status(self.status_led_configured)
+        self.configure(None)
 
     def _update_sensor(self, sid, value):
         print('Sensor {}: {}'.format(sid, value['converted']))
@@ -329,6 +329,8 @@ class RobotManager:
         if config:
             # apply new configuration
             print("Applying new configuration")
+            self._ring_led.set_scenario(RingLed.Off)
+
             self._drivetrain.reset()
             self._remote_controller.reset()
 
