@@ -507,11 +507,18 @@ class DeviceNameProvider:
 
 
 def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
+    # prepare environment
     directory = os.path.dirname(__file__)
     print(directory)
     os.chdir(directory)
+
     dnp = DeviceNameProvider(FileStorage('./data/device_name'))
     device_name = Observable(dnp.get_device_name())
+    long_message_handler = LongMessageHandler(LongMessageStorage("./data/"))
+
+    ble = RevvyBLE(device_name, getserial(), long_message_handler)
+
+    robot = RobotManager(interface, ble, config)
 
     def on_device_name_changed(new_name):
         print('Device name changed to {}'.format(new_name))
@@ -520,11 +527,12 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     def on_message_updated(storage, message_type):
         print('Message type activated: {}'.format(message_type))
 
+        message_data = storage.get_long_message(message_type)
+        print('Received message: {}'.format(message_data))
+        # robot.configure(None)
+
     device_name.subscribe(on_device_name_changed)
-    long_message_handler = LongMessageHandler(LongMessageStorage("./data/"))
     long_message_handler.on_message_updated(on_message_updated)
-    ble = RevvyBLE(device_name, getserial(), long_message_handler)
-    robot = RobotManager(interface, ble, config)
 
     try:
         robot.start()
