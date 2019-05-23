@@ -16,6 +16,10 @@ def parse_string_list(data):
     return val
 
 
+class UnknownCommandError(Exception):
+    pass
+
+
 class Command:
     def get_payload_bytes(self, payload):
         return payload
@@ -26,6 +30,8 @@ class Command:
     def process(self, response: Response):
         if response.header.status == ResponseHeader.Status_Ok:
             return self.on_success(response.payload)
+        elif response.header.status == ResponseHeader.Status_Error_UnknownCommand:
+            raise UnknownCommandError
         else:
             raise ValueError('Command status: {} payload: {}'.format(response.header.status, repr(response.payload)))
 

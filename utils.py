@@ -13,6 +13,7 @@ import time
 from ble_revvy import *
 
 from rrrc_transport import *
+from rrrc_control import *
 from motor_controllers import *
 from sensor_port_handlers import *
 from fw_version import *
@@ -92,10 +93,15 @@ class RingLed:
         self._interface = interface
         self._ring_led_count = 0
         self._current_scenario = self.Off
+        self._user_led_feature_supported = True
 
     def reset(self):
-        self._ring_led_count = self._interface.ring_led_get_led_amount()
-        self.set_scenario(RingLed.Off)
+        try:
+            self._ring_led_count = self._interface.ring_led_get_led_amount()
+            self.set_scenario(RingLed.Off)
+        except UnknownCommandError:
+            print('RingLed: user led feature is not supported in current firmware')
+            self._user_led_feature_supported = False
 
     def set_scenario(self, scenario):
         self._current_scenario = scenario
@@ -110,12 +116,18 @@ class RingLed:
         :param frame: array of 12 RGB values
         """
         # TODO what to do if called before first reset?
+        if not self._user_led_feature_supported:
+            return
+
         if len(frame) != self._ring_led_count:
             raise ValueError("Number of colors ({}) does not match LEDs ({})", len(frame), self._ring_led_count)
 
         self._interface.ring_led_set_user_frame(frame)
 
     def display_user_frame(self, frame):
+        if not self._user_led_feature_supported:
+            return
+
         # TODO what to do if called before first reset?
         self.upload_user_frame(frame)
         self.set_scenario(self.UserFrame)
@@ -321,7 +333,7 @@ class RobotManager:
             self._robot.set_master_status(self.status_led_configured)
 
     def _update_sensor(self, sid, value):
-        print('Sensor {}: {}'.format(sid, value['converted']))
+        # print('Sensor {}: {}'.format(sid, value['converted']))
         self._ble.update_sensor(sid, value['raw'])
 
     def configure(self, config):
