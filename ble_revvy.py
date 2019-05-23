@@ -3,6 +3,8 @@ import array
 import traceback
 
 from functools import reduce
+from json import JSONDecodeError
+
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 from longmessage import hexdigest2bytes, bytes2hexdigest, MessageType, LongMessageError
 
@@ -44,12 +46,15 @@ class LongMessageCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         else:
-            status = self._handler.read_status()
-            value = status.status.to_bytes(1, byteorder="big")
-            if status.md5 is not None:
-                value += hexdigest2bytes(status.md5)
-                value += status.length.to_bytes(4, byteorder="big")
-            callback(Characteristic.RESULT_SUCCESS, value)
+            try:
+                status = self._handler.read_status()
+                value = status.status.to_bytes(1, byteorder="big")
+                if status.md5 is not None:
+                    value += hexdigest2bytes(status.md5)
+                    value += status.length.to_bytes(4, byteorder="big")
+                callback(Characteristic.RESULT_SUCCESS, value)
+            except (IOError, TypeError, JSONDecodeError):
+                callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
     def onWriteRequest(self, data, offset, without_response, callback):
         result = Characteristic.RESULT_UNLIKELY_ERROR
