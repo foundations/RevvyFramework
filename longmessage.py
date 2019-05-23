@@ -2,6 +2,7 @@ import os
 import json
 import collections
 import hashlib
+from json import JSONDecodeError
 
 
 def hexdigest2bytes(hexdigest):
@@ -70,9 +71,12 @@ class LongMessageStorage:
         print("LongMessageStorage:read_status")
         """Return status with triplet of (LongMessageStatus, md5-hexdigest, length). Last two fields might be None)."""
         self._validate_long_message_type(long_message_type)
-        with open(os.path.join(self._storage_dir, "{}.meta".format(long_message_type)), "rb") as meta_file:
-            data = json.loads(meta_file.read().decode("utf-8"))
-            return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
+        try:
+            with open(os.path.join(self._storage_dir, "{}.meta".format(long_message_type)), "rb") as meta_file:
+                data = json.loads(meta_file.read().decode("utf-8"))
+                return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
+        except (IOError, JSONDecodeError):
+            return LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None)
 
     def set_long_message(self, long_message_type, data, md5):
         print("LongMessageStorage:set_long_message")
