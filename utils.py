@@ -402,7 +402,6 @@ class RobotManager:
             self._status = self.StatusNotConfigured
 
     def stop(self):
-        # todo
         print("Stopping robot manager")
         self._remote_controller.cleanup()
         self._ble.stop()
