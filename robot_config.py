@@ -31,8 +31,10 @@ class RemoteControlConfig:
 
 class RobotConfig:
     @staticmethod
-    def from_string(config):
-        pass
+    def from_string(config_string):
+        config = RobotConfig()
+
+        return config
 
     def __init__(self):
         self.motors = MotorConfig()
