@@ -55,7 +55,6 @@ class LongMessageStorage:
 
     def __init__(self, storage_dir):
         self._storage_dir = storage_dir
-        self._callback = lambda x: None
         try:
             with open(os.path.join(self._storage_dir, "access-test"), "wb") as fp:
                 fp.write(b"true")
@@ -63,9 +62,6 @@ class LongMessageStorage:
             print("Invalid storage directory set. Not writable.")
             print(err)
             raise
-
-    def on_message_updated(self, callback):
-        self._callback = callback
 
     def read_status(self, long_message_type):
         print("LongMessageStorage:read_status")
@@ -90,9 +86,6 @@ class LongMessageStorage:
             data_file.write(data)
             meta_file.write(json.dumps(metadata).encode("utf-8"))
 
-    def activate(self, long_message_type):
-        self._callback(long_message_type)
-
     def get_long_message(self, long_message_type):
         print("LongMessageStorage:get_long_message")
         with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "rb") as data_file:
@@ -112,6 +105,10 @@ class LongMessageAggregator:
         self.md5calc = hashlib.md5()
         self.md5computed = None
 
+    @property
+    def is_empty(self):
+        return len(self.data) != 0
+
     def append_data(self, data):
         self.data += data
         self.md5calc.update(data)
@@ -130,6 +127,10 @@ class LongMessageHandler:
         self._long_message_type = None
         self._status = "READ"
         self._aggregator = None
+        self._callback = lambda x, y: None
+
+    def on_message_updated(self, callback):
+        self._callback = callback
 
     def read_status(self):
         print("LongMessageHandler:read_status")
@@ -162,9 +163,14 @@ class LongMessageHandler:
         print("LongMessageHandler:finalize_message")
         if self._aggregator is None:
             raise LongMessageError("init-transfer needs to be called before finalize_message")
-        if self._aggregator.finalize():
+
+        if not self._aggregator.is_empty:
+            self._callback(self._long_message_storage, self._long_message_type)
+            self._status = "READ"
+        elif self._aggregator.finalize():
             self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data,
                                                         self._aggregator.md5)
+            self._callback(self._long_message_storage, self._long_message_type)
             self._status = "READ"
         else:
             self._status = "INVALID"

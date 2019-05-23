@@ -517,8 +517,12 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
         print('Device name changed to {}'.format(new_name))
         dnp.update_device_name(new_name)
 
+    def on_message_updated(storage, message_type):
+        print('Message type activated: {}'.format(message_type))
+
     device_name.subscribe(on_device_name_changed)
     long_message_handler = LongMessageHandler(LongMessageStorage("./data/"))
+    long_message_handler.on_message_updated(on_message_updated)
     ble = RevvyBLE(device_name, getserial(), long_message_handler)
     robot = RobotManager(interface, ble, config)
 
