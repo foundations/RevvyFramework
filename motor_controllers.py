@@ -83,7 +83,7 @@ class MotorPortInstance:
         if self._handler is not None and port_type != 'NotConfigured':
             self._handler.uninitialize()
 
-        print('MotorPort: Configuring port {}'.format(self._port_idx))
+        print('MotorPort: Configuring port {} to {}'.format(self._port_idx, port_type))
         self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[port_type])
         self._current_port_type = port_type
         handler = self._handlers[port_type]()
