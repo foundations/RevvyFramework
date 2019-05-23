@@ -281,11 +281,6 @@ class RobotManager:
         # start reader thread (do it here to prevent unwanted reset)
         self._status_update_thread.start()
 
-        # call reset to read port counts, types
-        self._ring_led.reset()
-        self._sensor_ports.reset()
-        self._motor_ports.reset()
-
         # read versions
         hw = self._robot.get_hardware_version()
         fw = self._robot.get_firmware_version()
@@ -296,6 +291,11 @@ class RobotManager:
         self._ble.set_hw_version(hw)
         self._ble.set_fw_version(fw)
         self._ble.set_sw_version(sw)
+
+        # call reset to read port counts, types
+        self._ring_led.reset()
+        self._sensor_ports.reset()
+        self._motor_ports.reset()
 
         self._ble.start()
 
@@ -373,6 +373,7 @@ class RobotManager:
 
             self._remote_controller.start()
             self._robot.set_master_status(self.status_led_configured)
+            print('Robot configured')
             self._status = self.StatusConfigured
         else:
             print("Deinitialize robot")
