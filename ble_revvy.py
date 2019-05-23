@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import array
+import traceback
 
 from functools import reduce
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
@@ -51,39 +52,47 @@ class LongMessageCharacteristic(Characteristic):
             callback(Characteristic.RESULT_SUCCESS, value)
 
     def onWriteRequest(self, data, offset, without_response, callback):
+        result = Characteristic.RESULT_UNLIKELY_ERROR
+
         try:
             if offset:
-                callback(Characteristic.RESULT_ATTR_NOT_LONG)
+                result = Characteristic.RESULT_ATTR_NOT_LONG
+
             elif len(data) < 1:
-                callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+                result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
+
             elif data[0] == MessageType.SELECT_LONG_MESSAGE_TYPE:
                 if len(data) == 2:
                     self._handler.select_long_message_type(data[1])
-                    callback(Characteristic.RESULT_SUCCESS)
+                    result = Characteristic.RESULT_SUCCESS
                 else:
-                    callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+                    result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
+
             elif data[0] == MessageType.INIT_TRANSFER:
                 if len(data) == 17:
                     self._handler.init_transfer(bytes2hexdigest(data[1:17]))
-                    callback(Characteristic.RESULT_SUCCESS)
+                    result = Characteristic.RESULT_SUCCESS
                 else:
-                    callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+                    result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
+
             elif data[0] == MessageType.UPLOAD_MESSAGE:
                 if len(data) < 2:
-                    callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+                    result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
                 else:
                     self._handler.upload_message(data[1:])
-                    callback(Characteristic.RESULT_SUCCESS)
+                    result = Characteristic.RESULT_SUCCESS
+
             elif data[0] == MessageType.FINALIZE_MESSAGE:
                 if len(data) == 1:
                     self._handler.finalize_message()
-                    callback(Characteristic.RESULT_SUCCESS)
+                    result = Characteristic.RESULT_SUCCESS
                 else:
-                    callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
-            else:
-                callback(Characteristic.RESULT_UNLIKELY_ERROR)
+                    result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
+
         except LongMessageError:
-            callback(Characteristic.RESULT_UNLIKELY_ERROR)
+            print(traceback.format_exc())
+        finally:
+            callback(result)
 
 
 class LongMessageService(BlenoPrimaryService):
