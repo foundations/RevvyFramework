@@ -74,9 +74,6 @@ class SensorPortInstance:
         self._current_port_type = "NotConfigured"
 
     def configure(self, port_type):
-        if self._current_port_type == port_type:
-            return self._handler
-
         if self._handler is not None and port_type != 'NotConfigured':
             self._handler.uninitialize()
 

@@ -36,6 +36,7 @@ class RobotConfig:
 
     def __init__(self):
         self.motors = MotorConfig()
+        self.drivetrain = {'left': [], 'right': []}
         self.sensors = SensorConfig()
         self.controller = RemoteControlConfig()
         self.scripts = {}
