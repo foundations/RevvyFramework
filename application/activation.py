@@ -62,4 +62,4 @@ class ToggleButton:
         self._onDisabled = l
 
     def handle(self, value):
-        self._edgeDetector.handle(value)
+        self._edgeDetector.handle(0 if value <= 0 else 1)
