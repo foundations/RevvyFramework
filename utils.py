@@ -2,6 +2,7 @@
 
 import math
 
+from file_storage import StorageInterface, FileStorage, IntegrityError
 from longmessage import LongMessageStorage, LongMessageHandler
 from robot_config import RobotConfig
 from runtime import ScriptManager
@@ -468,33 +469,13 @@ class DataDispatcher:
                     self._handlers[key](data[key])
 
 
-class StorageInterface:
-    def store(self, data):
-        raise NotImplementedError
-
-    def read(self):
-        raise NotImplementedError
-
-
-class FileStorage(StorageInterface):
-    def __init__(self, filename):
-        self._filename = filename
-
-    def store(self, data):
-        with open(self._filename, 'w') as f:
-            f.write(data)
-
-    def read(self):
-        with open(self._filename, 'r') as f:
-            return f.read()
-
-
 class DeviceNameProvider:
     def __init__(self, storage: StorageInterface):
+        self._filename = 'device-name'
         self._storage = storage
         try:
-            self._name = storage.read()
-        except:
+            self._name = storage.read(self._filename).decode("utf-8")
+        except (IOError, IntegrityError):
             self._name = 'Revvy_{}'.format(getserial().lstrip('0'))
 
     def get_device_name(self):
@@ -503,7 +484,7 @@ class DeviceNameProvider:
     def update_device_name(self, new_device_name):
         if new_device_name != self._name:
             self._name = new_device_name
-            self._storage.store(self._name)
+            self._storage.write(self._filename, self._name.encode("utf-8"))
 
 
 def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
@@ -512,9 +493,9 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     print(directory)
     os.chdir(directory)
 
-    dnp = DeviceNameProvider(FileStorage('./data/device_name'))
+    dnp = DeviceNameProvider(FileStorage('./data/device'))
     device_name = Observable(dnp.get_device_name())
-    long_message_handler = LongMessageHandler(LongMessageStorage("./data/"))
+    long_message_handler = LongMessageHandler(LongMessageStorage(FileStorage("./data/ble")))
 
     ble = RevvyBLE(device_name, getserial(), long_message_handler)
 

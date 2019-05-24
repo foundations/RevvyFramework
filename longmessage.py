@@ -3,6 +3,7 @@ import json
 import collections
 import hashlib
 from json import JSONDecodeError
+from file_storage import *
 
 
 def hexdigest2bytes(hexdigest):
@@ -53,50 +54,32 @@ class LongMessageStorage:
       x.data: stores the actual data
     """
 
-    def __init__(self, storage_dir):
-        self._storage_dir = storage_dir
-        try:
-            with open(os.path.join(self._storage_dir, "access-test"), "wb") as fp:
-                fp.write(b"true")
-        except IOError as err:
-            print("Invalid storage directory set. Not writable.")
-            print(err)
-            raise
+    def __init__(self, storage: StorageInterface):
+        self._storage = storage
 
     def read_status(self, long_message_type):
         print("LongMessageStorage:read_status")
         """Return status with triplet of (LongMessageStatus, md5-hexdigest, length). Last two fields might be None)."""
         self._validate_long_message_type(long_message_type)
         try:
-            with open(os.path.join(self._storage_dir, "{}.meta".format(long_message_type)), "rb") as meta_file:
-                data = json.loads(meta_file.read().decode("utf-8"))
-                return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
+            data = self._storage.read_metadata(long_message_type)
+            return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
         except (IOError, JSONDecodeError):
             return LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None)
 
-    def set_long_message(self, long_message_type, data, md5=None):
-        if md5 is None:
-            md5 = hashlib.md5(data).hexdigest()
-
+    def set_long_message(self, long_message_type, data, md5):
         print("LongMessageStorage:set_long_message")
         self._validate_long_message_type(long_message_type)
-        with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "wb") as data_file, open(
-                os.path.join(self._storage_dir, "{}.meta".format(long_message_type)), "wb") as meta_file:
-            metadata = {
-                "md5":    md5,
-                "length": len(data)
-            }
-            data_file.write(data)
-            meta_file.write(json.dumps(metadata).encode("utf-8"))
+        self._storage.write(long_message_type, data, md5)
 
     def get_long_message(self, long_message_type):
         print("LongMessageStorage:get_long_message")
-        with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "rb") as data_file:
-            return data_file.read()
+        return self._storage.read(long_message_type)
 
-    def _validate_long_message_type(self, long_message_type):
-        if long_message_type >= LongMessageType.MAX or long_message_type <= 0:
-            raise LongMessageError("Invalid long message type")
+    @staticmethod
+    def _validate_long_message_type(long_message_type):
+        if not (0 < long_message_type < LongMessageType.MAX):
+            raise LongMessageError("Invalid long message type {}".format(long_message_type))
 
 
 class LongMessageAggregator:
