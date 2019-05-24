@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from revvy.file_storage import StorageInterface, FileStorage, IntegrityError
+from revvy.file_storage import StorageInterface, IntegrityError
 from revvy.runtime import ScriptManager
 from revvy.thread_wrapper import *
 import os

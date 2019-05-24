@@ -49,7 +49,8 @@ def getserial():
     return cpu_serial
 
 
-def _retry(fn, retries=5):
+def retry(fn, retries=5):
+    """Retry the given function a number of times, or until it returns True or None"""
     status = False
     retry_num = 0
     while retry_num < retries and not status:
