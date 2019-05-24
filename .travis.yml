@@ -1,14 +1,18 @@
+sudo: false
 language: python
 python:
   - "3.5"
   - "3.6"
-  - "3.7"
   # PyPy versions
   - "pypy3.5"
-  - "pypy3.6"
-  - "pypy3.7"
 # command to install dependencies
 install:
   - pip install -r install/requirements.txt
+  - pip install nose
+  - pip install codecov
 # command to run tests
-script: python -m unittest discover -s tests
+script: nosetests --with-coverage --with-doctest tests application/functions.py
+
+# Push the results back to codecov
+after_success:
+  - codecov
