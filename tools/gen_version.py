@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import os
 
-file = "application/fw_version.py"
+file = "fw_version.py"
 template = """
 # This file is generated before each commit
 FRAMEWORK_VERSION = "0.1-r{{VERSION}}"

@@ -1,6 +1,6 @@
-from utils import *
-from ble_revvy import *
-from longmessage import LongMessageStorage, LongMessageHandler
+from revvy.utils import *
+from revvy.ble_revvy import *
+from revvy.longmessage import LongMessageStorage, LongMessageHandler
 
 
 def main():

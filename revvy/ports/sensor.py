@@ -1,4 +1,4 @@
-from rrrc_control import RevvyControl
+from revvy.rrrc_control import RevvyControl
 
 
 class SensorPortHandler:

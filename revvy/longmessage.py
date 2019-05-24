@@ -1,6 +1,6 @@
 import collections
 from json import JSONDecodeError
-from file_storage import *
+from revvy.file_storage import *
 
 
 def hexdigest2bytes(hexdigest):

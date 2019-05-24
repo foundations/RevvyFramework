@@ -5,10 +5,10 @@
 # Setup:
 # sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3))
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
-from rrrc_transport_i2c import RevvyTransportI2C
-from utils import *
-from rrrc_transport import *
-from robot_config import *
+from revvy.rrrc_transport_i2c import RevvyTransportI2C
+from revvy.utils import *
+from revvy.rrrc_transport import *
+from revvy.robot_config import *
 
 
 def toggle_ring_led(args):

@@ -1,22 +1,22 @@
 #!/usr/bin/python3
 
-from file_storage import StorageInterface, FileStorage, IntegrityError
-from longmessage import LongMessageStorage, LongMessageHandler
-from robot_config import RobotConfig
-from runtime import ScriptManager
-from thread_wrapper import *
+from revvy.file_storage import StorageInterface, FileStorage, IntegrityError
+from revvy.longmessage import LongMessageStorage, LongMessageHandler
+from revvy.robot_config import RobotConfig
+from revvy.runtime import ScriptManager
+from revvy.thread_wrapper import *
 import os
 import time
 
-from ble_revvy import *
+from revvy.ble_revvy import *
 
-from rrrc_transport import *
-from rrrc_control import *
-from ports.motor import *
-from ports.sensor import *
-from fw_version import *
-from activation import EdgeTrigger
-from functions import *
+from revvy.rrrc_transport import *
+from revvy.rrrc_control import *
+from revvy.ports.motor import *
+from revvy.ports.sensor import *
+from revvy.fw_version import *
+from revvy.activation import EdgeTrigger
+from revvy.functions import *
 
 
 class DifferentialDrivetrain:

@@ -1,6 +1,6 @@
 import unittest
 
-from application.rrrc_control import *
+from revvy.rrrc_control import *
 
 
 class TestParseStringList(unittest.TestCase):

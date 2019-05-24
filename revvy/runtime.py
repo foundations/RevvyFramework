@@ -1,6 +1,6 @@
-from thread_wrapper import *
+from revvy.thread_wrapper import *
 import time
-from functions import is_callable
+from revvy.functions import is_callable
 
 
 class ScriptHandle:

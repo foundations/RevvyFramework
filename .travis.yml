@@ -10,10 +10,10 @@ python:
 # command to install dependencies
 install:
   - pip install -r install/requirements.txt
-  - pip install nose
-  - pip install codecov
+  - pip install nose2
+  - pip install nose2[coverage_plugin]>=0.6.5
 # command to run tests
-script: nosetests --with-coverage --with-doctest tests application/functions.py --cover-package=* --cover-inclusive
+script: nose2 -v
 
 # Push the results back to codecov
 after_success:

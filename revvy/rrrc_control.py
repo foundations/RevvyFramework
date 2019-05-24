@@ -1,5 +1,5 @@
 from functools import reduce
-from rrrc_transport import RevvyTransport, Response, ResponseHeader
+from revvy.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
 
 def parse_string_list(data):

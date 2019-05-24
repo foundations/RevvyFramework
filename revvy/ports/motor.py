@@ -1,6 +1,6 @@
-from rrrc_control import RevvyControl
+from revvy.rrrc_control import RevvyControl
 import struct
-from functions import clip
+from revvy.functions import clip
 
 
 class MotorPortHandler:
