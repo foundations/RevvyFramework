@@ -33,15 +33,15 @@ class TestEdgeTrigger(unittest.TestCase):
         trigger.handle(1)
         trigger.handle(1)
 
-        rising.assert_called_once()
+        self.assertEqual(rising.call_count, 1)
         falling.assert_not_called()
 
         trigger.handle(0)
         trigger.handle(0)
         trigger.handle(0)
 
-        rising.assert_called_once()
-        falling.assert_called_once()
+        self.assertEqual(rising.call_count, 1)
+        self.assertEqual(falling.call_count, 1)
 
     def test_rising_edge_is_triggered_on_increasing_values(self):
 
