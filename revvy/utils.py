@@ -266,14 +266,14 @@ class RobotManager:
 
         print("Waiting for MCU")
         # TODO if we are getting stuck here (> ~3s), firmware is probably not valid
-        retry = True
-        while retry:
-            retry = False
+        retry_ping = True
+        while retry_ping:
+            retry_ping = False
             try:
                 self._robot.ping()
             # TODO do NACK responses raise exceptions?
             except (BrokenPipeError, IOError):
-                retry = True
+                retry_ping = True
 
         # start reader thread (do it here to prevent unwanted reset)
         self._status_update_thread.start()
