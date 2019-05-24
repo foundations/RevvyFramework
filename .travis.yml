@@ -13,7 +13,7 @@ install:
   - pip install nose
   - pip install codecov
 # command to run tests
-script: nosetests --with-coverage --cover-inclusive --with-doctest tests application/functions.py
+script: nosetests --with-coverage --with-doctest tests application/functions.py --cover-package=* --cover-inclusive
 
 # Push the results back to codecov
 after_success:

@@ -1,7 +1,5 @@
 #!/usr/bin/python3
 
-import math
-
 from file_storage import StorageInterface, FileStorage, IntegrityError
 from longmessage import LongMessageStorage, LongMessageHandler
 from robot_config import RobotConfig
@@ -14,20 +12,11 @@ from ble_revvy import *
 
 from rrrc_transport import *
 from rrrc_control import *
-from motor_controllers import *
-from sensor_port_handlers import *
+from ports.motor import *
+from ports.sensor import *
 from fw_version import *
 from activation import EdgeTrigger
 from functions import *
-
-
-def empty_callback():
-    pass
-
-
-class NullHandler:
-    def handle(self, value):
-        pass
 
 
 class DifferentialDrivetrain:
