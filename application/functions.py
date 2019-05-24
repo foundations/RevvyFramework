@@ -1,6 +1,8 @@
 import traceback
 import sys
 
+import math
+
 
 def clip(x, min_x, max_x):
     """Constrain a number between two limits
@@ -20,6 +22,13 @@ def clip(x, min_x, max_x):
 
 
 def map_values(x, min_x, max_x, min_y, max_y):
+    """Scales a number from the input range of [min_x, max_x] to between [min_y, max_y]
+
+    >>> map_values(math.pi/2, 0, math.pi, 0, 180)
+    90.0
+    >>> map_values(8, 0, 10, 5, 0)
+    1.0
+    """
     full_scale_in = max_x - min_x
     full_scale_out = max_y - min_y
     return (x - min_x) * (full_scale_out / full_scale_in) + min_y
