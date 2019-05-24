@@ -74,7 +74,10 @@ class LongMessageStorage:
         except (IOError, JSONDecodeError):
             return LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None)
 
-    def set_long_message(self, long_message_type, data, md5):
+    def set_long_message(self, long_message_type, data, md5=None):
+        if md5 is None:
+            md5 = hashlib.md5(data).hexdigest()
+
         print("LongMessageStorage:set_long_message")
         self._validate_long_message_type(long_message_type)
         with open(os.path.join(self._storage_dir, "{}.data".format(long_message_type)), "wb") as data_file, open(

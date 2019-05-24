@@ -1,3 +1,3 @@
 
 # This file is generated before each commit
-FRAMEWORK_VERSION = "0.1-r143-feature-config"
+FRAMEWORK_VERSION = "0.1-r144-feature-config"
