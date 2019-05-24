@@ -3,6 +3,15 @@ import sys
 
 
 def clip(x, min_x, max_x):
+    """Constrain a number between two limits
+
+    >>> clip(3, 1, 2)
+    2
+    >>> clip(0, 1, 2)
+    1
+    >>> clip(1.5, 1, 2)
+    1.5
+    """
     if x < min_x:
         return min_x
     if x > max_x:
