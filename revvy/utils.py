@@ -454,13 +454,13 @@ class DataDispatcher:
 
 
 class DeviceNameProvider:
-    def __init__(self, storage: StorageInterface):
+    def __init__(self, storage: StorageInterface, default):
         self._filename = 'device-name'
         self._storage = storage
         try:
             self._name = storage.read(self._filename).decode("utf-8")
         except (IOError, IntegrityError):
-            self._name = 'Revvy_{}'.format(getserial().lstrip('0'))
+            self._name = default()
 
     def get_device_name(self):
         return self._name

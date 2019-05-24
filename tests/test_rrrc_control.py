@@ -12,6 +12,6 @@ class TestParseStringList(unittest.TestCase):
         data = parse_string_list([0, 3, ord('f'), ord('o'), ord('o')])
         self.assertEqual(data, {'foo': 0})
 
-    def multiple_strings_result_in_multiple_pairs_of_data(self):
+    def test_multiple_strings_result_in_multiple_pairs_of_data(self):
         data = parse_string_list([0, 3, ord('f'), ord('o'), ord('o'), 1, 3, ord('b'), ord('a'), ord('r')])
         self.assertEqual(data, {'foo': 0, 'bar': 1})
