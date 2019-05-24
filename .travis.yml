@@ -6,6 +6,5 @@ python:
 # command to install dependencies
 install:
   - pip install -r install/requirements.txt
-  - pip install .
 # command to run tests
 script: python -m unittest discover -s tests
