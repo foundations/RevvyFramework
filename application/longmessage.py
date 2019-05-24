@@ -1,7 +1,4 @@
-import os
-import json
 import collections
-import hashlib
 from json import JSONDecodeError
 from file_storage import *
 

@@ -7,7 +7,6 @@ from longmessage import LongMessageStorage, LongMessageHandler
 from robot_config import RobotConfig
 from runtime import ScriptManager
 from thread_wrapper import *
-import sys
 import os
 import time
 
