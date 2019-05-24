@@ -67,6 +67,8 @@ class FileStorage(StorageInterface):
         with open(self.storage_file(filename), "rb") as data_file, open(self.meta_file(filename), "rb") as meta_file:
             metadata = json.loads(meta_file.read().decode("utf-8"))
             data = data_file.read()
-            if len(data) != metadata['length'] or hashlib.md5(data).hexdigest != metadata['md5']:
-                raise IntegrityError
+            if len(data) != metadata['length']:
+                raise IntegrityError('Length')
+            if hashlib.md5(data).hexdigest() != metadata['md5']:
+                raise IntegrityError('Checksum')
             return data
