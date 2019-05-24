@@ -16,3 +16,6 @@ script: nosetests --with-coverage --with-doctest tests application/functions.py
 # Push the results back to codecov
 after_success:
   - codecov
+
+notifications:
+  slack: revolution-robotics:sXlaetqFuXuT3Vr4atwogEdK
