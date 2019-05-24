@@ -1,0 +1,11 @@
+coverage:
+  notify:
+    require_ci_to_pass: yes
+    slack:
+      default:
+        url: "https://hooks.slack.com/services/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"
+        threshold: 1%
+        only_pulls: false
+        branches: null
+        flags: null
+        paths: null
