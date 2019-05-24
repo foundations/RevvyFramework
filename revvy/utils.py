@@ -1,14 +1,10 @@
 #!/usr/bin/python3
 
 from revvy.file_storage import StorageInterface, FileStorage, IntegrityError
-from revvy.longmessage import LongMessageStorage, LongMessageHandler
-from revvy.robot_config import RobotConfig
 from revvy.runtime import ScriptManager
 from revvy.thread_wrapper import *
 import os
 import time
-
-from revvy.ble_revvy import *
 
 from revvy.rrrc_transport import *
 from revvy.rrrc_control import *
@@ -237,7 +233,7 @@ class RobotManager:
     status_led_configured = 1
     status_led_controlled = 2
 
-    def __init__(self, interface: RevvyTransportInterface, revvy: RevvyBLE, default_config=None):
+    def __init__(self, interface: RevvyTransportInterface, revvy, default_config=None):
         self._robot = RevvyControl(RevvyTransport(interface))
         self._ble = revvy
         self._is_connected = False
@@ -473,49 +469,3 @@ class DeviceNameProvider:
         if new_device_name != self._name:
             self._name = new_device_name
             self._storage.write(self._filename, self._name.encode("utf-8"))
-
-
-def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
-    # prepare environment
-    directory = os.path.dirname(__file__)
-    print(directory)
-    os.chdir(directory)
-
-    dnp = DeviceNameProvider(FileStorage('./data/device'))
-    device_name = Observable(dnp.get_device_name())
-    long_message_handler = LongMessageHandler(LongMessageStorage(FileStorage("./data/ble")))
-
-    ble = RevvyBLE(device_name, getserial(), long_message_handler)
-
-    robot = RobotManager(interface, ble, config)
-
-    def on_device_name_changed(new_name):
-        print('Device name changed to {}'.format(new_name))
-        dnp.update_device_name(new_name)
-
-    def on_message_updated(storage, message_type):
-        print('Message type activated: {}'.format(message_type))
-
-        message_data = storage.get_long_message(message_type)
-        print('Received message: {}'.format(message_data))
-        robot.configure(RobotConfig.from_string(message_data))
-
-    device_name.subscribe(on_device_name_changed)
-    long_message_handler.on_message_updated(on_message_updated)
-
-    try:
-        robot.start()
-        print("Press enter to exit")
-        input()
-    except KeyboardInterrupt:
-        pass
-    except EOFError:
-        # Running as a service will end up here as stdin is empty.
-        while True:
-            time.sleep(1)
-    finally:
-        print('stopping')
-        robot.stop()
-
-    print('terminated.')
-    sys.exit(1)

@@ -5,6 +5,8 @@
 # Setup:
 # sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3))
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
+from revvy.ble_revvy import Observable, RevvyBLE
+from revvy.longmessage import LongMessageHandler, LongMessageStorage
 from revvy.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.utils import *
 from revvy.rrrc_transport import *
@@ -26,6 +28,52 @@ if robot._ring_led:
     else:
         robot._ring_led.set_scenario(RingLed.ColorWheel)
 """
+
+
+def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
+    # prepare environment
+    directory = os.path.dirname(__file__)
+    print(directory)
+    os.chdir(directory)
+
+    dnp = DeviceNameProvider(FileStorage('./data/device'))
+    device_name = Observable(dnp.get_device_name())
+    long_message_handler = LongMessageHandler(LongMessageStorage(FileStorage("./data/ble")))
+
+    ble = RevvyBLE(device_name, getserial(), long_message_handler)
+
+    robot = RobotManager(interface, ble, config)
+
+    def on_device_name_changed(new_name):
+        print('Device name changed to {}'.format(new_name))
+        dnp.update_device_name(new_name)
+
+    def on_message_updated(storage, message_type):
+        print('Message type activated: {}'.format(message_type))
+
+        message_data = storage.get_long_message(message_type)
+        print('Received message: {}'.format(message_data))
+        robot.configure(RobotConfig.from_string(message_data))
+
+    device_name.subscribe(on_device_name_changed)
+    long_message_handler.on_message_updated(on_message_updated)
+
+    try:
+        robot.start()
+        print("Press enter to exit")
+        input()
+    except KeyboardInterrupt:
+        pass
+    except EOFError:
+        # Running as a service will end up here as stdin is empty.
+        while True:
+            time.sleep(1)
+    finally:
+        print('stopping')
+        robot.stop()
+
+    print('terminated.')
+    sys.exit(1)
 
 
 def main():
