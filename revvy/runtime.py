@@ -1,6 +1,5 @@
 from revvy.thread_wrapper import *
 import time
-from revvy.functions import is_callable
 
 
 class ScriptHandle:
@@ -9,7 +8,7 @@ class ScriptHandle:
 
         self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
 
-        if is_callable(script):
+        if callable(script):
             self._runnable = script
         else:
             self._runnable = lambda x: exec(script, x)
