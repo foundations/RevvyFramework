@@ -1,3 +1,3 @@
 
 # This file is generated before each commit
-FRAMEWORK_VERSION = "0.1-r148-restructure"
+FRAMEWORK_VERSION = "0.1-r149-restructure"
