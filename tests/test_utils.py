@@ -102,3 +102,35 @@ class TestDataDispatcher(unittest.TestCase):
 
         self.assertEqual(foo.call_count, 1)
         self.assertEqual(bar.call_count, 0)
+
+    def test_removed_handler_is_not_called(self):
+        dsp = DataDispatcher()
+
+        foo = Mock()
+        bar = Mock()
+
+        dsp.add('foo', foo)
+        dsp.add('bar', bar)
+
+        dsp.remove('foo')
+
+        dsp.dispatch({'foo': 'data', 'bar': 'anything'})
+
+        self.assertEqual(foo.call_count, 0)
+        self.assertEqual(bar.call_count, 1)
+
+    def test_reset_removes_all_handlers(self):
+        dsp = DataDispatcher()
+
+        foo = Mock()
+        bar = Mock()
+
+        dsp.add('foo', foo)
+        dsp.add('bar', bar)
+
+        dsp.reset()
+
+        dsp.dispatch({'foo': 'data', 'bar': 'anything'})
+
+        self.assertEqual(foo.call_count, 0)
+        self.assertEqual(bar.call_count, 0)
