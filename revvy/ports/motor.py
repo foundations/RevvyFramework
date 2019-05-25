@@ -71,7 +71,8 @@ class MotorPortInstance:
             'NotConfigured': lambda: None,
             'OpenLoop': lambda: OpenLoopMotorController(self, port_idx),
             'PositionControlled': lambda: PositionControlledMotorController(self, port_idx),
-            'SpeedControlled': lambda: SpeedControlledMotorController(self, port_idx)
+            'SpeedControlled': lambda: SpeedControlledMotorController(self, port_idx),
+            'DcMotor': lambda: DcMotorController(self, port_idx),
         }
         self._handler = None
         self._current_port_type = 'NotConfigured'
@@ -185,3 +186,71 @@ class SpeedControlledMotorController(BaseMotorController):
             raise EnvironmentError("Port is not configured")
 
         self._interface.set_motor_port_control_value(self._port_idx, list(struct.pack(">f", speed)))
+
+
+class DcMotorController(BaseMotorController):
+    def __init__(self, handler: MotorPortInstance, port_idx):
+        super().__init__(handler, port_idx)
+        self._config = {
+            # todo controllers need to be tuned
+            'speed_controller': [0, 0, 0, 0, 0],     # no initial power limit
+            'position_controller': [0, 0, 0, 0, 0],  # no initial speed limit
+            'position_limits': [0, 0]                # no initial position limits
+        }
+        self._config_changed = True
+        self.apply_configuration()
+
+    def set_speed_limit(self, lower, upper):
+        self._config['position_controller'][3] = lower
+        self._config['position_controller'][4] = upper
+        self._config_changed = True
+
+    def set_position_limit(self, lower, upper):
+        self._config['position_limits'] = [lower, upper]
+        self._config_changed = True
+
+    def set_power_limit(self, lower, upper):
+        self._config['speed_controller'][3] = lower
+        self._config['speed_controller'][4] = upper
+        self._config_changed = True
+
+    def apply_configuration(self):
+        if not self._configured:
+            raise EnvironmentError("Port is not configured")
+
+        if not self._config_changed:
+            return
+
+        self._config_changed = False
+
+        (posMin, posMax) = self._config['position_limits']
+        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._config['position_controller']
+        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._config['speed_controller']
+
+        config = list(posMin.to_bytes(4, byteorder='big')) + list(posMax.to_bytes(4, byteorder='big'))
+        config += list(struct.pack(">{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
+        config += list(struct.pack(">{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
+
+        self._interface.set_motor_port_config(self._port_idx, config)
+
+    def set_speed(self, speed):
+        if not self._configured:
+            raise EnvironmentError("Port is not configured")
+
+        self._interface.set_motor_port_control_value(self._port_idx, [1] + list(struct.pack(">f", speed)))
+
+    def set_position(self, position: int):
+        if not self._configured:
+            raise EnvironmentError("Port is not configured")
+
+        self._interface.set_motor_port_control_value(self._port_idx, [2] + list(position.to_bytes(4, byteorder='big')))
+
+    def set_power(self, power):
+        if not self._configured:
+            raise EnvironmentError("Port is not configured")
+
+        self._interface.set_motor_port_control_value(self._port_idx, [0, power])
+
+    def get_status(self):
+        data = self._interface.get_motor_position(self._port_idx)
+        return {'position': 0, 'speed': 0, 'power': 0}
