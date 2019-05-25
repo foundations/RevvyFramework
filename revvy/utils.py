@@ -447,7 +447,7 @@ class DataDispatcher:
             del self._handlers[name]
 
     def dispatch(self, data):
-        for key in self._handlers:
+        for key in data:
             with self._lock:
                 if key in self._handlers:
                     self._handlers[key](data[key])

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 from revvy.file_storage import StorageInterface
-from revvy.utils import FunctionSerializer, DeviceNameProvider
+from revvy.utils import FunctionSerializer, DeviceNameProvider, DataDispatcher
 
 
 class TestFunctionSerializer(unittest.TestCase):
@@ -86,3 +86,19 @@ class TestDeviceNameProvider(unittest.TestCase):
         storage.read = Mock(side_effect=IOError)
         dnp = DeviceNameProvider(storage, lambda: 'default')
         self.assertEqual(dnp.get_device_name(), 'default')
+
+
+class TestDataDispatcher(unittest.TestCase):
+    def test_only_handlers_with_data_are_called(self):
+        dsp = DataDispatcher()
+
+        foo = Mock()
+        bar = Mock()
+
+        dsp.add("foo", foo)
+        dsp.add("bar", bar)
+
+        dsp.dispatch({'foo': 'data', 'baz': 'anything'})
+
+        self.assertEqual(foo.call_count, 1)
+        self.assertEqual(bar.call_count, 0)
