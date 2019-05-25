@@ -147,14 +147,14 @@ class PositionControlledMotorController(BaseMotorController):
             raise EnvironmentError("Port is not configured")
 
         (p, i, d, ll, ul) = self._config
-        config = list(struct.pack(">{}".format("f" * 5), p, i, d, ll, ul))
+        config = list(struct.pack("<{}".format("f" * 5), p, i, d, ll, ul))
         self._interface.set_motor_port_config(self._port_idx, config)
 
     def set_position(self, pos: int):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
-        self._interface.set_motor_port_control_value(self._port_idx, list(pos.to_bytes(4, byteorder='big')))
+        self._interface.set_motor_port_control_value(self._port_idx, list(pos.to_bytes(4, byteorder='little')))
 
 
 class SpeedControlledMotorController(BaseMotorController):
@@ -168,7 +168,7 @@ class SpeedControlledMotorController(BaseMotorController):
             raise EnvironmentError("Port is not configured")
 
         (p, i, d, ll, ul) = self._config
-        config = list(struct.pack(">{}".format("f" * 5), p, i, d, ll, ul))
+        config = list(struct.pack("<{}".format("f" * 5), p, i, d, ll, ul))
         self._interface.set_motor_port_config(self._port_idx, config)
 
     def set_max_speed(self, speed):
@@ -184,4 +184,4 @@ class SpeedControlledMotorController(BaseMotorController):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
-        self._interface.set_motor_port_control_value(self._port_idx, list(struct.pack(">f", speed)))
+        self._interface.set_motor_port_control_value(self._port_idx, list(struct.pack("<f", speed)))
