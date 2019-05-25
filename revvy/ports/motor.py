@@ -253,4 +253,5 @@ class DcMotorController(BaseMotorController):
 
     def get_status(self):
         data = self._interface.get_motor_position(self._port_idx)
-        return {'position': 0, 'speed': 0, 'power': 0}
+        (pos, speed, power) = struct.unpack('<lfb', data)
+        return {'position': pos, 'speed': speed, 'power': power}
