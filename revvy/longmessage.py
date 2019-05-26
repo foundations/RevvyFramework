@@ -40,7 +40,12 @@ class LongMessageType:
     FRAMEWORK_DATA = 2
     CONFIGURATION_DATA = 3
     TEST_KIT = 4
-    MAX = 4
+    MAX = 5
+
+    @staticmethod
+    def validate(long_message_type):
+        if not (0 < long_message_type < LongMessageType.MAX):
+            raise LongMessageError("Invalid long message type {}".format(long_message_type))
 
 
 class MessageType:
@@ -56,21 +61,15 @@ class LongMessageError(Exception):
 
 
 class LongMessageStorage:
-    """
-    Stores Long messages on disk, under the storage_dir directory.
-
-    Stores 2 files for each long message:
-      x.meta: stores md5 and length in json format for the data
-      x.data: stores the actual data
-    """
+    """Store long messages using the given storage class, with extra validation"""
 
     def __init__(self, storage: StorageInterface):
         self._storage = storage
 
     def read_status(self, long_message_type):
-        print("LongMessageStorage:read_status")
         """Return status with triplet of (LongMessageStatus, md5-hexdigest, length). Last two fields might be None)."""
-        self._validate_long_message_type(long_message_type)
+        print("LongMessageStorage:read_status")
+        LongMessageType.validate(long_message_type)
         try:
             data = self._storage.read_metadata(long_message_type)
             return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
@@ -79,17 +78,12 @@ class LongMessageStorage:
 
     def set_long_message(self, long_message_type, data, md5):
         print("LongMessageStorage:set_long_message")
-        self._validate_long_message_type(long_message_type)
+        LongMessageType.validate(long_message_type)
         self._storage.write(long_message_type, data, md5)
 
     def get_long_message(self, long_message_type):
         print("LongMessageStorage:get_long_message")
         return self._storage.read(long_message_type)
-
-    @staticmethod
-    def _validate_long_message_type(long_message_type):
-        if not (0 < long_message_type < LongMessageType.MAX):
-            raise LongMessageError("Invalid long message type {}".format(long_message_type))
 
 
 class LongMessageAggregator:
