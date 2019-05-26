@@ -135,11 +135,14 @@ class LongMessageHandler:
 
     def select_long_message_type(self, long_message_type):
         print("LongMessageHandler:select_long_message_type")
+        LongMessageType.validate(long_message_type)
         self._long_message_type = long_message_type
         self._status = "READ"
 
     def init_transfer(self, md5):
         print("LongMessageHandler:init_transfer")
+        if self._long_message_type is None:
+            raise LongMessageError("init-transfer needs to be called after select_long_message_type")
         self._status = "WRITE"
         self._aggregator = LongMessageAggregator(md5)
 
