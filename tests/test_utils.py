@@ -217,7 +217,7 @@ class TestRemoteController(unittest.TestCase):
 
         self.assertEqual(disappeared.call_count, 0)
 
-    def test_buttons_are_edge_tirggered(self):
+    def test_buttons_are_edge_triggered(self):
         rc = RemoteController()
         mocks = []
         for i in range(32):
@@ -244,7 +244,7 @@ class TestRemoteController(unittest.TestCase):
                 self.assertEqual(mocks[j].call_count, 1 if i == j else 0)
                 mocks[j].reset_mock()
 
-    def test_requested_channels_are_passed_to_ananlog_handlers(self):
+    def test_requested_channels_are_passed_to_analog_handlers(self):
         rc = RemoteController()
         mock24 = Mock()
         mock9 = Mock()
@@ -266,3 +266,32 @@ class TestRemoteController(unittest.TestCase):
     def test_error_raised_for_invalid_button(self):
         rc = RemoteController()
         self.assertRaises(IndexError, lambda: rc.on_button_pressed(32, lambda: None))
+
+    def test_reset_removes_handlers_but_not_state_callbacks(self):
+        rc = RemoteController()
+
+        mock = Mock()
+        found_mock = Mock()
+        lost_mock = Mock()
+
+        rc.on_controller_detected(found_mock)
+        rc.on_controller_disappeared(lost_mock)
+
+        rc.on_analog_values([0], mock)
+        rc.on_analog_values([1], mock)
+        rc.on_button_pressed(0, mock)
+
+        rc.reset()
+
+        rc.update({'buttons': [True] * 32, 'analog': [0] * 10})
+        rc.tick()
+
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+
+        self.assertEqual(mock.call_count, 0)
+        self.assertEqual(found_mock.call_count, 1)
+        self.assertEqual(lost_mock.call_count, 1)
