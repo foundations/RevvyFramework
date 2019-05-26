@@ -38,14 +38,17 @@ class FileStorage(StorageInterface):
             print(err)
             raise
 
+    def path(self, filename):
+        return os.path.join(self._storage_dir, filename)
+
     def access_file(self):
-        return os.path.join(self._storage_dir, "access-test")
+        return self.path("access-test")
 
     def storage_file(self, filename):
-        return os.path.join(self._storage_dir, "{}.data".format(filename))
+        return self.path("{}.data".format(filename))
 
     def meta_file(self, filename):
-        return os.path.join(self._storage_dir, "{}.meta".format(filename))
+        return self.path("{}.meta".format(filename))
 
     def read_metadata(self, filename):
         with open(self.meta_file(filename), "rb") as meta_file:
