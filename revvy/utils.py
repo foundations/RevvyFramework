@@ -51,20 +51,45 @@ def differentialControl(r, angle):
     :param r: Vector magnitude, between 0 and 1
     :param angle: Vector angle, between -pi/2 and pi/2
     :return: wheel speeds
-    """
-    v = r * math.cos(angle + math.pi / 2)
-    w = r * math.sin(angle + math.pi / 2)
 
-    sr = +(v + w)
-    sl = -(v - w)
+    >>> differentialControl(1, 0)
+    (-1.0, 1.0)
+    >>> differentialControl(1, math.pi)
+    (1.0, -1.0)
+    >>> differentialControl(1, math.pi / 2)
+    (1.0, 1.0)
+    >>> differentialControl(1, -math.pi / 2)
+    (-1.0, -1.0)
+    """
+    v = r * math.cos(angle)
+    w = r * math.sin(angle)
+
+    sr = round(+(v + w), 3)
+    sl = round(-(v - w), 3)
     return sl, sr
 
 
 def joystick(a, b):
+    """Calculate control vector length and angle based on touch (x, y) coordinates
+
+    >>> joystick(127, 127)
+    (0.0, 0.0)
+    >>> joystick(127, 255)
+    (0.0, 1.0)
+    >>> joystick(127, 0)
+    (-3.141592653589793, 1.0)
+    >>> joystick(0, 127)
+    (1.5707963267948966, 1.0)
+    >>> joystick(255, 127)
+    (-1.5707963267948966, 1.0)
+    """
     x = clip((a - 127) / 127.0, -1, 1)
     y = clip((b - 127) / 127.0, -1, 1)
 
-    angle = math.atan2(y, x)
+    if x == y == 0:
+        return 0.0, 0.0
+
+    angle = math.atan2(y, x) - math.pi / 2
     length = math.sqrt(x * x + y * y)
     return angle, length
 
