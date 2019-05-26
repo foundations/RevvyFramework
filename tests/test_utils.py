@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 from revvy.file_storage import StorageInterface
-from revvy.utils import FunctionSerializer, DeviceNameProvider, DataDispatcher
+from revvy.utils import FunctionSerializer, DeviceNameProvider, DataDispatcher, RemoteController
 
 
 class TestFunctionSerializer(unittest.TestCase):
@@ -134,3 +134,40 @@ class TestDataDispatcher(unittest.TestCase):
 
         self.assertEqual(foo.call_count, 0)
         self.assertEqual(bar.call_count, 0)
+
+
+class TestRemoteController(unittest.TestCase):
+    def test_callback_called_after_first_received_message(self):
+        found = Mock()
+
+        rc = RemoteController()
+
+        rc.on_controller_detected(found)
+
+        rc.tick()
+        rc.tick()
+        self.assertEqual(found.call_count, 0)
+
+        rc.update({'buttons': [False]*32, 'analog': [0]*10})
+        rc.tick()
+
+        self.assertEqual(found.call_count, 1)
+
+    def test_callback_called_after_5_missed_messages(self):
+        disappeared = Mock()
+
+        rc = RemoteController()
+
+        rc.on_controller_disappeared(disappeared)
+
+        rc.update({'buttons': [False]*32, 'analog': [0]*10})
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        self.assertEqual(disappeared.call_count, 0)
+
+        rc.tick()
+
+        self.assertEqual(disappeared.call_count, 1)

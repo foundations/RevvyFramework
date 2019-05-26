@@ -155,6 +155,7 @@ class RemoteController:
         # copy data
         with self._data_mutex:
             message = self._message
+            self._message = None
 
         if message is not None:
             if self._missedKeepAlives == -1:
@@ -175,13 +176,15 @@ class RemoteController:
                 self._controller_disappeared()
 
     def _handle_keep_alive_missed(self):
-        if self._missedKeepAlives > 5:
+        if self._missedKeepAlives >= 0:
+            self._missedKeepAlives += 1
+            print('RemoteController: Missed {}'.format(self._missedKeepAlives))
+
+        if self._missedKeepAlives >= 5:
             self._missedKeepAlives = -1
             return False
-        elif self._missedKeepAlives >= 0:
-            print('RemoteController: Missed {}'.format(self._missedKeepAlives))
-            self._missedKeepAlives += 1
-        return True
+        else:
+            return True
 
     def on_controller_detected(self, action):
         self._controller_detected = action
