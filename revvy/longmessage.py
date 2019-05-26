@@ -138,13 +138,13 @@ class LongMessageHandler:
 
     def upload_message(self, data):
         print("LongMessageHandler:upload_message")
-        if self._aggregator is None:
+        if self._status != "WRITE":
             raise LongMessageError("init-transfer needs to be called before upload_message")
         self._aggregator.append_data(data)
 
     def finalize_message(self):
         print("LongMessageHandler:finalize_message")
-        if self._aggregator is None:
+        if self._status != "WRITE":
             raise LongMessageError("init-transfer needs to be called before finalize_message")
 
         if not self._aggregator.is_empty:
