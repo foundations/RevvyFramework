@@ -164,8 +164,10 @@ class RemoteController:
 
             # handle analog channels
             for handler in self._analogActions:
-                values = list(map(lambda x: message['analog'][x], handler['channels']))
-                handler['action'](values)
+                # check if all channels are present in the message
+                if all(map(lambda x: x in message['analog'], handler['channels'])):
+                    values = list(map(lambda x: message['analog'][x], handler['channels']))
+                    handler['action'](values)
 
             # handle button presses
             for idx in range(len(self._buttonHandlers)):
