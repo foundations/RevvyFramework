@@ -138,7 +138,6 @@ class RingLed:
         if not self._user_led_feature_supported:
             return
 
-        # TODO what to do if called before first reset?
         self.upload_user_frame(frame)
         self.set_scenario(self.UserFrame)
 
