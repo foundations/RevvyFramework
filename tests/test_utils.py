@@ -188,3 +188,30 @@ class TestRemoteController(unittest.TestCase):
         rc.tick()
 
         self.assertEqual(disappeared.call_count, 0)
+
+    def test_buttons_are_edge_tirggered(self):
+        rc = RemoteController()
+        mocks = []
+        for i in range(32):
+            mock = Mock()
+            rc.on_button_pressed(i, mock)
+            mocks.append(mock)
+
+        for i in range(32):
+            buttons = [False] * 32
+
+            rc.update({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick()
+
+            # ith button is pressed
+            buttons[i] = True
+            rc.update({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick()
+
+            # button is kept pressed
+            rc.update({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick()
+
+            for j in range(32):
+                self.assertEqual(mocks[j].call_count, 1 if i == j else 0)
+                mocks[j].reset_mock()
