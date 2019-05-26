@@ -103,12 +103,13 @@ class RingLed:
         self._interface = interface
         self._ring_led_count = 0
         self._current_scenario = self.Off
-        self._user_led_feature_supported = True
+        self._user_led_feature_supported = False
 
     def reset(self):
         try:
-            self._ring_led_count = self._interface.ring_led_get_led_amount()
             self.set_scenario(RingLed.Off)
+            self._ring_led_count = self._interface.ring_led_get_led_amount()
+            self._user_led_feature_supported = True
         except UnknownCommandError:
             print('RingLed: user led feature is not supported in current firmware')
             self._user_led_feature_supported = False
@@ -125,7 +126,6 @@ class RingLed:
         """
         :param frame: array of 12 RGB values
         """
-        # TODO what to do if called before first reset?
         if not self._user_led_feature_supported:
             return
 
