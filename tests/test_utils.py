@@ -172,6 +172,34 @@ class TestRemoteController(unittest.TestCase):
 
         self.assertEqual(disappeared.call_count, 1)
 
+    def test_message_resets_the_missed_counter(self):
+        disappeared = Mock()
+
+        rc = RemoteController()
+        rc.on_controller_disappeared(disappeared)
+        rc.start()
+
+        rc.update({'buttons': [False]*32, 'analog': [0]*10})
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        self.assertEqual(disappeared.call_count, 0)
+
+        rc.update({'buttons': [False]*32, 'analog': [0]*10})
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+
+        self.assertEqual(disappeared.call_count, 0)
+
+        rc.tick()
+
+        self.assertEqual(disappeared.call_count, 1)
+
     def test_lost_callback_not_called_before_first_message(self):
         disappeared = Mock()
 
