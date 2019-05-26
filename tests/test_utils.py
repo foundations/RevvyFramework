@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, call
+from unittest.mock import Mock
 
 from revvy.file_storage import StorageInterface
 from revvy.utils import FunctionSerializer, DeviceNameProvider, DataDispatcher, RemoteController
@@ -229,15 +229,12 @@ class TestRemoteController(unittest.TestCase):
         rc.update({'buttons': [False] * 32, 'analog': range(10)})
         rc.tick()
 
-        self.assertEqual(mock24.call_args, call([2, 4]))
-        self.assertEqual(mock9.call_args, call([9]))
+        self.assertEqual(mock24.call_args[0][0], [2, 4])
+        self.assertEqual(mock9.call_args[0][0], [9])
 
         # invalid channels are silently ignored
         self.assertEqual(mock_invalid.call_count, 0)
 
     def test_error_raised_for_invalid_button(self):
-        def register_invalid_channel():
-            rc = RemoteController()
-            rc.on_button_pressed(32, lambda: None)
-
-        self.assertRaises(IndexError, register_invalid_channel)
+        rc = RemoteController()
+        self.assertRaises(IndexError, lambda: rc.on_button_pressed(32, lambda: None))
