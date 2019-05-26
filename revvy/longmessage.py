@@ -4,10 +4,22 @@ from revvy.file_storage import *
 
 
 def hexdigest2bytes(hexdigest):
+    """
+    >>> hexdigest2bytes("aabbcc")
+    b'\\xaa\\xbb\\xcc'
+    >>> hexdigest2bytes("ABCDEF")
+    b'\\xab\\xcd\\xef'
+    """
     return b"".join([int(hexdigest[i:i + 2], 16).to_bytes(1, byteorder="big") for i in range(0, len(hexdigest), 2)])
 
 
 def bytes2hexdigest(bytes):
+    """
+    >>> bytes2hexdigest(b'\\xaa\\xbb\\xcc')
+    'aabbcc'
+    >>> bytes2hexdigest(b'\\xAB\\xCD\\xEF')
+    'abcdef'
+    """
     return "".join([hex(byte)[2:] for byte in bytes])
 
 
