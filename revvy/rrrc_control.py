@@ -137,9 +137,8 @@ class MotorPort_SetPortConfigCommand(PortSendByteListCommand):
     pass
 
 
-class MotorPort_SetPortControlValueCommand(PortSendListCommand):
-    def __init__(self):
-        super().__init__(4)
+class MotorPort_SetPortControlValueCommand(PortSendByteListCommand):
+    pass
 
 
 class MotorPort_GetMotorPositionCommand(PortReadCommand):
