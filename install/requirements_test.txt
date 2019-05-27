@@ -1,4 +1,4 @@
 nose2
 nose2[coverage_plugin]
 codecov
-mock
+mock>=3.0.5
