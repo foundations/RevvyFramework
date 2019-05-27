@@ -189,9 +189,11 @@ class RemoteController:
             # handle analog channels
             for handler in self._analogActions:
                 # check if all channels are present in the message
-                if all(map(lambda x: x in message['analog'], handler['channels'])):
+                if all(map(lambda x: x < len(message['analog']), handler['channels'])):
                     values = list(map(lambda x: message['analog'][x], handler['channels']))
                     handler['action'](values)
+                else:
+                    print('Skip analog handler for channels {}'.format(",".join(map(str, handler['channels']))))
 
             # handle button presses
             for idx in range(len(self._buttonHandlers)):
