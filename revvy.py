@@ -12,6 +12,7 @@ from revvy.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.utils import *
 from revvy.rrrc_transport import *
 from revvy.robot_config import *
+import sys
 
 
 def toggle_ring_led(args):
