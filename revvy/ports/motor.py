@@ -193,7 +193,7 @@ class DcMotorController(BaseMotorController):
         super().__init__(handler, port_idx)
         self._config = {
             # todo controllers need to be tuned
-            'speed_controller': [0, 0, 0, 0, 0],     # no initial power limit
+            'speed_controller': [5, 0.25, 0, 0, 0],  # no initial power limit
             'position_controller': [0, 0, 0, 0, 0],  # no initial speed limit
             'position_limits': [0, 0]                # no initial position limits
         }
