@@ -274,37 +274,39 @@ class RevvyTransport:
                     response = Response(header, response_payload)
                     return response
 
-    def _read_response_header_once(self):
-        header_bytes = self._transport.read(ResponseHeader.length)
-        has_valid_response = ResponseHeader.is_valid_header(header_bytes)
-        if not has_valid_response:
-            return False
-        return ResponseHeader(header_bytes)
-
     def _read_response_header(self, retries=5):
-        header = retry(self._read_response_header_once, retries)
+
+        def _read_response_header_once():
+            header_bytes = self._transport.read(ResponseHeader.length)
+            has_valid_response = ResponseHeader.is_valid_header(header_bytes)
+            if not has_valid_response:
+                return False
+            return ResponseHeader(header_bytes)
+        
+        header = retry(_read_response_header_once, retries)
+
         if not header:
             raise BrokenPipeError('Read response header: Retry limit reached')
         return header
-
-    def _read_payload_once(self, header):
-        response_bytes = self._transport.read(header.length + header.payload_length)
-        if ResponseHeader.is_valid_header(response_bytes):
-            if not header.is_same_header(response_bytes):
-                raise ValueError('Read payload: Unexpected header received')
-
-            payload = response_bytes[ResponseHeader.length:]
-            has_valid_payload = header.validate_payload(payload)
-            if has_valid_payload:
-                return payload
-
-        return False
 
     def _read_payload(self, header, retries=5):
         if header.payload_length == 0:
             return []
 
-        payload = retry(self._read_payload_once, retries)
+        def _read_payload_once():
+            response_bytes = self._transport.read(header.length + header.payload_length)
+            if ResponseHeader.is_valid_header(response_bytes):
+                if not header.is_same_header(response_bytes):
+                    raise ValueError('Read payload: Unexpected header received')
+
+                payload = response_bytes[ResponseHeader.length:]
+                has_valid_payload = header.validate_payload(payload)
+                if has_valid_payload:
+                    return payload
+
+            return False
+
+        payload = retry(_read_payload_once, retries)
 
         if not payload:
             raise BrokenPipeError('Read payload: Retry limit reached')
