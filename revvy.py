@@ -54,7 +54,7 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
         message_data = storage.get_long_message(message_type)
         print('Received message: {}'.format(message_data))
-        robot.configure(RobotConfig.from_string(message_data))
+        #robot.configure(RobotConfig.from_string(message_data))
 
     device_name.subscribe(on_device_name_changed)
     long_message_handler.on_message_updated(on_message_updated)
