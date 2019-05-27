@@ -51,20 +51,45 @@ def differentialControl(r, angle):
     :param r: Vector magnitude, between 0 and 1
     :param angle: Vector angle, between -pi/2 and pi/2
     :return: wheel speeds
-    """
-    v = r * math.cos(angle + math.pi / 2)
-    w = r * math.sin(angle + math.pi / 2)
 
-    sr = +(v + w)
-    sl = -(v - w)
+    >>> differentialControl(1, 0)
+    (-1.0, 1.0)
+    >>> differentialControl(1, math.pi)
+    (1.0, -1.0)
+    >>> differentialControl(1, math.pi / 2)
+    (1.0, 1.0)
+    >>> differentialControl(1, -math.pi / 2)
+    (-1.0, -1.0)
+    """
+    v = r * math.cos(angle)
+    w = r * math.sin(angle)
+
+    sr = round(+(v + w), 3)
+    sl = round(-(v - w), 3)
     return sl, sr
 
 
 def joystick(a, b):
+    """Calculate control vector length and angle based on touch (x, y) coordinates
+
+    >>> joystick(127, 127)
+    (0.0, 0.0)
+    >>> joystick(127, 255)
+    (0.0, 1.0)
+    >>> joystick(127, 0)
+    (-3.141592653589793, 1.0)
+    >>> joystick(0, 127)
+    (1.5707963267948966, 1.0)
+    >>> joystick(255, 127)
+    (-1.5707963267948966, 1.0)
+    """
     x = clip((a - 127) / 127.0, -1, 1)
     y = clip((b - 127) / 127.0, -1, 1)
 
-    angle = math.atan2(y, x)
+    if x == y == 0:
+        return 0.0, 0.0
+
+    angle = math.atan2(y, x) - math.pi / 2
     length = math.sqrt(x * x + y * y)
     return angle, length
 
@@ -78,12 +103,13 @@ class RingLed:
         self._interface = interface
         self._ring_led_count = 0
         self._current_scenario = self.Off
-        self._user_led_feature_supported = True
+        self._user_led_feature_supported = False
 
     def reset(self):
         try:
-            self._ring_led_count = self._interface.ring_led_get_led_amount()
             self.set_scenario(RingLed.Off)
+            self._ring_led_count = self._interface.ring_led_get_led_amount()
+            self._user_led_feature_supported = True
         except UnknownCommandError:
             print('RingLed: user led feature is not supported in current firmware')
             self._user_led_feature_supported = False
@@ -100,7 +126,6 @@ class RingLed:
         """
         :param frame: array of 12 RGB values
         """
-        # TODO what to do if called before first reset?
         if not self._user_led_feature_supported:
             return
 
@@ -113,7 +138,6 @@ class RingLed:
         if not self._user_led_feature_supported:
             return
 
-        # TODO what to do if called before first reset?
         self.upload_user_frame(frame)
         self.set_scenario(self.UserFrame)
 
@@ -122,7 +146,6 @@ class RemoteController:
     def __init__(self):
         self._data_mutex = Lock()
         self._button_mutex = Lock()
-        self._data_ready_event = Event()
 
         self._analogActions = []
         self._buttonActions = [lambda: None] * 32
@@ -138,8 +161,6 @@ class RemoteController:
             handler.onRisingEdge(lambda idx=i: self._button_pressed(idx))
             self._buttonHandlers[i] = handler
 
-        self._handler_thread = ThreadWrapper(self._background_thread, "RemoteControllerThread")
-
     def _button_pressed(self, idx):
         print('Button {} pressed'.format(idx))
         action = self._buttonActions[idx]
@@ -147,49 +168,49 @@ class RemoteController:
             action()
 
     def reset(self):
-        self.stop()
+        print('RemoteController: reset')
         with self._button_mutex:
             self._analogActions = []
             self._buttonActions = [lambda: None] * 32
             self._message = None
             self._missedKeepAlives = -1
 
-    def _background_thread(self, ctx: ThreadContext):
-        while not ctx.stop_requested:
-            # Wait for data
-            if self._data_ready_event.wait(0.1):
-                self._data_ready_event.clear()
+    def tick(self):
+        # copy data
+        with self._data_mutex:
+            message = self._message
+            self._message = None
 
-                if self._missedKeepAlives == -1:
-                    self._controller_detected()
-                self._missedKeepAlives = 0
+        if message is not None:
+            if self._missedKeepAlives == -1:
+                self._controller_detected()
+            self._missedKeepAlives = 0
 
-                # copy data
-                with self._data_mutex:
-                    message = self._message
-
-                # handle analog channels
-                for handler in self._analogActions:
+            # handle analog channels
+            for handler in self._analogActions:
+                # check if all channels are present in the message
+                if all(map(lambda x: x in message['analog'], handler['channels'])):
                     values = list(map(lambda x: message['analog'][x], handler['channels']))
                     handler['action'](values)
 
-                # handle button presses
-                for idx in range(len(self._buttonHandlers)):
-                    with self._button_mutex:
-                        self._buttonHandlers[idx].handle(message['buttons'][idx])
-            else:
-                # timeout
-                if not self._handle_keep_alive_missed():
-                    self._controller_disappeared()
+            # handle button presses
+            for idx in range(len(self._buttonHandlers)):
+                with self._button_mutex:
+                    self._buttonHandlers[idx].handle(message['buttons'][idx])
+        else:
+            if not self._handle_keep_alive_missed():
+                self._controller_disappeared()
 
     def _handle_keep_alive_missed(self):
-        if self._missedKeepAlives > 5:
+        if self._missedKeepAlives >= 0:
+            self._missedKeepAlives += 1
+            print('RemoteController: Missed {}'.format(self._missedKeepAlives))
+
+        if self._missedKeepAlives >= 5:
             self._missedKeepAlives = -1
             return False
-        elif self._missedKeepAlives >= 0:
-            print('RemoteController: Missed {}'.format(self._missedKeepAlives))
-            self._missedKeepAlives += 1
-        return True
+        else:
+            return True
 
     def on_controller_detected(self, action):
         self._controller_detected = action
@@ -206,22 +227,35 @@ class RemoteController:
     def update(self, message):
         with self._data_mutex:
             self._message = message
-        self._data_ready_event.set()
 
     def start(self):
         print('RemoteController: start')
         self._missedKeepAlives = -1
+
+
+class RemoteControllerScheduler(ThreadWrapper):
+    def __init__(self, rc: RemoteController):
+        self._controller = rc
+        self._data_ready_event = Event()
+        super().__init__(self._schedule_controller, "RemoteControllerThread")
+
+    def data_ready(self):
+        self._data_ready_event.set()
+
+    def _schedule_controller(self, ctx: ThreadContext):
+        while not ctx.stop_requested:
+            self._data_ready_event.wait(0.1)
+            self._data_ready_event.clear()
+            self._controller.tick()
+
+    def start(self):
         self._data_ready_event.clear()
-        self._handler_thread.start()
+        self._controller.start()
+        super().start()
 
-    def stop(self):
-        print('RemoteController: stop')
-        self._handler_thread.stop()
-
-    def cleanup(self):
-        print("RemoteController: exiting")
-        self._handler_thread.exit()
-        print("RemoteController: exited")
+    def reset(self):
+        self.stop()
+        self._controller.reset()
 
 
 class RobotManager:
@@ -243,22 +277,29 @@ class RobotManager:
         self._data_dispatcher = DataDispatcher()
 
         self._status_update_thread = ThreadWrapper(self._update_thread, "RobotUpdateThread")
-        self._remote_controller = RemoteController()
-        self._remote_controller.on_controller_detected(self._on_controller_detected)
-        self._remote_controller.on_controller_disappeared(self._on_controller_lost)
+        rc = RemoteController()
+        rc.on_controller_detected(self._on_controller_detected)
+        rc.on_controller_disappeared(self._on_controller_lost)
+
+        self._remote_controller = rc
+        self._remote_controller_scheduler = RemoteControllerScheduler(rc)
 
         self._drivetrain = DifferentialDrivetrain()
         self._ring_led = RingLed(self._robot)
         self._motor_ports = MotorPortHandler(self._robot)
         self._sensor_ports = SensorPortHandler(self._robot)
 
-        revvy.register_remote_controller_handler(self._remote_controller.update)
+        revvy.register_remote_controller_handler(self._on_controller_message_received)
         revvy.registerConnectionChangedHandler(self._on_connection_changed)
         # revvy.on_configuration_received(self._process_new_configuration)
 
         self._scripts = ScriptManager()
 
         self._status = self.StatusStartingUp
+
+    def _on_controller_message_received(self, message):
+        self._remote_controller.update(message)
+        self._remote_controller_scheduler.data_ready()
 
     def start(self):
         if self._status != self.StatusStartingUp:
@@ -331,7 +372,7 @@ class RobotManager:
             self._ring_led.set_scenario(RingLed.Off)
 
             self._drivetrain.reset()
-            self._remote_controller.reset()
+            self._remote_controller_scheduler.reset()
 
             # set up status reader, data dispatcher
             self._reader.reset()
@@ -369,26 +410,26 @@ class RobotManager:
                 if script:
                     self._remote_controller.on_button_pressed(button, self._scripts[script].start)
 
-            self._remote_controller.start()
+            self._remote_controller_scheduler.start()
             self._robot.set_master_status(self.status_led_configured)
             print('Robot configured')
             self._status = self.StatusConfigured
         else:
             print("Deinitialize robot")
             self._ring_led.set_scenario(RingLed.Off)
-            self._remote_controller.reset()
+            self._remote_controller_scheduler.reset()
             self._scripts.reset()
             self._robot.set_master_status(self.status_led_not_configured)
             self._drivetrain.reset()
             self._motor_ports.reset()
             self._sensor_ports.reset()
             self._reader.reset()
-            self._remote_controller.stop()
+            self._remote_controller_scheduler.stop()
             self._status = self.StatusNotConfigured
 
     def stop(self):
         print("Stopping robot manager")
-        self._remote_controller.cleanup()
+        self._remote_controller_scheduler.exit()
         self._ble.stop()
         self._scripts.reset()
         self._status_update_thread.exit()
@@ -447,7 +488,7 @@ class DataDispatcher:
             del self._handlers[name]
 
     def dispatch(self, data):
-        for key in self._handlers:
+        for key in data:
             with self._lock:
                 if key in self._handlers:
                     self._handlers[key](data[key])

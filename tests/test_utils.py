@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 from revvy.file_storage import StorageInterface
-from revvy.utils import FunctionSerializer, DeviceNameProvider
+from revvy.utils import FunctionSerializer, DeviceNameProvider, DataDispatcher, RemoteController
 
 
 class TestFunctionSerializer(unittest.TestCase):
@@ -86,3 +86,212 @@ class TestDeviceNameProvider(unittest.TestCase):
         storage.read = Mock(side_effect=IOError)
         dnp = DeviceNameProvider(storage, lambda: 'default')
         self.assertEqual(dnp.get_device_name(), 'default')
+
+
+class TestDataDispatcher(unittest.TestCase):
+    def test_only_handlers_with_data_are_called(self):
+        dsp = DataDispatcher()
+
+        foo = Mock()
+        bar = Mock()
+
+        dsp.add("foo", foo)
+        dsp.add("bar", bar)
+
+        dsp.dispatch({'foo': 'data', 'baz': 'anything'})
+
+        self.assertEqual(foo.call_count, 1)
+        self.assertEqual(bar.call_count, 0)
+
+    def test_removed_handler_is_not_called(self):
+        dsp = DataDispatcher()
+
+        foo = Mock()
+        bar = Mock()
+
+        dsp.add('foo', foo)
+        dsp.add('bar', bar)
+
+        dsp.remove('foo')
+
+        dsp.dispatch({'foo': 'data', 'bar': 'anything'})
+
+        self.assertEqual(foo.call_count, 0)
+        self.assertEqual(bar.call_count, 1)
+
+    def test_reset_removes_all_handlers(self):
+        dsp = DataDispatcher()
+
+        foo = Mock()
+        bar = Mock()
+
+        dsp.add('foo', foo)
+        dsp.add('bar', bar)
+
+        dsp.reset()
+
+        dsp.dispatch({'foo': 'data', 'bar': 'anything'})
+
+        self.assertEqual(foo.call_count, 0)
+        self.assertEqual(bar.call_count, 0)
+
+
+class TestRemoteController(unittest.TestCase):
+    def test_callback_called_after_first_received_message(self):
+        found = Mock()
+
+        rc = RemoteController()
+        rc.on_controller_detected(found)
+        rc.start()
+
+        rc.tick()
+        rc.tick()
+        self.assertEqual(found.call_count, 0)
+
+        rc.update({'buttons': [False]*32, 'analog': [0]*10})
+        rc.tick()
+
+        self.assertEqual(found.call_count, 1)
+
+    def test_callback_called_after_5_missed_messages(self):
+        disappeared = Mock()
+
+        rc = RemoteController()
+        rc.on_controller_disappeared(disappeared)
+        rc.start()
+
+        rc.update({'buttons': [False]*32, 'analog': [0]*10})
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        self.assertEqual(disappeared.call_count, 0)
+
+        rc.tick()
+
+        self.assertEqual(disappeared.call_count, 1)
+
+    def test_message_resets_the_missed_counter(self):
+        disappeared = Mock()
+
+        rc = RemoteController()
+        rc.on_controller_disappeared(disappeared)
+        rc.start()
+
+        rc.update({'buttons': [False]*32, 'analog': [0]*10})
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        self.assertEqual(disappeared.call_count, 0)
+
+        rc.update({'buttons': [False]*32, 'analog': [0]*10})
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+
+        self.assertEqual(disappeared.call_count, 0)
+
+        rc.tick()
+
+        self.assertEqual(disappeared.call_count, 1)
+
+    def test_lost_callback_not_called_before_first_message(self):
+        disappeared = Mock()
+
+        rc = RemoteController()
+        rc.on_controller_disappeared(disappeared)
+
+        rc.start()
+
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+
+        self.assertEqual(disappeared.call_count, 0)
+
+    def test_buttons_are_edge_triggered(self):
+        rc = RemoteController()
+        mocks = []
+        for i in range(32):
+            mock = Mock()
+            rc.on_button_pressed(i, mock)
+            mocks.append(mock)
+
+        for i in range(32):
+            buttons = [False] * 32
+
+            rc.update({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick()
+
+            # ith button is pressed
+            buttons[i] = True
+            rc.update({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick()
+
+            # button is kept pressed
+            rc.update({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick()
+
+            for j in range(32):
+                self.assertEqual(mocks[j].call_count, 1 if i == j else 0)
+                mocks[j].reset_mock()
+
+    def test_requested_channels_are_passed_to_analog_handlers(self):
+        rc = RemoteController()
+        mock24 = Mock()
+        mock9 = Mock()
+        mock_invalid = Mock()
+
+        rc.on_analog_values([2, 4], mock24)
+        rc.on_analog_values([9], mock9)
+        rc.on_analog_values([9, 11], mock_invalid)
+
+        rc.update({'buttons': [False] * 32, 'analog': range(10)})
+        rc.tick()
+
+        self.assertEqual(mock24.call_args[0][0], [2, 4])
+        self.assertEqual(mock9.call_args[0][0], [9])
+
+        # invalid channels are silently ignored
+        self.assertEqual(mock_invalid.call_count, 0)
+
+    def test_error_raised_for_invalid_button(self):
+        rc = RemoteController()
+        self.assertRaises(IndexError, lambda: rc.on_button_pressed(32, lambda: None))
+
+    def test_reset_removes_handlers_but_not_state_callbacks(self):
+        rc = RemoteController()
+
+        mock = Mock()
+        found_mock = Mock()
+        lost_mock = Mock()
+
+        rc.on_controller_detected(found_mock)
+        rc.on_controller_disappeared(lost_mock)
+
+        rc.on_analog_values([0], mock)
+        rc.on_analog_values([1], mock)
+        rc.on_button_pressed(0, mock)
+
+        rc.reset()
+
+        rc.update({'buttons': [True] * 32, 'analog': [0] * 10})
+        rc.tick()
+
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+        rc.tick()
+
+        self.assertEqual(mock.call_count, 0)
+        self.assertEqual(found_mock.call_count, 1)
+        self.assertEqual(lost_mock.call_count, 1)
