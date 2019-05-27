@@ -384,9 +384,11 @@ class RobotManager:
                 motor.configure(motor_config)
 
             for motor_id in config.drivetrain['left']:
+                print('Drivetrain: Add motor {} to left side'.format(motor_id))
                 self._drivetrain.add_left_motor(self._motor_ports[motor_id])
 
             for motor_id in config.drivetrain['right']:
+                print('Drivetrain: Add motor {} to right side'.format(motor_id))
                 self._drivetrain.add_right_motor(self._motor_ports[motor_id])
 
             # set up sensors

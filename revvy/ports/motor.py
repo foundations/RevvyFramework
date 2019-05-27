@@ -231,6 +231,8 @@ class DcMotorController(BaseMotorController):
         config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
         config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
 
+        print('Sending configuration: {}'.format(config))
+
         self._interface.set_motor_port_config(self._port_idx, config)
 
     def set_speed(self, speed):
