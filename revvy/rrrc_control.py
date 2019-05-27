@@ -142,8 +142,7 @@ class MotorPort_SetPortControlValueCommand(PortSendByteListCommand):
 
 
 class MotorPort_GetMotorPositionCommand(PortReadCommand):
-    def on_success(self, payload):
-        return int.from_bytes(payload, byteorder='little', signed=True)
+    pass
 
 
 class MotorPort_GetMotorStatusCommand(Command):

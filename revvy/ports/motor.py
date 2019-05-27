@@ -1,6 +1,6 @@
 from revvy.rrrc_control import RevvyControl
 import struct
-from revvy.functions import clip
+from revvy.functions import clip, map_values
 
 
 class MotorPortHandler:
@@ -161,7 +161,7 @@ class PositionControlledMotorController(BaseMotorController):
 class SpeedControlledMotorController(BaseMotorController):
     def __init__(self, handler: MotorPortInstance, port_idx):
         super().__init__(handler, port_idx)
-        self._config = [5, 0.25, 0, -90, 90]
+        self._config = [1/25, 0.3, 0, -100, 100]
         self._update_config()
 
     def _update_config(self):
@@ -185,7 +185,9 @@ class SpeedControlledMotorController(BaseMotorController):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
-        self._interface.set_motor_port_control_value(self._port_idx, list(struct.pack(">f", speed)))
+        speed *= 5000
+
+        self._interface.set_motor_port_control_value(self._port_idx, list(struct.pack("<f", speed)))
 
 
 class DcMotorController(BaseMotorController):
@@ -193,8 +195,8 @@ class DcMotorController(BaseMotorController):
         super().__init__(handler, port_idx)
         self._config = {
             # todo controllers need to be tuned
-            'speed_controller': [5, 0.25, 0, -100, 100],
-            'position_controller': [0, 0, 0, -10, 10],
+            'speed_controller': [1/25, 0.3, 0, -100, 100],
+            'position_controller': [0, 0, 0, -5000, 5000],
             'position_limits': [0, 0]
         }
         self._config_changed = True
@@ -239,6 +241,11 @@ class DcMotorController(BaseMotorController):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
+        if speed > 0:
+            speed *= self._config['position_controller'][4]
+        elif speed < 0:
+            speed *= -self._config['position_controller'][3]
+
         self._interface.set_motor_port_control_value(self._port_idx, [1] + list(struct.pack("<f", speed)))
 
     def set_position(self, position: int):
@@ -255,5 +262,5 @@ class DcMotorController(BaseMotorController):
 
     def get_status(self):
         data = self._interface.get_motor_position(self._port_idx)
-        (pos, speed, power) = struct.unpack('<lfb', data)
+        (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
         return {'position': pos, 'speed': speed, 'power': power}

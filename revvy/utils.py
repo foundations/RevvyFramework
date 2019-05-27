@@ -19,12 +19,10 @@ class DifferentialDrivetrain:
     def __init__(self):
         self._left_motors = []
         self._right_motors = []
-        self._max_speed = 90
 
     def reset(self):
         self._left_motors = []
         self._right_motors = []
-        self._max_speed = 90
 
     def add_left_motor(self, motor):
         self._left_motors.append(motor)
@@ -35,7 +33,7 @@ class DifferentialDrivetrain:
     def update(self, channels):
         (angle, length) = joystick(channels[0], channels[1])
         (sl, sr) = differentialControl(length, angle)
-        self.set_speeds(self._max_speed * sl, self._max_speed * sr)
+        self.set_speeds(sl, sr)
 
     def set_speeds(self, left, right):
         for motor in self._left_motors:
@@ -388,10 +386,12 @@ class RobotManager:
             for motor_id in config.drivetrain['left']:
                 print('Drivetrain: Add motor {} to left side'.format(motor_id))
                 self._drivetrain.add_left_motor(self._motor_ports[motor_id])
+                #self._reader.add('motor_{}'.format(motor_id), self._motor_ports[motor_id].get_status)
 
             for motor_id in config.drivetrain['right']:
                 print('Drivetrain: Add motor {} to right side'.format(motor_id))
                 self._drivetrain.add_right_motor(self._motor_ports[motor_id])
+                #self._reader.add('motor_{}'.format(motor_id), self._motor_ports[motor_id].get_status)
 
             # set up sensors
             for sensor in self._sensor_ports:
