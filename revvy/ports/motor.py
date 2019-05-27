@@ -1,6 +1,29 @@
 from revvy.rrrc_control import RevvyControl
 import struct
-from revvy.functions import clip
+
+
+class Motors:
+    types = {
+        'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
+        'RevvyMotor':    {
+            'driver': 'DcMotor',
+            'config': {
+                # todo controllers need to be tuned
+                'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
+                'position_controller': [0, 0, 0, -5000, 5000],
+                'position_limits':     [0, 0]
+            }
+        },
+        'RevvyMotor_Dexter':    {
+            'driver': 'DcMotor',
+            'config': {
+                # todo controllers need to be tuned
+                'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
+                'position_controller': [0, 0, 0, -1250, 1250],
+                'position_limits':     [0, 0]
+            }
+        }
+    }
 
 
 class MotorPortHandler:
@@ -68,11 +91,8 @@ class MotorPortInstance:
         self._port_idx = port_idx
         self._owner = owner
         self._handlers = {
-            'NotConfigured': lambda: None,
-            'OpenLoop': lambda: OpenLoopMotorController(self, port_idx),
-            'PositionControlled': lambda: PositionControlledMotorController(self, port_idx),
-            'DcMotor': lambda: DcMotorController(self, port_idx),
-            'SpeedControlled': lambda: SpeedControlledMotorController(self, port_idx)
+            'NotConfigured': lambda cfg: None,
+            'DcMotor': lambda cfg: DcMotorController(self, port_idx, cfg)
         }
         self._handler = None
         self._current_port_type = 'NotConfigured'
@@ -81,10 +101,12 @@ class MotorPortInstance:
         if self._handler is not None and port_type != 'NotConfigured':
             self._handler.uninitialize()
 
-        print('MotorPort: Configuring port {} to {}'.format(self._port_idx, port_type))
-        self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[port_type])
+        config = Motors.types[port_type]
+
+        print('MotorPort: Configuring port {} to {} ({})'.format(self._port_idx, port_type, config['driver']))
+        self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[config['driver']])
         self._current_port_type = port_type
-        handler = self._handlers[port_type]()
+        handler = self._handlers[config['driver']](config['config'])
         self._handler = handler
         return handler
 
@@ -121,84 +143,11 @@ class BaseMotorController:
         return self._interface.get_motor_position(self._port_idx)
 
 
-class OpenLoopMotorController(BaseMotorController):
-    def set_speed(self, speed):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
-        speed = clip(speed, -100, 100)
-        self._interface.set_motor_port_control_value(self._port_idx, [speed])
-
-    def set_max_speed(self, speed):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
-        speed = clip(speed, 0, 100)
-        self._interface.set_motor_port_config(self._port_idx, [speed, 256 - speed])
-
-
-class PositionControlledMotorController(BaseMotorController):
-    def __init__(self, handler: MotorPortInstance, port_idx):
-        super().__init__(handler, port_idx)
-        self._config = [1.5, 0.02, 0, -80, 80]
-        self._update_config()
-
-    def _update_config(self):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
-        (p, i, d, ll, ul) = self._config
-        config = list(struct.pack("<{}".format("f" * 5), p, i, d, ll, ul))
-        self._interface.set_motor_port_config(self._port_idx, config)
-
-    def set_position(self, pos: int):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
-        self._interface.set_motor_port_control_value(self._port_idx, list(pos.to_bytes(4, byteorder='little')))
-
-
-class SpeedControlledMotorController(BaseMotorController):
-    def __init__(self, handler: MotorPortInstance, port_idx):
-        super().__init__(handler, port_idx)
-        self._config = [1/25, 0.3, 0, -100, 100]
-        self._update_config()
-
-    def _update_config(self):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
-        (p, i, d, ll, ul) = self._config
-        config = list(struct.pack("<{}".format("f" * 5), p, i, d, ll, ul))
-        self._interface.set_motor_port_config(self._port_idx, config)
-
-    def set_max_speed(self, speed):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
-        speed = clip(speed, 0, 100)
-        self._config[3] = -speed
-        self._config[4] = speed
-        self._update_config()
-
-    def set_speed(self, speed):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
-        speed *= 5000
-
-        self._interface.set_motor_port_control_value(self._port_idx, list(struct.pack("<f", speed)))
-
-
 class DcMotorController(BaseMotorController):
-    def __init__(self, handler: MotorPortInstance, port_idx):
+    """Generic driver for dc motors"""
+    def __init__(self, handler: MotorPortInstance, port_idx, config):
         super().__init__(handler, port_idx)
-        self._config = {
-            # todo controllers need to be tuned
-            'speed_controller': [1/25, 0.3, 0, -100, 100],
-            'position_controller': [0, 0, 0, -5000, 5000],
-            'position_limits': [0, 0]
-        }
+        self._config = config
         self._config_changed = True
         self.apply_configuration()
 
