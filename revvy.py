@@ -6,7 +6,7 @@
 # sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3))
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
 from revvy.ble_revvy import Observable, RevvyBLE
-from revvy.file_storage import FileStorage
+from revvy.file_storage import FileStorage, MemoryStorage
 from revvy.longmessage import LongMessageHandler, LongMessageStorage
 from revvy.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.utils import *
@@ -40,7 +40,7 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
     dnp = DeviceNameProvider(FileStorage('./data/device'), lambda: 'Revvy_{}'.format(getserial().lstrip('0')))
     device_name = Observable(dnp.get_device_name())
-    long_message_handler = LongMessageHandler(LongMessageStorage(FileStorage("./data/ble")))
+    long_message_handler = LongMessageHandler(LongMessageStorage(FileStorage("./data/ble"), MemoryStorage()))
 
     ble = RevvyBLE(device_name, getserial(), long_message_handler)
 

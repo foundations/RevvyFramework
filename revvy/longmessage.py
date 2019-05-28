@@ -42,6 +42,8 @@ class LongMessageType:
     TEST_KIT = 4
     MAX = 5
 
+    PermanentMessages = [FIRMWARE_DATA, FRAMEWORK_DATA, CONFIGURATION_DATA]
+
     @staticmethod
     def validate(long_message_type):
         if not (0 < long_message_type < LongMessageType.MAX):
@@ -63,15 +65,20 @@ class LongMessageError(Exception):
 class LongMessageStorage:
     """Store long messages using the given storage class, with extra validation"""
 
-    def __init__(self, storage: StorageInterface):
+    def __init__(self, storage: StorageInterface, temp_storage: StorageInterface):
         self._storage = storage
+        self._temp_storage = temp_storage
+
+    def _get_storage(self, message_type):
+        return self._storage if message_type in LongMessageType.PermanentMessages else self._temp_storage
 
     def read_status(self, long_message_type):
         """Return status with triplet of (LongMessageStatus, md5-hexdigest, length). Last two fields might be None)."""
         print("LongMessageStorage:read_status")
         LongMessageType.validate(long_message_type)
         try:
-            data = self._storage.read_metadata(long_message_type)
+            storage = self._get_storage(long_message_type)
+            data = storage.read_metadata(long_message_type)
             return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
         except (IOError, JSONDecodeError):
             return LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None)
@@ -79,11 +86,13 @@ class LongMessageStorage:
     def set_long_message(self, long_message_type, data, md5):
         print("LongMessageStorage:set_long_message")
         LongMessageType.validate(long_message_type)
-        self._storage.write(long_message_type, data, md5)
+        storage = self._get_storage(long_message_type)
+        storage.write(long_message_type, data, md5)
 
     def get_long_message(self, long_message_type):
         print("LongMessageStorage:get_long_message")
-        return self._storage.read(long_message_type)
+        storage = self._get_storage(long_message_type)
+        return storage.read(long_message_type)
 
 
 class LongMessageAggregator:
