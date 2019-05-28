@@ -7,8 +7,9 @@
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
 from revvy.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
-from revvy.longmessage import LongMessageHandler, LongMessageStorage
+from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
 from revvy.rrrc_transport_i2c import RevvyTransportI2C
+from revvy.runtime import ScriptHandle
 from revvy.utils import *
 from revvy.rrrc_transport import *
 from revvy.robot_config import *
@@ -23,12 +24,11 @@ def toggle_ring_led(args):
             args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
 
 
-toggle_ring_led_str = """
+test_ring_led_str = """
 if robot._ring_led:
-    if robot._ring_led.scenario == RingLed.ColorWheel:
-        robot._ring_led.set_scenario(RingLed.Off)
-    else:
-        robot._ring_led.set_scenario(RingLed.ColorWheel)
+    robot._ring_led.set_scenario(RingLed.ColorWheel)
+    time.sleep(2)
+    robot._ring_led.set_scenario(RingLed.Off)
 """
 
 
@@ -56,6 +56,10 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
         message_data = storage.get_long_message(message_type)
         print('Received message: {}'.format(message_data))
         #robot.configure(RobotConfig.from_string(message_data))
+
+        if message_type == LongMessageType.TEST_KIT:
+            robot._scripts["test_kit"] = message_data
+            robot._scripts["test_kit"].start()
 
     device_name.subscribe(on_device_name_changed)
     long_message_handler.on_message_updated(on_message_updated)

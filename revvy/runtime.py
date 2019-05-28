@@ -13,6 +13,9 @@ class ScriptHandle:
         else:
             self._runnable = lambda x: exec(script, x)
 
+    def on_stopped(self, callback):
+        self._thread.on_stopped(callback)
+
     def assign(self, name, value):
         self._globals[name] = value
 
@@ -47,6 +50,9 @@ class ScriptManager:
             self._scripts[script].assign(name, value)
 
     def __setitem__(self, name, script):
+        if name in self._scripts:
+            self._scripts[name].cleanup()
+
         print('New script: {}'.format(name))
         self._scripts[name] = ScriptHandle(script, name, self._globals)
 
