@@ -61,7 +61,7 @@ def joystick(x, y):
     """Calculate control vector length and angle based on touch (x, y) coordinates
 
     >>> joystick(0, 0)
-    (-0.0, 0.0)
+    (0.0, 0.0)
     >>> joystick(0, 1)
     (-1.0, 1.0)
     >>> joystick(0, -1)
@@ -71,6 +71,10 @@ def joystick(x, y):
     >>> joystick(-1, 0)
     (1.0, 1.0)
     """
+
+    if x == y == 0:
+        return 0.0, 0.0
+
     angle = math.atan2(y, x) - math.pi / 2
     length = math.sqrt(x * x + y * y)
 
