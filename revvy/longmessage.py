@@ -1,7 +1,7 @@
 import collections
 import hashlib
 from json import JSONDecodeError
-from revvy.file_storage import StorageInterface
+from revvy.file_storage import StorageInterface, StorageError
 
 
 def hexdigest2bytes(hexdigest):
@@ -80,7 +80,7 @@ class LongMessageStorage:
             storage = self._get_storage(long_message_type)
             data = storage.read_metadata(long_message_type)
             return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
-        except (IOError, JSONDecodeError):
+        except (StorageError, JSONDecodeError):
             return LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None)
 
     def set_long_message(self, long_message_type, data, md5):
@@ -106,7 +106,7 @@ class LongMessageAggregator:
 
     @property
     def is_empty(self):
-        return len(self.data) != 0
+        return len(self.data) == 0
 
     def append_data(self, data):
         self.data += data
@@ -168,7 +168,7 @@ class LongMessageHandler:
         if self._status != "WRITE":
             raise LongMessageError("init-transfer needs to be called before finalize_message")
 
-        if not self._aggregator.is_empty:
+        if self._aggregator.is_empty:
             self._callback(self._long_message_storage, self._long_message_type)
             self._status = "READ"
         elif self._aggregator.finalize():
