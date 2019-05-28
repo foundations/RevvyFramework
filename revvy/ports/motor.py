@@ -1,3 +1,4 @@
+from revvy.functions import map_values
 from revvy.rrrc_control import RevvyControl
 import struct
 
@@ -8,19 +9,19 @@ class Motors:
         'RevvyMotor':    {
             'driver': 'DcMotor',
             'config': {
-                # todo controllers need to be tuned
                 'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-                'position_controller': [0, 0, 0, -5000, 5000],
-                'position_limits':     [0, 0]
+                'position_controller': [10, 0, 0, -5000, 5000],
+                'position_limits':     [0, 0],
+                'encoder_resolution':  1168
             }
         },
         'RevvyMotor_Dexter':    {
             'driver': 'DcMotor',
             'config': {
-                # todo controllers need to be tuned
                 'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-                'position_controller': [0, 0, 0, -1250, 1250],
-                'position_limits':     [0, 0]
+                'position_controller': [10, 0, 0, -1250, 1250],
+                'position_limits':     [0, 0],
+                'encoder_resolution':  292
             }
         }
     }
@@ -122,6 +123,7 @@ class MotorPortInstance:
 
     @property
     def id(self):
+        """User-facing number of the motor"""
         return MotorPortHandler.motorPortMap.index(self._port_idx)
 
     def __getattr__(self, name):
@@ -134,6 +136,22 @@ class BaseMotorController:
         self._interface = handler.interface
         self._port_idx = port_idx
         self._configured = True
+
+        self._pos = 0
+        self._speed = 0
+        self._power = 0
+
+    @property
+    def speed(self):
+        return self._speed
+
+    @property
+    def position(self):
+        return self._pos
+
+    @property
+    def power(self):
+        return self._power
 
     def uninitialize(self):
         self._handler.uninitialize()
@@ -190,10 +208,7 @@ class DcMotorController(BaseMotorController):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
-        if speed > 0:
-            speed *= self._config['position_controller'][4]
-        elif speed < 0:
-            speed *= -self._config['position_controller'][3]
+        speed = map_values(speed, 0, 360, 0, self._config['encoder_resolution'])
 
         self._interface.set_motor_port_control_value(self._port_idx, [1] + list(struct.pack("<f", speed)))
 
@@ -201,7 +216,10 @@ class DcMotorController(BaseMotorController):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
-        self._interface.set_motor_port_control_value(self._port_idx, [2] + list(position.to_bytes(4, byteorder='little')))
+        # calculate encoder ticks from degrees
+        ticks = int(map_values(position, 0, 360, 0, self._config['encoder_resolution']))
+
+        self._interface.set_motor_port_control_value(self._port_idx, [2] + list(ticks.to_bytes(4, byteorder='little')))
 
     def set_power(self, power):
         if not self._configured:
@@ -212,4 +230,12 @@ class DcMotorController(BaseMotorController):
     def get_status(self):
         data = self._interface.get_motor_position(self._port_idx)
         (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
+
+        speed = map_values(speed, 0, self._config['encoder_resolution'], 0, 360)
+        pos = map_values(pos, 0, self._config['encoder_resolution'], 0, 360)
+
+        self._pos = pos
+        self._speed = speed
+        self._power = power
+
         return {'position': pos, 'speed': speed, 'power': power}

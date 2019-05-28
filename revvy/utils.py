@@ -33,6 +33,8 @@ class DifferentialDrivetrain:
     def update(self, channels):
         (angle, length) = joystick(channels[0], channels[1])
         (sl, sr) = differentialControl(length, angle)
+        sl = map_values(sl, 0, 1, 0, 900)
+        sr = map_values(sr, 0, 1, 0, 900)
         self.set_speeds(sl, sr)
 
     def set_speeds(self, left, right):
@@ -381,17 +383,18 @@ class RobotManager:
             # set up motors
             for motor in self._motor_ports:
                 motor_config = config.motors[motor.id]
-                motor.configure(motor_config)
+                mh = motor.configure(motor_config)
+                if mh is not None:
+                    self._reader.add('motor_{}'.format(motor.id), motor.get_status)
+                    #self._data_dispatcher.add('motor_{}'.format(motor.id), print)
 
             for motor_id in config.drivetrain['left']:
                 print('Drivetrain: Add motor {} to left side'.format(motor_id))
                 self._drivetrain.add_left_motor(self._motor_ports[motor_id])
-                #self._reader.add('motor_{}'.format(motor_id), self._motor_ports[motor_id].get_status)
 
             for motor_id in config.drivetrain['right']:
                 print('Drivetrain: Add motor {} to right side'.format(motor_id))
                 self._drivetrain.add_right_motor(self._motor_ports[motor_id])
-                #self._reader.add('motor_{}'.format(motor_id), self._motor_ports[motor_id].get_status)
 
             # set up sensors
             for sensor in self._sensor_ports:
@@ -451,6 +454,7 @@ class FunctionSerializer:
             self._functions = {}
 
     def add(self, name, reader):
+        print('FunctionSerializer: new function: {}'.format(name))
         with self._fn_lock:
             self._functions[name] = reader
             self._returnValues[name] = None
