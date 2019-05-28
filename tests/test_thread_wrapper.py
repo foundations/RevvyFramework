@@ -42,6 +42,18 @@ class TestThreadWrapper(unittest.TestCase):
 
         self.assertEqual(1, mock.call_count)
 
+    def test_callback_is_called_when_thread_stops(self):
+        mock = Mock()
+
+        tw = ThreadWrapper(lambda x: None)
+        tw.on_stopped(mock)
+
+        tw.start()
+        time.sleep(0.1)
+        tw.exit()
+
+        self.assertEqual(1, mock.call_count)
+
     def test_stopped_thread_can_be_restarted(self):
         mock = Mock()
 
@@ -70,6 +82,22 @@ class TestThreadWrapper(unittest.TestCase):
         tw.exit()
 
         self.assertEqual(2, mock.call_count)
+
+    def test_stop_request_can_be_observed(self):
+        mock = Mock()
+
+        def _dummy_thread_fn(ctx: ThreadContext):
+            ctx.on_stopped(mock)
+            while not ctx.stop_requested:
+                pass
+
+        tw = ThreadWrapper(_dummy_thread_fn)
+
+        tw.start()
+        time.sleep(0.1)
+        tw.exit()
+
+        self.assertEqual(1, mock.call_count)
 
     def test_exited_thread_can_not_be_restarted(self):
         tw = ThreadWrapper(lambda x: None)

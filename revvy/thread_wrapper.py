@@ -15,6 +15,7 @@ class ThreadWrapper:
         self._stopping = False
         self._func = func
         self._stopped_callback = lambda: None
+        self._stop_requested_callback = lambda: None
         self._control = Event()
         self._thread = Thread(target=self._thread_func, args=())
         self._thread.start()
@@ -26,6 +27,7 @@ class ThreadWrapper:
             if not self._exiting:
                 self._func(ctx)
                 print('{}: stopped'.format(self._name))
+                self._stopped_callback()
                 self.on_stopped(lambda: None)
             self._control.clear()
 
@@ -43,7 +45,7 @@ class ThreadWrapper:
     def stop(self):
         print("{}: stopping".format(self._name))
         self._stopping = True
-        self._stopped_callback()
+        self._stop_requested_callback()
 
     def exit(self):
         self._exiting = True
@@ -56,6 +58,9 @@ class ThreadWrapper:
     def on_stopped(self, callback):
         self._stopped_callback = callback
 
+    def on_stop_requested(self, callback):
+        self._stop_requested_callback = callback
+
 
 class ThreadContext:
     def __init__(self, thread: ThreadWrapper):
@@ -66,4 +71,4 @@ class ThreadContext:
         return self._thread.stopping
 
     def on_stopped(self, callback):
-        self._thread.on_stopped(callback)
+        self._thread.on_stop_requested(callback)
