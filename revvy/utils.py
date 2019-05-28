@@ -19,6 +19,10 @@ class DifferentialDrivetrain:
     def __init__(self):
         self._left_motors = []
         self._right_motors = []
+        self._controller = lambda x, y: (0, 0)
+
+    def set_controller(self, controller):
+        self._controller = controller
 
     def reset(self):
         self._left_motors = []
@@ -31,8 +35,11 @@ class DifferentialDrivetrain:
         self._right_motors.append(motor)
 
     def update(self, channels):
-        (angle, length) = joystick(channels[0], channels[1])
-        (sl, sr) = differentialControl(length, angle)
+        x = clip((channels[0] - 127) / 127.0, -1, 1)
+        y = clip((channels[1] - 127) / 127.0, -1, 1)
+
+        sl, sr = self._controller(x, y)
+
         sl = map_values(sl, 0, 1, 0, 900)
         sr = map_values(sr, 0, 1, 0, 900)
         self.set_speeds(sl, sr)
@@ -45,53 +52,34 @@ class DifferentialDrivetrain:
             motor.set_speed(right)
 
 
-def differentialControl(r, angle):
-    """
-    Calculates left and right wheel speeds
-    :param r: Vector magnitude, between 0 and 1
-    :param angle: Vector angle, between -pi/2 and pi/2
-    :return: wheel speeds
+def stick_contoller(x, y):
+    """Two wheel speeds are controlled independently, just pass through"""
+    return x, y
 
-    >>> differentialControl(1, 0)
+
+def joystick(x, y):
+    """Calculate control vector length and angle based on touch (x, y) coordinates
+
+    >>> joystick(0, 0)
+    (-0.0, 0.0)
+    >>> joystick(0, 1)
     (-1.0, 1.0)
-    >>> differentialControl(1, math.pi)
+    >>> joystick(0, -1)
     (1.0, -1.0)
-    >>> differentialControl(1, math.pi / 2)
-    (1.0, 1.0)
-    >>> differentialControl(1, -math.pi / 2)
+    >>> joystick(1, 0)
     (-1.0, -1.0)
+    >>> joystick(-1, 0)
+    (1.0, 1.0)
     """
-    v = r * math.cos(angle)
-    w = r * math.sin(angle)
+    angle = math.atan2(y, x) - math.pi / 2
+    length = math.sqrt(x * x + y * y)
+
+    v = length * math.cos(angle)
+    w = length * math.sin(angle)
 
     sr = round(+(v + w), 3)
     sl = round(-(v - w), 3)
     return sl, sr
-
-
-def joystick(a, b):
-    """Calculate control vector length and angle based on touch (x, y) coordinates
-
-    >>> joystick(127, 127)
-    (0.0, 0.0)
-    >>> joystick(127, 255)
-    (0.0, 1.0)
-    >>> joystick(127, 0)
-    (-3.141592653589793, 1.0)
-    >>> joystick(0, 127)
-    (1.5707963267948966, 1.0)
-    >>> joystick(255, 127)
-    (-1.5707963267948966, 1.0)
-    """
-    x = clip((a - 127) / 127.0, -1, 1)
-    y = clip((b - 127) / 127.0, -1, 1)
-
-    if x == y == 0:
-        return 0.0, 0.0
-
-    angle = math.atan2(y, x) - math.pi / 2
-    length = math.sqrt(x * x + y * y)
-    return angle, length
 
 
 class RingLed:
@@ -246,7 +234,7 @@ class RemoteControllerScheduler(ThreadWrapper):
 
     def _schedule_controller(self, ctx: ThreadContext):
         while not ctx.stop_requested:
-            self._data_ready_event.wait(0.1)
+            self._data_ready_event.wait(0.15)
             self._data_ready_event.clear()
             self._controller.tick()
 
@@ -374,6 +362,7 @@ class RobotManager:
             self._ring_led.set_scenario(RingLed.Off)
 
             self._drivetrain.reset()
+            self._drivetrain.set_controller(joystick)
             self._remote_controller_scheduler.reset()
 
             # set up status reader, data dispatcher
