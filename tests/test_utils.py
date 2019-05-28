@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from revvy.file_storage import StorageInterface
+from revvy.file_storage import StorageInterface, StorageElementNotFoundError, IntegrityError
 from revvy.utils import FunctionSerializer, DeviceNameProvider, DataDispatcher, RemoteController
 
 
@@ -83,7 +83,13 @@ class TestDeviceNameProvider(unittest.TestCase):
 
     def test_default_is_used_if_storage_raises_error(self):
         storage = StorageInterface()
-        storage.read = Mock(side_effect=IOError)
+        storage.read = Mock(side_effect=StorageElementNotFoundError)
+        dnp = DeviceNameProvider(storage, lambda: 'default')
+        self.assertEqual(dnp.get_device_name(), 'default')
+
+    def test_default_is_used_if_storage_raises_integrity_error(self):
+        storage = StorageInterface()
+        storage.read = Mock(side_effect=IntegrityError)
         dnp = DeviceNameProvider(storage, lambda: 'default')
         self.assertEqual(dnp.get_device_name(), 'default')
 

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from revvy.file_storage import StorageInterface, IntegrityError
+from revvy.file_storage import StorageInterface, IntegrityError, StorageError
 from revvy.runtime import ScriptManager
 from revvy.thread_wrapper import *
 import os
@@ -504,7 +504,7 @@ class DeviceNameProvider:
         self._storage = storage
         try:
             self._name = storage.read(self._filename).decode("utf-8")
-        except (IOError, IntegrityError):
+        except StorageError:
             self._name = default()
 
     def get_device_name(self):

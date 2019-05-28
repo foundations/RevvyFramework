@@ -1,9 +1,18 @@
 import os
 import json
 import hashlib
+from json import JSONDecodeError
 
 
-class IntegrityError(Exception):
+class StorageError(Exception):
+    pass
+
+
+class StorageElementNotFoundError(StorageError):
+    pass
+
+
+class IntegrityError(StorageError):
     pass
 
 
@@ -16,6 +25,31 @@ class StorageInterface:
 
     def read(self, filename):
         raise NotImplementedError
+
+
+class MemoryStorage(StorageInterface):
+    def __init__(self):
+        self._entries = {}
+
+    def read_metadata(self, name):
+        if name not in self._entries:
+            raise StorageElementNotFoundError
+
+        return {'md5': self._entries[name][0], 'length': len(self._entries[name][1])}
+
+    def write(self, name, data, md5=None):
+        if md5 is None:
+            md5 = hashlib.md5(data).hexdigest()
+
+        self._entries[name] = (md5, data)
+
+    def read(self, name):
+        metadata = self.read_metadata(name)
+        data = self._entries[name][1]
+
+        if hashlib.md5(data).hexdigest() != metadata['md5']:
+            raise IntegrityError('Checksum')
+        return data
 
 
 class FileStorage(StorageInterface):
@@ -31,47 +65,57 @@ class FileStorage(StorageInterface):
         self._storage_dir = storage_dir
         try:
             os.makedirs(self._storage_dir, 0o755, True)
-            with open(self.access_file(), "wb") as fp:
-                fp.write(b"true")
+            with open(self._access_file(), "w") as fp:
+                fp.write("true")
         except IOError as err:
             print("Invalid storage directory set. Not writable.")
             print(err)
             raise
 
-    def path(self, filename):
+    def _path(self, filename):
         return os.path.join(self._storage_dir, filename)
 
-    def access_file(self):
-        return self.path("access-test")
+    def _access_file(self):
+        return self._path("access-test")
 
-    def storage_file(self, filename):
-        return self.path("{}.data".format(filename))
+    def _storage_file(self, filename):
+        return self._path("{}.data".format(filename))
 
-    def meta_file(self, filename):
-        return self.path("{}.meta".format(filename))
+    def _meta_file(self, filename):
+        return self._path("{}.meta".format(filename))
 
     def read_metadata(self, filename):
-        with open(self.meta_file(filename), "rb") as meta_file:
-            return json.loads(meta_file.read().decode("utf-8"))
+        try:
+            with open(self._meta_file(filename), "r") as meta_file:
+                return json.loads(meta_file.read())
+        except IOError:
+            raise StorageElementNotFoundError
 
     def write(self, filename, data, md5=None):
         if md5 is None:
             md5 = hashlib.md5(data).hexdigest()
 
-        with open(self.storage_file(filename), "wb") as data_file, open(self.meta_file(filename), "wb") as meta_file:
+        with open(self._storage_file(filename), "wb") as data_file, open(self._meta_file(filename), "w") as meta_file:
             metadata = {
                 "md5":    md5,
                 "length": len(data)
             }
             data_file.write(data)
-            meta_file.write(json.dumps(metadata).encode("utf-8"))
+            json.dump(metadata, meta_file)
 
     def read(self, filename):
-        with open(self.storage_file(filename), "rb") as data_file, open(self.meta_file(filename), "rb") as meta_file:
-            metadata = json.loads(meta_file.read().decode("utf-8"))
-            data = data_file.read()
-            if len(data) != metadata['length']:
-                raise IntegrityError('Length')
-            if hashlib.md5(data).hexdigest() != metadata['md5']:
-                raise IntegrityError('Checksum')
-            return data
+        try:
+            data_file_path = self._storage_file(filename)
+            meta_file_path = self._meta_file(filename)
+            with open(data_file_path, "rb") as data_file, open(meta_file_path, "r") as meta_file:
+                metadata = json.load(meta_file)
+                data = data_file.read()
+                if len(data) != metadata['length']:
+                    raise IntegrityError('Length')
+                if hashlib.md5(data).hexdigest() != metadata['md5']:
+                    raise IntegrityError('Checksum')
+                return data
+        except IOError:
+            raise StorageElementNotFoundError
+        except JSONDecodeError:
+            raise IntegrityError('Metadata')
