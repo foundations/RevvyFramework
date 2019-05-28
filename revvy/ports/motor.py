@@ -15,6 +15,15 @@ class Motors:
                 'encoder_resolution':  1168
             }
         },
+        'RevvyMotor_CCW':    {
+            'driver': 'DcMotor',
+            'config': {
+                'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
+                'position_controller': [10, 0, 0, -5000, 5000],
+                'position_limits':     [0, 0],
+                'encoder_resolution': -1168
+            }
+        },
         'RevvyMotor_Dexter':    {
             'driver': 'DcMotor',
             'config': {
@@ -22,6 +31,15 @@ class Motors:
                 'position_controller': [10, 0, 0, -1250, 1250],
                 'position_limits':     [0, 0],
                 'encoder_resolution':  292
+            }
+        },
+        'RevvyMotor_Dexter_CCW':    {
+            'driver': 'DcMotor',
+            'config': {
+                'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
+                'position_controller': [10, 0, 0, -1250, 1250],
+                'position_limits':     [0, 0],
+                'encoder_resolution': -292
             }
         }
     }
@@ -196,7 +214,7 @@ class DcMotorController(BaseMotorController):
         (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._config['position_controller']
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._config['speed_controller']
 
-        config = list(posMin.to_bytes(4, byteorder='little')) + list(posMax.to_bytes(4, byteorder='little'))
+        config = list(struct.pack("<l", posMin)) + list(struct.pack("<l", posMax))
         config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
         config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
 
@@ -219,7 +237,7 @@ class DcMotorController(BaseMotorController):
         # calculate encoder ticks from degrees
         ticks = int(map_values(position, 0, 360, 0, self._config['encoder_resolution']))
 
-        self._interface.set_motor_port_control_value(self._port_idx, [2] + list(ticks.to_bytes(4, byteorder='little')))
+        self._interface.set_motor_port_control_value(self._port_idx, [2] + list(struct.pack("<l", ticks)))
 
     def set_power(self, power):
         if not self._configured:

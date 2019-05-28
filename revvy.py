@@ -81,10 +81,10 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 def main():
 
     default_config = RobotConfig()
-    default_config.motors[2] = "RevvyMotor"
-    default_config.motors[3] = "RevvyMotor"
-    default_config.motors[5] = "RevvyMotor"
-    default_config.motors[6] = "RevvyMotor"
+    default_config.motors[2] = "RevvyMotor_CCW"
+    default_config.motors[3] = "RevvyMotor_CCW"
+    default_config.motors[5] = "RevvyMotor_CCW"
+    default_config.motors[6] = "RevvyMotor_CCW"
 
     default_config.drivetrain['left'] = [2, 3]
     default_config.drivetrain['right'] = [5, 6]
