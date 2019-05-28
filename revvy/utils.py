@@ -271,6 +271,9 @@ class RobotManager:
         self._data_dispatcher = DataDispatcher()
 
         self._status_update_thread = ThreadWrapper(self._update_thread, "RobotUpdateThread")
+        self._background_fn_lock = Lock()
+        self._background_fn = None
+
         rc = RemoteController()
         rc.on_controller_detected(self._on_controller_detected)
         rc.on_controller_disappeared(self._on_controller_lost)
@@ -333,11 +336,22 @@ class RobotManager:
 
         self.configure(None)
 
+    def run_in_background(self, callback):
+        with self._background_fn_lock:
+            self._background_fn = callback
+
     def _update_thread(self, ctx: ThreadContext):
         while not ctx.stop_requested:
             data = self._reader.run()
             self._data_dispatcher.dispatch(data)
             time.sleep(0.1)
+
+            with self._background_fn_lock:
+                fn = self._background_fn
+                self._background_fn = None
+
+            if callable(fn):
+                fn()
 
     def _on_connection_changed(self, is_connected):
         self._is_connected = is_connected
@@ -357,6 +371,9 @@ class RobotManager:
         self._ble.update_sensor(sid, value['raw'])
 
     def configure(self, config):
+        self.run_in_background(lambda: self._configure(config))
+
+    def _configure(self, config):
         if not config:
             config = self._default_configuration
 

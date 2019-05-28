@@ -9,7 +9,6 @@ from revvy.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
 from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
 from revvy.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.runtime import ScriptHandle
 from revvy.utils import *
 from revvy.rrrc_transport import *
 from revvy.robot_config import *
@@ -51,15 +50,15 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
         dnp.update_device_name(new_name)
 
     def on_message_updated(storage, message_type):
-        print('Message type activated: {}'.format(message_type))
-
+        print('Received message: {}'.format(message_type))
         message_data = storage.get_long_message(message_type)
-        print('Received message: {}'.format(message_data))
-        #robot.configure(RobotConfig.from_string(message_data))
 
         if message_type == LongMessageType.TEST_KIT:
+            print('Running test script: {}'.format(message_data))
             robot._scripts["test_kit"] = message_data
             robot._scripts["test_kit"].start()
+        elif message_type == LongMessageType.CONFIGURATION_DATA:
+            print('New configuration: {}'.format(message_data))
 
     device_name.subscribe(on_device_name_changed)
     long_message_handler.on_message_updated(on_message_updated)

@@ -115,6 +115,8 @@ class LongMessageAggregator:
     def finalize(self):
         """Returns true if the uploaded data matches the predefined md5 checksum."""
         self.md5computed = self.md5calc.hexdigest()
+        print('Received MD5: {}'.format(self.md5))
+        print('Calculated MD5: {}'.format(self.md5computed))
         return self.md5computed == self.md5
 
 
