@@ -428,7 +428,7 @@ class RobotManager:
                 # set up sensors
                 for sensor in self._sensor_ports:
                     sensor.configure(config.sensors[sensor.id])
-    
+
                 # set up scripts
                 self._scripts.reset()
                 self._scripts.assign('robot', self)
@@ -519,7 +519,10 @@ class DataDispatcher:
 
     def remove(self, name):
         with self._lock:
-            del self._handlers[name]
+            try:
+                del self._handlers[name]
+            except KeyError:
+                pass
 
     def dispatch(self, data):
         for key in data:
