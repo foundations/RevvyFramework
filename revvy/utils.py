@@ -290,13 +290,15 @@ class RemoteControllerScheduler(ThreadWrapper):
 
     def reset(self):
         self.stop()
-        self._controller.reset()
+        if not self._exiting:
+            self._controller.reset()
 
 
 class RobotManager:
     StatusStartingUp = 0
     StatusNotConfigured = 1
     StatusConfigured = 2
+    StatusStopped = 3
 
     status_led_not_configured = 0
     status_led_configured = 1
@@ -436,11 +438,12 @@ class RobotManager:
         self._ble.update_sensor(sid, value['raw'])
 
     def configure(self, config):
-        self.run_in_background(lambda: self._configure(config))
+        if self._status != self.StatusStopped:
+            self.run_in_background(lambda: self._configure(config))
 
     def _configure(self, config):
         with self._config_lock:
-            if not config:
+            if not config and self._status != self.StatusStopped:
                 config = self._default_configuration
 
             if config:
@@ -489,7 +492,8 @@ class RobotManager:
                 self._remote_controller_scheduler.start()
                 self._robot.set_master_status(self.status_led_configured)
                 print('Robot configured')
-                self._status = self.StatusConfigured
+                if self._status != self.StatusStopped:
+                    self._status = self.StatusConfigured
             else:
                 print("Deinitialize robot")
                 self._ring_led.set_scenario(RingLed.Off)
@@ -501,10 +505,12 @@ class RobotManager:
                 self._sensor_ports.reset()
                 self._reader.reset()
                 self._remote_controller_scheduler.stop()
-                self._status = self.StatusNotConfigured
+                if self._status != self.StatusStopped:
+                    self._status = self.StatusNotConfigured
 
     def stop(self):
         print("Stopping robot manager")
+        self._status = self.StatusStopped
         self._remote_controller_scheduler.exit()
         self._ble.stop()
         self._scripts.reset()
