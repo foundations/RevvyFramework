@@ -17,14 +17,9 @@ class IntegrityError(StorageError):
 
 
 class StorageInterface:
-    def read_metadata(self, filename):
-        raise NotImplementedError
-
-    def write(self, filename, data, md5=None):
-        raise NotImplementedError
-
-    def read(self, filename):
-        raise NotImplementedError
+    def read_metadata(self, filename): raise NotImplementedError
+    def write(self, filename, data, md5=None): raise NotImplementedError
+    def read(self, filename): raise NotImplementedError
 
 
 class MemoryStorage(StorageInterface):
