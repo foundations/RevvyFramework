@@ -14,6 +14,11 @@ class TestFunctionSerializer(unittest.TestCase):
         ser.run()
         self.assertEqual(default_mock.call_count, 1)
 
+    def test_remove_ignores_missing_keys(self):
+        ser = FunctionSerializer(None)
+
+        ser.remove('foo')
+
     def test_default_action_is_not_called_when_not_empty(self):
         default_mock = Mock()
         reader_mock = Mock()
@@ -124,6 +129,11 @@ class TestDataDispatcher(unittest.TestCase):
 
         self.assertEqual(foo.call_count, 0)
         self.assertEqual(bar.call_count, 1)
+
+    def test_remove_ignores_missing_keys(self):
+        dsp = DataDispatcher()
+
+        dsp.remove('foo')
 
     def test_reset_removes_all_handlers(self):
         dsp = DataDispatcher()
