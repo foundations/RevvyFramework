@@ -271,6 +271,7 @@ class RobotManager:
 
         self._status_update_thread = ThreadWrapper(self._update_thread, "RobotUpdateThread")
         self._background_fn_lock = Lock()
+        self._config_lock = Lock()
         self._background_fn = None
 
         rc = RemoteController()
@@ -395,68 +396,69 @@ class RobotManager:
         self.run_in_background(lambda: self._configure(config))
 
     def _configure(self, config):
-        if not config:
-            config = self._default_configuration
+        with self._config_lock:
+            if not config:
+                config = self._default_configuration
 
-        if config:
-            # apply new configuration
-            print("Applying new configuration")
-            self._ring_led.set_scenario(RingLed.Off)
+            if config:
+                # apply new configuration
+                print("Applying new configuration")
+                self._ring_led.set_scenario(RingLed.Off)
 
-            self._drivetrain.reset()
-            self._drivetrain.set_controller(joystick)
-            self._remote_controller_scheduler.reset()
+                self._drivetrain.reset()
+                self._drivetrain.set_controller(joystick)
+                self._remote_controller_scheduler.reset()
 
-            # set up status reader, data dispatcher
-            self._reader.reset()
-            self._data_dispatcher.reset()
+                # set up status reader, data dispatcher
+                self._reader.reset()
+                self._data_dispatcher.reset()
 
-            # set up motors
-            for motor in self._motor_ports:
-                motor.configure(config.motors[motor.id])
+                # set up motors
+                for motor in self._motor_ports:
+                    motor.configure(config.motors[motor.id])
 
-            for motor_id in config.drivetrain['left']:
-                print('Drivetrain: Add motor {} to left side'.format(motor_id))
-                self._drivetrain.add_left_motor(self._motor_ports[motor_id])
+                for motor_id in config.drivetrain['left']:
+                    print('Drivetrain: Add motor {} to left side'.format(motor_id))
+                    self._drivetrain.add_left_motor(self._motor_ports[motor_id])
 
-            for motor_id in config.drivetrain['right']:
-                print('Drivetrain: Add motor {} to right side'.format(motor_id))
-                self._drivetrain.add_right_motor(self._motor_ports[motor_id])
+                for motor_id in config.drivetrain['right']:
+                    print('Drivetrain: Add motor {} to right side'.format(motor_id))
+                    self._drivetrain.add_right_motor(self._motor_ports[motor_id])
 
-            # set up sensors
-            for sensor in self._sensor_ports:
-                sensor.configure(config.sensors[sensor.id])
+                # set up sensors
+                for sensor in self._sensor_ports:
+                    sensor.configure(config.sensors[sensor.id])
+    
+                # set up scripts
+                self._scripts.reset()
+                self._scripts.assign('robot', self)
+                self._scripts.assign('RingLed', RingLed)
+                for name in config.scripts.keys():
+                    self._scripts[name] = config.scripts[name]['script']
 
-            # set up scripts
-            self._scripts.reset()
-            self._scripts.assign('robot', self)
-            self._scripts.assign('RingLed', RingLed)
-            for name in config.scripts.keys():
-                self._scripts[name] = config.scripts[name]['script']
+                # set up remote controller
+                self._remote_controller.on_analog_values([0, 1], self._drivetrain.update)
+                for button in range(len(config.controller.buttons)):
+                    script = config.controller.buttons[button]
+                    if script:
+                        self._remote_controller.on_button_pressed(button, self._scripts[script].start)
 
-            # set up remote controller
-            self._remote_controller.on_analog_values([0, 1], self._drivetrain.update)
-            for button in range(len(config.controller.buttons)):
-                script = config.controller.buttons[button]
-                if script:
-                    self._remote_controller.on_button_pressed(button, self._scripts[script].start)
-
-            self._remote_controller_scheduler.start()
-            self._robot.set_master_status(self.status_led_configured)
-            print('Robot configured')
-            self._status = self.StatusConfigured
-        else:
-            print("Deinitialize robot")
-            self._ring_led.set_scenario(RingLed.Off)
-            self._remote_controller_scheduler.reset()
-            self._scripts.reset()
-            self._robot.set_master_status(self.status_led_not_configured)
-            self._drivetrain.reset()
-            self._motor_ports.reset()
-            self._sensor_ports.reset()
-            self._reader.reset()
-            self._remote_controller_scheduler.stop()
-            self._status = self.StatusNotConfigured
+                self._remote_controller_scheduler.start()
+                self._robot.set_master_status(self.status_led_configured)
+                print('Robot configured')
+                self._status = self.StatusConfigured
+            else:
+                print("Deinitialize robot")
+                self._ring_led.set_scenario(RingLed.Off)
+                self._remote_controller_scheduler.reset()
+                self._scripts.reset()
+                self._robot.set_master_status(self.status_led_not_configured)
+                self._drivetrain.reset()
+                self._motor_ports.reset()
+                self._sensor_ports.reset()
+                self._reader.reset()
+                self._remote_controller_scheduler.stop()
+                self._status = self.StatusNotConfigured
 
     def stop(self):
         print("Stopping robot manager")
