@@ -21,7 +21,7 @@ class Motors:
             'driver': 'DcMotor',
             'config': {
                 'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -5000, 5000],
+                'position_controller': [10, 0, 0, -2920, 2920],
                 'position_limits':     [0, 0],
                 'encoder_resolution':  1168
             }
@@ -30,7 +30,7 @@ class Motors:
             'driver': 'DcMotor',
             'config': {
                 'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -5000, 5000],
+                'position_controller': [10, 0, 0, -2920, 2920],
                 'position_limits':     [0, 0],
                 'encoder_resolution': -1168
             }
@@ -39,7 +39,7 @@ class Motors:
             'driver': 'DcMotor',
             'config': {
                 'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -1250, 1250],
+                'position_controller': [10, 0, 0, -730, 730],
                 'position_limits':     [0, 0],
                 'encoder_resolution':  292
             }
@@ -48,7 +48,7 @@ class Motors:
             'driver': 'DcMotor',
             'config': {
                 'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -1250, 1250],
+                'position_controller': [10, 0, 0, -730, 730],
                 'position_limits':     [0, 0],
                 'encoder_resolution': -292
             }
