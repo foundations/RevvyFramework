@@ -1,3 +1,5 @@
+import math
+
 from revvy.functions import map_values
 from revvy.rrrc_control import RevvyControl
 import struct
@@ -142,19 +144,33 @@ class DcMotorController(BaseMotorController):
         self._config_changed = True
         self.apply_configuration()
 
-    def set_speed_limit(self, lower, upper):
-        self._config['position_controller'][3] = lower
-        self._config['position_controller'][4] = upper
+    def set_speed_limit(self, limit):
+        # convert from degrees per sec to ticks per sec
+        limit = math.fabs(map_values(limit, 0, 360, 0, self._config['encoder_resolution']))
+        self._config['position_controller'][3] = -limit
+        self._config['position_controller'][4] = limit
         self._config_changed = True
 
+    def get_speed_limit(self):
+        limit = self._config['position_controller'][4]  # ticks per sec
+        limit = map_values(limit, 0, self._config['encoder_resolution'], 0, 360)
+        return limit
+
     def set_position_limit(self, lower, upper):
+        # convert from degrees to ticks
+        lower = math.fabs(map_values(lower, 0, 360, 0, self._config['encoder_resolution']))
+        upper = math.fabs(map_values(upper, 0, 360, 0, self._config['encoder_resolution']))
+
         self._config['position_limits'] = [lower, upper]
         self._config_changed = True
 
-    def set_power_limit(self, lower, upper):
-        self._config['speed_controller'][3] = lower
-        self._config['speed_controller'][4] = upper
+    def set_power_limit(self, limit):
+        self._config['speed_controller'][3] = -limit
+        self._config['speed_controller'][4] = limit
         self._config_changed = True
+
+    def get_power_limit(self):
+        return self._config['speed_controller'][4]
 
     def apply_configuration(self):
         if not self._configured:

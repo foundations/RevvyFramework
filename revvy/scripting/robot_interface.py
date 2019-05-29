@@ -34,6 +34,8 @@ class MotorPortWrapper:
         self._motor.set_position(position)
         while math.fabs(position - self._motor.position) > close_threshold:
             time.sleep(0.2)
+        while math.fabs(self._motor.speed) > self._motor.get_speed_limit() / 10:
+            time.sleep(0.2)
 
 
 class RingLedWrapper:
