@@ -3,56 +3,15 @@ from revvy.rrrc_control import RevvyControl
 import struct
 
 
-class Motors:
-    types = {
-        'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
-        'RevvyMotor':    {
-            'driver': 'DcMotor',
-            'config': {
-                'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -5000, 5000],
-                'position_limits':     [0, 0],
-                'encoder_resolution':  1168
-            }
-        },
-        'RevvyMotor_CCW':    {
-            'driver': 'DcMotor',
-            'config': {
-                'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -5000, 5000],
-                'position_limits':     [0, 0],
-                'encoder_resolution': -1168
-            }
-        },
-        'RevvyMotor_Dexter':    {
-            'driver': 'DcMotor',
-            'config': {
-                'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -1250, 1250],
-                'position_limits':     [0, 0],
-                'encoder_resolution':  292
-            }
-        },
-        'RevvyMotor_Dexter_CCW':    {
-            'driver': 'DcMotor',
-            'config': {
-                'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -1250, 1250],
-                'position_limits':     [0, 0],
-                'encoder_resolution': -292
-            }
-        }
-    }
-
-
 class MotorPortHandler:
     # index: logical number; value: physical number
     motorPortMap = [-1, 3, 4, 5, 2, 1, 0]
 
-    def __init__(self, interface: RevvyControl):
+    def __init__(self, interface: RevvyControl, configs: dict):
         self._interface = interface
         self._types = {"NotConfigured": 0}
         self._ports = []
+        self._configurations = configs
 
     def reset(self):
         for port in self._ports:
@@ -70,6 +29,10 @@ class MotorPortHandler:
 
     def __iter__(self):
         return self._ports.__iter__()
+
+    @property
+    def configurations(self):
+        return self._configurations
 
     @property
     def available_types(self):
@@ -108,7 +71,7 @@ class MotorPortInstance:
         if self._driver is not None and config_name != 'NotConfigured':
             self._driver.uninitialize()
 
-        config = Motors.types[config_name]
+        config = self._owner.configurations[config_name]
 
         new_driver_name = config['driver']
         print('MotorPort: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))

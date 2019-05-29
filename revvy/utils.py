@@ -13,6 +13,48 @@ from revvy.activation import EdgeTrigger
 from revvy.functions import *
 
 
+class Motors:
+    types = {
+        'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
+        'RevvyMotor':    {
+            'driver': 'DcMotor',
+            'config': {
+                'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
+                'position_controller': [10, 0, 0, -5000, 5000],
+                'position_limits':     [0, 0],
+                'encoder_resolution':  1168
+            }
+        },
+        'RevvyMotor_CCW':    {
+            'driver': 'DcMotor',
+            'config': {
+                'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
+                'position_controller': [10, 0, 0, -5000, 5000],
+                'position_limits':     [0, 0],
+                'encoder_resolution': -1168
+            }
+        },
+        'RevvyMotor_Dexter':    {
+            'driver': 'DcMotor',
+            'config': {
+                'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
+                'position_controller': [10, 0, 0, -1250, 1250],
+                'position_limits':     [0, 0],
+                'encoder_resolution':  292
+            }
+        },
+        'RevvyMotor_Dexter_CCW':    {
+            'driver': 'DcMotor',
+            'config': {
+                'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
+                'position_controller': [10, 0, 0, -1250, 1250],
+                'position_limits':     [0, 0],
+                'encoder_resolution': -292
+            }
+        }
+    }
+
+
 class DifferentialDrivetrain:
     def __init__(self):
         self._left_motors = []
@@ -283,7 +325,7 @@ class RobotManager:
 
         self._drivetrain = DifferentialDrivetrain()
         self._ring_led = RingLed(self._robot)
-        self._motor_ports = MotorPortHandler(self._robot)
+        self._motor_ports = MotorPortHandler(self._robot, Motors.types)
         self._sensor_ports = SensorPortHandler(self._robot)
 
         revvy.register_remote_controller_handler(self._on_controller_message_received)
