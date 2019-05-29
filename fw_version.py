@@ -1,3 +1,3 @@
 
 # This file is generated before each commit
-FRAMEWORK_VERSION = "0.1-r237-feature/robot_interface"
+FRAMEWORK_VERSION = "0.1-r238-feature/robot_interface"
