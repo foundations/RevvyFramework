@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from revvy.file_storage import StorageInterface, StorageError
+from revvy.scripting.robot_interface import RobotInterface
 from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import *
 import time
@@ -473,7 +474,7 @@ class RobotManager:
 
                 # set up scripts
                 self._scripts.reset()
-                self._scripts.assign('robot', self)
+                self._scripts.assign('robot', RobotInterface(self))
                 self._scripts.assign('RingLed', RingLed)
                 for name in config.scripts.keys():
                     self._scripts[name] = config.scripts[name]['script']

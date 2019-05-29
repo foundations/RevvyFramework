@@ -99,16 +99,26 @@ class BaseSensorPort:
         self._interface = handler.interface
         self._port_idx = port_idx
         self._configured = True
+        self._value = 0
 
     def uninitialize(self):
         self._handler.uninitialize()
         self._configured = False
 
-    def read(self): raise NotImplementedError
+    def read(self):
+        result = self.read_sensor()
+        self._value = result['converted']
+        return result
+
+    @property
+    def value(self):
+        return self._value
+
+    def read_sensor(self): raise NotImplementedError
 
 
 class BumperSwitch(BaseSensorPort):
-    def read(self):
+    def read_sensor(self):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
@@ -117,7 +127,7 @@ class BumperSwitch(BaseSensorPort):
 
 
 class HcSr04(BaseSensorPort):
-    def read(self):
+    def read_sensor(self):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
