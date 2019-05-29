@@ -1,5 +1,5 @@
-from threading import Lock, Event
-from threading import Thread
+import traceback
+from threading import Event, Thread
 
 
 class ThreadWrapper:
@@ -20,12 +20,17 @@ class ThreadWrapper:
         self._thread = Thread(target=self._thread_func, args=())
         self._thread.start()
 
+    # noinspection PyBroadException
     def _thread_func(self):
         ctx = ThreadContext(self)
         while not self._exiting:
             self._control.wait()
             if not self._exiting:
-                self._func(ctx)
+                try:
+                    self._func(ctx)
+                except Exception:
+                    print(traceback.format_exc())
+
                 print('{}: stopped'.format(self._name))
                 self._stopped_callback()
                 self.on_stopped(lambda: None)

@@ -1,9 +1,8 @@
 #!/usr/bin/python3
-
-from revvy.file_storage import StorageInterface, IntegrityError, StorageError
 from revvy.runtime import ScriptManager
+from revvy.ble_revvy import RevvyBLE
+from revvy.file_storage import StorageInterface, StorageError
 from revvy.thread_wrapper import *
-import os
 import time
 
 from revvy.rrrc_transport import *
@@ -261,7 +260,7 @@ class RobotManager:
     status_led_configured = 1
     status_led_controlled = 2
 
-    def __init__(self, interface: RevvyTransportInterface, revvy, default_config=None):
+    def __init__(self, interface: RevvyTransportInterface, revvy: RevvyBLE, default_config=None):
         self._robot = RevvyControl(RevvyTransport(interface))
         self._ble = revvy
         self._is_connected = False
@@ -332,9 +331,31 @@ class RobotManager:
         self._sensor_ports.reset()
         self._motor_ports.reset()
 
+        for port in self._motor_ports:
+            port.on_config_changed(self._motor_config_changed)
+
+        for port in self._sensor_ports:
+            port.on_config_changed(self._sensor_config_changed)
+
         self._ble.start()
 
         self.configure(None)
+
+    def _motor_config_changed(self, motor: MotorPortInstance, config_name):
+        motor_name = 'motor_{}'.format(motor.id)
+        if config_name != 'NotConfigured':
+            self._reader.add(motor_name, motor.get_status)
+        else:
+            self._reader.remove(motor_name)
+
+    def _sensor_config_changed(self, sensor: SensorPortInstance, config_name):
+        sensor_name = 'sensor_{}'.format(sensor.id)
+        if config_name != 'NotConfigured':
+            self._reader.add(sensor_name, lambda s=sensor: s.read())
+            self._data_dispatcher.add(sensor_name, lambda value, sid=sensor.id: self._update_sensor(sid, value))
+        else:
+            self._reader.remove(sensor_name)
+            self._data_dispatcher.remove(sensor_name)
 
     def run_in_background(self, callback):
         with self._background_fn_lock:
@@ -392,11 +413,7 @@ class RobotManager:
 
             # set up motors
             for motor in self._motor_ports:
-                motor_config = config.motors[motor.id]
-                mh = motor.configure(motor_config)
-                if mh is not None:
-                    self._reader.add('motor_{}'.format(motor.id), motor.get_status)
-                    #self._data_dispatcher.add('motor_{}'.format(motor.id), print)
+                motor.configure(config.motors[motor.id])
 
             for motor_id in config.drivetrain['left']:
                 print('Drivetrain: Add motor {} to left side'.format(motor_id))
@@ -408,10 +425,7 @@ class RobotManager:
 
             # set up sensors
             for sensor in self._sensor_ports:
-                if sensor.configure(config.sensors[sensor.id]):
-                    sensor_name = 'sensor_{}'.format(sensor.id)
-                    self._reader.add(sensor_name, lambda s=sensor: s.read())
-                    self._data_dispatcher.add(sensor_name, lambda value, sid=sensor.id: self._update_sensor(sid, value))
+                sensor.configure(config.sensors[sensor.id])
 
             # set up scripts
             self._scripts.reset()

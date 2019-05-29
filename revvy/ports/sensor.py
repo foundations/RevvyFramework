@@ -13,6 +13,7 @@ class SensorPortHandler:
     def reset(self):
         for port in self._ports:
             port.uninitialize()
+        self._ports.clear()
 
         self._types = self._interface.get_sensor_port_types()
         count = self._interface.get_sensor_port_amount()
@@ -42,25 +43,6 @@ class SensorPortHandler:
         return self._ports[self.sensorPortMap[port_idx]]
 
 
-class SensorPorts:
-    def __init__(self, handler: SensorPortHandler):
-        self._handler = handler
-        self._names = {}
-
-    def add_alias(self, name, port):
-        self._names[name] = port
-
-    def reset(self):
-        self._names = {}
-        self._handler.reset()
-
-    def __getitem__(self, item):
-        if item is str:
-            item = self._names[item]
-
-        return self._handler[item]
-
-
 class SensorPortInstance:
     def __init__(self, port_idx, owner: SensorPortHandler):
         self._port_idx = port_idx
@@ -70,25 +52,34 @@ class SensorPortInstance:
             'AnalogButton': lambda: BumperSwitch(self, port_idx),
             'HC_SR04': lambda: HcSr04(self, port_idx)
         }
-        self._handler = None
-        self._current_port_type = "NotConfigured"
+        self._driver = None
+        self._config_changed_callback = lambda sensor, cfg_name: None
 
-    def configure(self, port_type):
-        if self._handler is not None and port_type != 'NotConfigured':
-            self._handler.uninitialize()
+    def on_config_changed(self, callback):
+        self._config_changed_callback = callback
 
-        print('SensorPort: Configuring port {} to {}'.format(self._port_idx, port_type))
-        self._owner.interface.set_sensor_port_type(self._port_idx, self._owner.available_types[port_type])
-        self._current_port_type = port_type
-        handler = self._handlers[port_type]()
-        self._handler = handler
+    def _notify_config_changed(self, config_name):
+        self._config_changed_callback(self, config_name)
+
+    def configure(self, config_name):
+        if self._driver is not None and config_name != 'NotConfigured':
+            self._driver.uninitialize()
+
+        print('SensorPort: Configuring port {} to {}'.format(self._port_idx, config_name))
+        self._owner.interface.set_sensor_port_type(self._port_idx, self._owner.available_types[config_name])
+
+        handler = self._handlers[config_name]()
+        self._driver = handler
+
+        self._notify_config_changed(config_name)
+
         return handler
 
     def uninitialize(self):
         self.configure("NotConfigured")
 
     def handler(self):
-        return self._handler
+        return self._driver
 
     @property
     def id(self):
@@ -99,7 +90,7 @@ class SensorPortInstance:
         return self._owner.interface
 
     def __getattr__(self, name):
-        return self._handler.__getattribute__(name)
+        return self._driver.__getattribute__(name)
 
 
 class BaseSensorPort:

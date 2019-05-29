@@ -57,6 +57,7 @@ class MotorPortHandler:
     def reset(self):
         for port in self._ports:
             port.uninitialize()
+        self._ports.clear()
 
         self._types = self._interface.get_motor_port_types()
         count = self._interface.get_motor_port_amount()
@@ -86,25 +87,6 @@ class MotorPortHandler:
         return self._ports[self.motorPortMap[port_idx]]
 
 
-class MotorPorts:
-    def __init__(self, handler: MotorPortHandler):
-        self._handler = handler
-        self._names = {}
-
-    def add_alias(self, name, port):
-        self._names[name] = port
-
-    def reset(self):
-        self._names = {}
-        self._handler.reset()
-
-    def __getitem__(self, item):
-        if item is str:
-            item = self._names[item]
-
-        return self._handler[item]
-
-
 class MotorPortInstance:
     def __init__(self, port_idx, owner: MotorPortHandler):
         self._port_idx = port_idx
@@ -113,27 +95,37 @@ class MotorPortInstance:
             'NotConfigured': lambda cfg: None,
             'DcMotor': lambda cfg: DcMotorController(self, port_idx, cfg)
         }
-        self._handler = None
-        self._current_port_type = 'NotConfigured'
+        self._driver = None
+        self._config_changed_callback = lambda motor, cfg_name: None
 
-    def configure(self, port_type):
-        if self._handler is not None and port_type != 'NotConfigured':
-            self._handler.uninitialize()
+    def on_config_changed(self, callback):
+        self._config_changed_callback = callback
 
-        config = Motors.types[port_type]
+    def _notify_config_changed(self, config_name):
+        self._config_changed_callback(self, config_name)
 
-        print('MotorPort: Configuring port {} to {} ({})'.format(self._port_idx, port_type, config['driver']))
-        self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[config['driver']])
-        self._current_port_type = port_type
-        handler = self._handlers[config['driver']](config['config'])
-        self._handler = handler
+    def configure(self, config_name):
+        if self._driver is not None and config_name != 'NotConfigured':
+            self._driver.uninitialize()
+
+        config = Motors.types[config_name]
+
+        new_driver_name = config['driver']
+        print('MotorPort: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
+        self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[new_driver_name])
+
+        handler = self._handlers[new_driver_name](config['config'])
+        self._driver = handler
+
+        self._notify_config_changed(config_name)
+
         return handler
 
     def uninitialize(self):
         self.configure("NotConfigured")
 
     def handler(self):
-        return self._handler
+        return self._driver
 
     @property
     def interface(self):
@@ -141,11 +133,11 @@ class MotorPortInstance:
 
     @property
     def id(self):
-        """User-facing number of the motor"""
+        """User-facing motor port number"""
         return MotorPortHandler.motorPortMap.index(self._port_idx)
 
     def __getattr__(self, name):
-        return self._handler.__getattribute__(name)
+        return self._driver.__getattribute__(name)
 
 
 class BaseMotorController:
