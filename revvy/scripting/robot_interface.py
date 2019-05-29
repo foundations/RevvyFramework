@@ -41,6 +41,10 @@ class RingLedWrapper:
     def __init__(self, ring_led):
         self._ring_led = ring_led
 
+    @property
+    def scenario(self):
+        return self._ring_led.scenario
+
     def set_scenario(self, scenario):
         return self._ring_led.set_scenario(scenario)
 
