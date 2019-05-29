@@ -1,7 +1,7 @@
 #!/usr/bin/python3
-from revvy.runtime import ScriptManager
 from revvy.ble_revvy import RevvyBLE
 from revvy.file_storage import StorageInterface, StorageError
+from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import *
 import time
 
