@@ -104,8 +104,7 @@ class BaseSensorPort:
         self._handler.uninitialize()
         self._configured = False
 
-    def read(self):
-        pass
+    def read(self): raise NotImplementedError
 
 
 class BumperSwitch(BaseSensorPort):
