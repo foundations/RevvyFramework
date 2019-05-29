@@ -2,8 +2,8 @@ import time
 
 import math
 
-from revvy.ports.motor import MotorPortInstance
-from revvy.ports.sensor import SensorPortInstance
+from revvy.ports.motor import MotorPortInstance, MotorPortHandler
+from revvy.ports.sensor import SensorPortInstance, SensorPortHandler
 
 
 class SensorPortWrapper:
@@ -45,12 +45,23 @@ class RingLedWrapper:
         return self._ring_led.set_scenario(scenario)
 
 
+class PortCollection:
+    def __init__(self, ports: list, port_map: list):
+        self._ports = ports
+        self._portMap = port_map
+
+    def __getitem__(self, item):
+        return self._ports[self._portMap[item]]
+
+
 # FIXME: type hints missing because of circular reference that causes ImportError
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
     def __init__(self, robot):
-        self._motors = map(lambda port: MotorPortWrapper(port), robot._motor_ports)
-        self._sensors = map(lambda port: SensorPortWrapper(port), robot._sensor_ports)
+        motor_wrappers = list(map(lambda port: MotorPortWrapper(port), robot._motor_ports))
+        sensor_wrappers = list(map(lambda port: SensorPortWrapper(port), robot._sensor_ports))
+        self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap)
+        self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap)
         self._ring_led = RingLedWrapper(robot._ring_led)
 
     @property
