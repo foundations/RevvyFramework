@@ -1,9 +1,20 @@
 import unittest
 
-from revvy.longmessage import LongMessageHandler, LongMessageError, LongMessageType
+from mock import Mock, patch
+
+from revvy.longmessage import LongMessageHandler, LongMessageError, LongMessageType, LongMessageStatusInfo, \
+    LongMessageStatus
 
 
 class TestLongMessageHandler(unittest.TestCase):
+
+    known_message_types = [
+        LongMessageType.FIRMWARE_DATA,
+        LongMessageType.FRAMEWORK_DATA,
+        LongMessageType.CONFIGURATION_DATA,
+        LongMessageType.TEST_KIT,
+    ]
+
     def test_init_is_required_before_write_and_finalize(self):
         handler = LongMessageHandler(None)
 
@@ -16,7 +27,175 @@ class TestLongMessageHandler(unittest.TestCase):
         self.assertRaises(LongMessageError, lambda: handler.select_long_message_type(0))
         self.assertRaises(LongMessageError, lambda: handler.select_long_message_type(5))
 
-        handler.select_long_message_type(LongMessageType.FIRMWARE_DATA)
-        handler.select_long_message_type(LongMessageType.FRAMEWORK_DATA)
-        handler.select_long_message_type(LongMessageType.CONFIGURATION_DATA)
-        handler.select_long_message_type(LongMessageType.TEST_KIT)
+        for mt in self.known_message_types:
+            with self.subTest(mt=mt):
+                handler.select_long_message_type(mt)
+
+    def test_reading_not_uploaded_message_returns_unused_status(self):
+        storage = Mock()
+
+        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None))
+        storage.set_long_message = Mock()
+        storage.get_long_message = Mock()
+
+        handler = LongMessageHandler(storage)
+
+        for mt in self.known_message_types:
+            with self.subTest(mt=mt):
+                handler.select_long_message_type(mt)
+                status = handler.read_status()
+                self.assertEqual(LongMessageStatus.UNUSED, status.status)
+
+    def test_reading_previously_uploaded_message_returns_ready_and_metadata(self):
+        storage = Mock()
+
+        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, 'md5hash', 123))
+        storage.set_long_message = Mock()
+        storage.get_long_message = Mock()
+
+        handler = LongMessageHandler(storage)
+
+        for mt in self.known_message_types:
+            with self.subTest(mt=mt):
+                handler.select_long_message_type(mt)
+                status = handler.read_status()
+                self.assertEqual(LongMessageStatus.READY, status.status)
+                self.assertEqual('md5hash', status.md5)
+                self.assertEqual(123, status.length)
+
+    def test_reading_during_upload_returns_md5_and_current_length_of_new_message(self):
+        storage = Mock()
+
+        handler = LongMessageHandler(storage)
+
+        for mt in self.known_message_types:
+            with self.subTest(mt=mt):
+                handler.select_long_message_type(mt)
+                handler.init_transfer('new_md5')
+                handler.upload_message(b'12345')
+                status = handler.read_status()
+                self.assertEqual(LongMessageStatus.UPLOAD, status.status)
+                self.assertEqual('new_md5', status.md5)
+                self.assertEqual(5, status.length)
+
+                handler.upload_message(b'67890')
+                status = handler.read_status()
+                self.assertEqual(LongMessageStatus.UPLOAD, status.status)
+                self.assertEqual('new_md5', status.md5)
+                self.assertEqual(10, status.length)
+
+    @patch('hashlib.md5', new_callable=Mock)
+    def test_finalize_validates_and_stores_uploaded_message(self, mock_hash):
+        storage = Mock()
+        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, 'new_md5', 123))
+        storage.set_long_message = Mock()
+
+        mock_hash.return_value = mock_hash
+        mock_hash.update = Mock()
+        mock_hash.hexdigest = Mock()
+
+        handler = LongMessageHandler(storage)
+
+        # message invalid
+        for mt in self.known_message_types:
+            mock_hash.reset_mock()
+
+            mock_hash.hexdigest.return_value = 'invalid_md5'
+            with self.subTest(mt='invalid ({})'.format(mt)):
+                handler.select_long_message_type(mt)
+                handler.init_transfer('new_md5')
+                self.assertEqual(1, mock_hash.call_count)
+
+                handler.upload_message(b'12345')
+                self.assertEqual(1, mock_hash.update.call_count)
+                handler.upload_message(b'67890')
+                self.assertEqual(2, mock_hash.update.call_count)
+
+                handler.finalize_message()
+                self.assertEqual(1, mock_hash.hexdigest.call_count)
+
+                status = handler.read_status()
+                self.assertEqual(LongMessageStatus.VALIDATION_ERROR, status.status)
+                self.assertEqual(0, storage.set_long_message.call_count)
+
+        # message valid
+        for mt in self.known_message_types:
+            mock_hash.reset_mock()
+            storage.reset_mock()
+
+            mock_hash.hexdigest.return_value = 'new_md5'
+            with self.subTest(mt='valid ({})'.format(mt)):
+                handler.select_long_message_type(mt)
+                handler.init_transfer('new_md5')
+                self.assertEqual(1, mock_hash.call_count)
+
+                handler.upload_message(b'12345')
+                self.assertEqual(1, mock_hash.update.call_count)
+                handler.upload_message(b'67890')
+                self.assertEqual(2, mock_hash.update.call_count)
+
+                handler.finalize_message()
+                self.assertEqual(1, mock_hash.hexdigest.call_count)
+                self.assertEqual(1, storage.set_long_message.call_count)
+
+                status = handler.read_status()
+                self.assertEqual(1, storage.read_status.call_count)
+                self.assertEqual(LongMessageStatus.READY, status.status)
+
+    @patch('hashlib.md5', new_callable=Mock)
+    def test_finalize_notifies_about_valid_message(self, mock_hash):
+        storage = Mock()
+        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, 'new_md5', 123))
+
+        mock_hash.return_value = mock_hash
+        mock_hash.update = Mock()
+        mock_hash.hexdigest = Mock()
+
+        mock_callback = Mock()
+
+        handler = LongMessageHandler(storage)
+        handler.on_message_updated(mock_callback)
+
+        # message invalid
+        for mt in self.known_message_types:
+            mock_hash.reset_mock()
+
+            mock_hash.hexdigest.return_value = 'invalid_md5'
+            with self.subTest(mt='invalid ({})'.format(mt)):
+                handler.select_long_message_type(mt)
+                handler.init_transfer('new_md5')
+                handler.upload_message(b'12345')
+                handler.finalize_message()
+
+                self.assertEqual(0, mock_callback.call_count)
+
+        # message valid
+        for mt in self.known_message_types:
+            mock_callback.reset_mock()
+
+            mock_hash.hexdigest.return_value = 'new_md5'
+            with self.subTest(mt='valid ({})'.format(mt)):
+                handler.select_long_message_type(mt)
+                handler.init_transfer('new_md5')
+                handler.upload_message(b'12345')
+                handler.finalize_message()
+
+                self.assertEqual(1, mock_callback.call_count)
+
+    def test_finalize_notifies_for_already_stored_message_without_upload(self):
+        storage = Mock()
+        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, 'new_md5', 123))
+        storage.set_long_message = Mock()
+
+        mock_callback = Mock()
+
+        handler = LongMessageHandler(storage)
+        handler.on_message_updated(mock_callback)
+
+        for mt in self.known_message_types:
+            mock_callback.reset_mock()
+            with self.subTest(mt=mt):
+                handler.select_long_message_type(mt)
+                handler.finalize_message()
+                self.assertEqual(1, mock_callback.call_count)
+                self.assertEqual(0, storage.set_long_message.call_count)

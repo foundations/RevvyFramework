@@ -119,8 +119,10 @@ class LongMessageAggregator:
     def finalize(self):
         """Returns true if the uploaded data matches the predefined md5 checksum."""
         self.md5computed = self.md5calc.hexdigest()
-        print('Received MD5: {}'.format(self.md5))
-        print('Calculated MD5: {}'.format(self.md5computed))
+        if self.md5computed != self.md5:
+            print('Received MD5: {}'.format(self.md5))
+            print('Calculated MD5: {}'.format(self.md5computed))
+
         return self.md5computed == self.md5
 
 
@@ -169,16 +171,21 @@ class LongMessageHandler:
 
     def finalize_message(self):
         print("LongMessageHandler:finalize_message")
-        if self._status != "WRITE":
-            raise LongMessageError("init-transfer needs to be called before finalize_message")
+        if self._status == "READ":
+            if self._long_message_type is None:
+                raise LongMessageError("init-transfer needs to be called before finalize_message")
+            # observer must take care of verifying that there is actually a message
+            self._callback(self._long_message_storage, self._long_message_type)
 
-        if self._aggregator.is_empty:
-            self._callback(self._long_message_storage, self._long_message_type)
-            self._status = "READ"
-        elif self._aggregator.finalize():
-            self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data,
-                                                        self._aggregator.md5)
-            self._callback(self._long_message_storage, self._long_message_type)
-            self._status = "READ"
+        elif self._status == "WRITE":
+            if self._aggregator.finalize():
+                self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data,
+                                                            self._aggregator.md5)
+                self._callback(self._long_message_storage, self._long_message_type)
+                self._status = "READ"
+            else:
+                self._status = "INVALID"
+
         else:
-            self._status = "INVALID"
+            # INVALID status, finalize does nothing
+            pass
