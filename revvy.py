@@ -5,6 +5,8 @@
 # Setup:
 # sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3))
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
+import os
+
 from revvy.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
 from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType

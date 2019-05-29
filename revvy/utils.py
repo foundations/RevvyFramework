@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from revvy.ble_revvy import RevvyBLE
 from revvy.file_storage import StorageInterface, StorageError
 from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import *
@@ -260,7 +259,8 @@ class RobotManager:
     status_led_configured = 1
     status_led_controlled = 2
 
-    def __init__(self, interface: RevvyTransportInterface, revvy: RevvyBLE, default_config=None):
+    # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
+    def __init__(self, interface: RevvyTransportInterface, revvy, default_config=None):
         self._robot = RevvyControl(RevvyTransport(interface))
         self._ble = revvy
         self._is_connected = False
