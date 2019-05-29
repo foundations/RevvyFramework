@@ -30,9 +30,9 @@ class MotorPortWrapper:
     def move_to_position(self, position):
         """Move the motor to the given position - give control back only if we're close"""
         current_pos = self._motor.position
-        close_threshold = math.fabs(current_pos + (position - current_pos) * 0.9)
+        close_threshold = math.fabs(position - current_pos) * 0.1
         self._motor.set_position(position)
-        while math.fabs(self._motor.position - position) > close_threshold:
+        while math.fabs(position - self._motor.position) > close_threshold:
             time.sleep(0.2)
 
 
