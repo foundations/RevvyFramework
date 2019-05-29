@@ -33,6 +33,20 @@ if robot._ring_led:
 """
 
 
+def test_position_control(args):
+    robot = args['robot']
+    print('moving to 720')
+    robot.motors[1].move_to_position(720)
+    time.sleep(1)
+    print('moving to 0')
+    robot.motors[1].move_to_position(0)
+    time.sleep(1)
+    print('moving to 720')
+    robot.motors[1].move_to_position(720)
+    print('moving to 0')
+    robot.motors[1].move_to_position(0)
+
+
 def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     # prepare environment
     directory = os.path.dirname(os.path.realpath(__file__))
@@ -86,8 +100,10 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 def main():
 
     default_config = RobotConfig()
+    default_config.motors[1] = "RevvyMotor_CCW"
     default_config.motors[2] = "RevvyMotor_CCW"
     default_config.motors[3] = "RevvyMotor_CCW"
+    default_config.motors[4] = "RevvyMotor_CCW"
     default_config.motors[5] = "RevvyMotor_CCW"
     default_config.motors[6] = "RevvyMotor_CCW"
 
@@ -97,10 +113,10 @@ def main():
     default_config.sensors[1] = "HC_SR04"
     # default_config.analog_handlers.push({'channels': [0, 1], )
     default_config.controller.buttons[0] = 'toggle_ring_led'
-    # default_config.controller.buttons[1] = 'toggle_ring_led_str'
+    default_config.controller.buttons[1] = 'test_position_control'
 
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
-    # default_config.scripts['toggle_ring_led_str'] = {'script': toggle_ring_led_str, 'priority': 0}
+    default_config.scripts['test_position_control'] = {'script': test_position_control, 'priority': 0}
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         startRevvy(robot_interface, default_config)
