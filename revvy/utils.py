@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from revvy.configuration.version import Version
 from revvy.file_storage import StorageInterface, StorageError
 from revvy.scripting.robot_interface import RobotInterface
 from revvy.scripting.runtime import ScriptManager
@@ -305,11 +306,13 @@ class RobotManager:
     status_led_controlled = 2
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, interface: RevvyTransportInterface, revvy, default_config=None):
+    def __init__(self, interface: RevvyTransportInterface, revvy, default_config=None, feature_map=None):
         self._robot = RevvyControl(RevvyTransport(interface))
         self._ble = revvy
         self._is_connected = False
         self._default_configuration = default_config
+        self._feature_map = feature_map if feature_map is not None else {}
+        self._features = {}
 
         self._reader = FunctionSerializer(self._robot.ping)
         self._data_dispatcher = DataDispatcher()
@@ -339,6 +342,10 @@ class RobotManager:
 
         self._status = self.StatusStartingUp
 
+    @property
+    def features(self):
+        return self._features
+
     def _on_controller_message_received(self, message):
         self._remote_controller.update(message)
         self._remote_controller_scheduler.data_ready()
@@ -367,6 +374,11 @@ class RobotManager:
         sw = FRAMEWORK_VERSION
 
         print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
+
+        try:
+            self._features = self._feature_map.get_features(Version(fw))
+        except ValueError:
+            self._features = {}
 
         self._ble.set_hw_version(hw)
         self._ble.set_fw_version(fw)

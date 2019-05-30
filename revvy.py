@@ -17,6 +17,9 @@ from revvy.robot_config import *
 import sys
 
 
+mcu_features = {}
+
+
 def toggle_ring_led(args):
     if args['robot']._ring_led:
         if args['robot']._ring_led.scenario == RingLed.ColorWheel:
@@ -59,7 +62,7 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
     ble = RevvyBLE(device_name, getserial(), long_message_handler)
 
-    robot = RobotManager(interface, ble, config)
+    robot = RobotManager(interface, ble, config, mcu_features)
 
     def on_device_name_changed(new_name):
         print('Device name changed to {}'.format(new_name))
