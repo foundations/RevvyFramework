@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from revvy.configuration.features import FeatureMap
 from revvy.configuration.version import Version
 from revvy.file_storage import StorageInterface, StorageError
 from revvy.scripting.robot_interface import RobotInterface
@@ -311,7 +312,7 @@ class RobotManager:
         self._ble = revvy
         self._is_connected = False
         self._default_configuration = default_config
-        self._feature_map = feature_map if feature_map is not None else {}
+        self._feature_map = FeatureMap(feature_map if feature_map is not None else {})
         self._features = {}
 
         self._reader = FunctionSerializer(self._robot.ping)
