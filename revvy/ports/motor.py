@@ -9,8 +9,9 @@ class MotorPortHandler:
     # index: logical number; value: physical number
     motorPortMap = [-1, 3, 4, 5, 2, 1, 0]
 
-    def __init__(self, interface: RevvyControl, configs: dict):
+    def __init__(self, interface: RevvyControl, configs: dict, robot):
         self._interface = interface
+        self._robot = robot
         self._types = {"NotConfigured": 0}
         self._ports = []
         self._configurations = configs
@@ -24,7 +25,7 @@ class MotorPortHandler:
         count = self._interface.get_motor_port_amount()
         if count != len(self.motorPortMap) - 1:
             raise ValueError('Unexpected motor port count ({} instead of {})'.format(count, len(self.motorPortMap)))
-        self._ports = [MotorPortInstance(i, self) for i in range(count)]
+        self._ports = [MotorPortInstance(i, self, self._robot) for i in range(count)]
 
     def __getitem__(self, item):
         return self.port(item)
@@ -53,8 +54,9 @@ class MotorPortHandler:
 
 
 class MotorPortInstance:
-    def __init__(self, port_idx, owner: MotorPortHandler):
+    def __init__(self, port_idx, owner: MotorPortHandler, robot):
         self._port_idx = port_idx
+        self._robot = robot
         self._owner = owner
         self._handlers = {
             'NotConfigured': lambda cfg: None,
@@ -95,6 +97,10 @@ class MotorPortInstance:
     @property
     def interface(self):
         return self._owner.interface
+
+    @property
+    def idx(self):
+        return self._port_idx
 
     @property
     def id(self):
@@ -141,32 +147,37 @@ class DcMotorController(BaseMotorController):
     def __init__(self, handler: MotorPortInstance, port_idx, config):
         super().__init__(handler, port_idx)
         self._config = config
+        self._original_config = dict(config)
         self._config_changed = True
         self.apply_configuration()
 
     def set_speed_limit(self, limit):
-        # convert from degrees per sec to ticks per sec
-        limit = math.fabs(map_values(limit, 0, 360, 0, self._config['encoder_resolution']))
+        if 'motor-control-in-physical-values' not in self._handler._robot.features:
+            # convert from degrees per sec to ticks per sec
+            limit = math.fabs(map_values(limit, 0, 360, 0, self._config['encoder_resolution']))
         self._config['position_controller'][3] = -limit
         self._config['position_controller'][4] = limit
         self._config_changed = True
 
     def get_speed_limit(self):
-        limit = self._config['position_controller'][4]  # ticks per sec
-        limit = map_values(limit, 0, self._config['encoder_resolution'], 0, 360)
-        return limit
+        return self._config['position_controller'][4]
 
     def set_position_limit(self, lower, upper):
         # convert from degrees to ticks
-        lower = math.fabs(map_values(lower, 0, 360, 0, self._config['encoder_resolution']))
-        upper = math.fabs(map_values(upper, 0, 360, 0, self._config['encoder_resolution']))
+        if 'motor-control-in-physical-values' not in self._handler._robot.features:
+            lower = math.fabs(map_values(lower, 0, 360, 0, self._config['encoder_resolution']))
+            upper = math.fabs(map_values(upper, 0, 360, 0, self._config['encoder_resolution']))
 
         self._config['position_limits'] = [lower, upper]
         self._config_changed = True
 
     def set_power_limit(self, limit):
-        self._config['speed_controller'][3] = -limit
-        self._config['speed_controller'][4] = limit
+        if limit is None:
+            self._config['speed_controller'][3] = self._original_config['speed_controller'][3]
+            self._config['speed_controller'][4] = self._original_config['speed_controller'][4]
+        else:
+            self._config['speed_controller'][3] = -limit
+            self._config['speed_controller'][4] = limit
         self._config_changed = True
 
     def get_power_limit(self):
@@ -185,30 +196,56 @@ class DcMotorController(BaseMotorController):
         (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._config['position_controller']
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._config['speed_controller']
 
-        config = list(struct.pack("<l", posMin)) + list(struct.pack("<l", posMax))
+        if 'motor-control-in-physical-values' not in self._handler._robot.features:
+            speedLowerLimit = map_values(speedLowerLimit, 0, 360, 0, self._config['encoder_resolution'])
+            speedUpperLimit = map_values(speedUpperLimit, 0, 360, 0, self._config['encoder_resolution'])
+            powerLowerLimit = map_values(powerLowerLimit, 0, 360, 0, self._config['encoder_resolution'])
+            powerUpperLimit = map_values(powerUpperLimit, 0, 360, 0, self._config['encoder_resolution'])
+
+        config = list(struct.pack("<ll", posMin, posMax))
         config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
         config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
+
+        if 'motor-control-in-physical-values' in self._handler._robot.features:
+            config += list(struct.pack("<h", self._config['encoder_resolution']))
 
         print('Sending configuration: {}'.format(config))
 
         self._interface.set_motor_port_config(self._port_idx, config)
 
-    def set_speed(self, speed):
+    def set_speed(self, speed, power_limit=None):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
-        speed = map_values(speed, 0, 360, 0, self._config['encoder_resolution'])
+        if 'motor-control-in-physical-values' not in self._handler._robot.features:
+            speed = map_values(speed, 0, 360, 0, self._config['encoder_resolution'])
 
-        self._interface.set_motor_port_control_value(self._port_idx, [1] + list(struct.pack("<f", speed)))
+        control = list(struct.pack("<f", speed))
+        if power_limit is not None:
+            control += list(struct.pack("<f", power_limit))
 
-    def set_position(self, position: int):
+        self._interface.set_motor_port_control_value(self._port_idx, [1] + control)
+
+    def set_position(self, position: int, speed_limit=None, power_limit=None):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
-        # calculate encoder ticks from degrees
-        ticks = int(map_values(position, 0, 360, 0, self._config['encoder_resolution']))
+        if 'motor-control-in-physical-values' not in self._handler._robot.features:
+            # calculate encoder ticks from degrees
+            position = int(map_values(position, 0, 360, 0, self._config['encoder_resolution']))
+            if speed_limit is not None:
+                speed_limit = int(map_values(speed_limit, 0, 360, 0, self._config['encoder_resolution']))
 
-        self._interface.set_motor_port_control_value(self._port_idx, [2] + list(struct.pack("<l", ticks)))
+        control = list(struct.pack('<l', position))
+
+        if speed_limit is not None and power_limit is not None:
+            control += list(struct.pack("<ff", speed_limit, power_limit))
+        elif speed_limit is not None:
+            control += list(struct.pack("<bf", 1, speed_limit))
+        elif power_limit is not None:
+            control += list(struct.pack("<bf", 0, power_limit))
+
+        self._interface.set_motor_port_control_value(self._port_idx, [2] + control)
 
     def set_power(self, power):
         if not self._configured:
@@ -218,10 +255,14 @@ class DcMotorController(BaseMotorController):
 
     def get_status(self):
         data = self._interface.get_motor_position(self._port_idx)
+        if len(data) != 9:
+            print('Received {} bytes of data instead of 9'.format(len(data)))
+
         (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
 
-        speed = map_values(speed, 0, self._config['encoder_resolution'], 0, 360)
-        pos = map_values(pos, 0, self._config['encoder_resolution'], 0, 360)
+        if 'motor-control-in-physical-values' not in self._handler._robot.features:
+            speed = map_values(speed, 0, self._config['encoder_resolution'], 0, 360)
+            pos = map_values(pos, 0, self._config['encoder_resolution'], 0, 360)
 
         self._pos = pos
         self._speed = speed

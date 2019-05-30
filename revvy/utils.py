@@ -2,7 +2,7 @@
 from revvy.configuration.features import FeatureMap
 from revvy.configuration.version import Version
 from revvy.file_storage import StorageInterface, StorageError
-from revvy.scripting.robot_interface import RobotInterface
+from revvy.scripting.robot_interface import RobotInterface, Direction, RPM
 from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import *
 import time
@@ -23,7 +23,7 @@ class Motors:
             'driver': 'DcMotor',
             'config': {
                 'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -2920, 2920],
+                'position_controller': [10, 0, 0, -900, 900],
                 'position_limits':     [0, 0],
                 'encoder_resolution':  1168
             }
@@ -32,7 +32,7 @@ class Motors:
             'driver': 'DcMotor',
             'config': {
                 'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -2920, 2920],
+                'position_controller': [10, 0, 0, -900, 900],
                 'position_limits':     [0, 0],
                 'encoder_resolution': -1168
             }
@@ -41,7 +41,7 @@ class Motors:
             'driver': 'DcMotor',
             'config': {
                 'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -730, 730],
+                'position_controller': [10, 0, 0, -900, 900],
                 'position_limits':     [0, 0],
                 'encoder_resolution':  292
             }
@@ -50,7 +50,7 @@ class Motors:
             'driver': 'DcMotor',
             'config': {
                 'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -730, 730],
+                'position_controller': [10, 0, 0, -900, 900],
                 'position_limits':     [0, 0],
                 'encoder_resolution': -292
             }
@@ -59,7 +59,16 @@ class Motors:
 
 
 class DifferentialDrivetrain:
-    def __init__(self):
+    NOT_ASSIGNED = 0
+    LEFT = 1
+    RIGHT = 2
+
+    CONTROL_GO_POS = 0
+    CONTROL_GO_SPD = 1
+    CONTROL_STOP = 2
+
+    def __init__(self, owner):
+        self._owner = owner
         self._left_motors = []
         self._right_motors = []
         self._controller = lambda x, y: (0, 0)
@@ -77,6 +86,16 @@ class DifferentialDrivetrain:
     def add_right_motor(self, motor):
         self._right_motors.append(motor)
 
+    def configure(self):
+        if 'drivetrain-control' in self._owner.features:
+            motors = [DifferentialDrivetrain.NOT_ASSIGNED] * self._owner._motor_ports.port_count
+            for motor in self._left_motors:
+                motors[motor.idx] = DifferentialDrivetrain.LEFT
+            for motor in self._right_motors:
+                motors[motor.idx] = DifferentialDrivetrain.RIGHT
+
+            self._owner._robot.set_drivetrain_motors(0, motors)
+
     def update(self, channels):
         x = clip((channels[0] - 127) / 127.0, -1, 1)
         y = clip((channels[1] - 127) / 127.0, -1, 1)
@@ -87,12 +106,56 @@ class DifferentialDrivetrain:
         sr = map_values(sr, 0, 1, 0, 900)
         self.set_speeds(sl, sr)
 
-    def set_speeds(self, left, right):
-        for motor in self._left_motors:
-            motor.set_speed(left)
+    def set_speeds(self, left, right, power_limit=None):
+        if 'drivetrain-control' in self._owner.features:
+            if power_limit is None:
+                power_limit = 0
+            speed_cmd = list(struct.pack('<bffb', self.CONTROL_GO_SPD, left, right, power_limit))
+            self._owner._robot.set_drivetrain_control(speed_cmd)
+        else:
+            if 'motor-driver-constrained-control' not in self._owner.features:
+                for motor in self._left_motors + self._right_motors:
+                    motor.set_power_limit(power_limit)
+                    motor.apply_configuration()
+                power_limit = None
 
-        for motor in self._right_motors:
-            motor.set_speed(right)
+            for motor in self._left_motors:
+                motor.set_speed(left, power_limit)
+
+            for motor in self._right_motors:
+                motor.set_speed(right, power_limit)
+
+    def move(self, left, right, left_speed=None, right_speed=None, power_limit=None):
+        if 'drivetrain-control' in self._owner.features:
+            if left_speed is None:
+                left_speed = 0
+            if right_speed is None:
+                right_speed = 0
+            if power_limit is None:
+                power_limit = 0
+            pos_cmd = list(struct.pack('<bllffb', self.CONTROL_GO_POS, left, right, left_speed, right_speed, power_limit))
+            self._owner._robot.set_drivetrain_control(pos_cmd)
+        else:
+            if 'motor-driver-constrained-control' not in self._owner.features:
+                for motor in self._left_motors:
+                    motor.set_speed_limit(left_speed)
+                    motor.set_power_limit(power_limit)
+                    motor.apply_configuration()
+
+                for motor in self._right_motors:
+                    motor.set_speed_limit(right_speed)
+                    motor.set_power_limit(power_limit)
+                    motor.apply_configuration()
+
+                left_speed = None
+                right_speed = None
+                power_limit = None
+
+            for motor in self._left_motors:
+                motor.set_position(left, motor.position + left, left_speed, power_limit)
+
+            for motor in self._right_motors:
+                motor.set_position(right, motor.position + right, right_speed, power_limit)
 
 
 def stick_contoller(x, y):
@@ -330,9 +393,9 @@ class RobotManager:
         self._remote_controller = rc
         self._remote_controller_scheduler = RemoteControllerScheduler(rc)
 
-        self._drivetrain = DifferentialDrivetrain()
+        self._drivetrain = DifferentialDrivetrain(self)
         self._ring_led = RingLed(self._robot)
-        self._motor_ports = MotorPortHandler(self._robot, Motors.types)
+        self._motor_ports = MotorPortHandler(self._robot, Motors.types, self)
         self._sensor_ports = SensorPortHandler(self._robot)
 
         revvy.register_remote_controller_handler(self._on_controller_message_received)
@@ -379,7 +442,9 @@ class RobotManager:
         try:
             self._features = self._feature_map.get_features(Version(fw))
         except ValueError:
-            self._features = {}
+            self._features = []
+
+        print('MCU features: {}'.format(self._features))
 
         self._ble.set_hw_version(hw)
         self._ble.set_fw_version(fw)
@@ -484,6 +549,8 @@ class RobotManager:
                     print('Drivetrain: Add motor {} to right side'.format(motor_id))
                     self._drivetrain.add_right_motor(self._motor_ports[motor_id])
 
+                self._drivetrain.configure()
+
                 # set up sensors
                 for sensor in self._sensor_ports:
                     sensor.configure(config.sensors[sensor.id])
@@ -491,6 +558,8 @@ class RobotManager:
                 # set up scripts
                 self._scripts.reset()
                 self._scripts.assign('robot', RobotInterface(self))
+                self._scripts.assign('Direction', Direction)
+                self._scripts.assign('RPM', RPM)
                 self._scripts.assign('RingLed', RingLed)
                 for name in config.scripts.keys():
                     self._scripts[name] = config.scripts[name]['script']
@@ -514,6 +583,7 @@ class RobotManager:
                 self._scripts.reset()
                 self._robot.set_master_status(self.status_led_not_configured)
                 self._drivetrain.reset()
+                self._drivetrain.configure()
                 self._motor_ports.reset()
                 self._sensor_ports.reset()
                 self._reader.reset()

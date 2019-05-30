@@ -62,6 +62,14 @@ class SendByteCommand(Command):
         return payload
 
 
+class SendByteListCommand(Command):
+    def get_payload_bytes(self, payload):
+        if len(payload) != 1:
+            raise ValueError("Command requires a data array")
+
+        return payload[0]
+
+
 class GetHardwareVersionCommand(ReadStringCommand):
     pass
 
@@ -204,6 +212,18 @@ class RingLed_SetUserFrameCommand(Command):
         return reduce(lambda x, y: x + y, byte_pairs, [])
 
 
+class DriveTrain_SetMotorsCommand(Command):
+    def get_payload_bytes(self, payload):
+        if len(payload) != 2:
+            raise ValueError("Command requires a drive train type and a data array")
+
+        return [payload[0]] + payload[1]
+
+
+class DriveTrain_ControlCommand(SendByteListCommand):
+    pass
+
+
 class RevvyControl:
     mcu_address = 0x2D
 
@@ -220,6 +240,9 @@ class RevvyControl:
     command_set_motor_port_config = 0x13
     command_set_motor_port_control_value = 0x14
     command_get_motor_position = 0x15
+
+    command_set_drivatrain_motors = 0x1A
+    command_set_drivetrain_control = 0x1B
 
     command_get_sensor_port_amount = 0x20
     command_get_sensor_port_types = 0x21
@@ -248,7 +271,9 @@ class RevvyControl:
             0x13: MotorPort_SetPortConfigCommand(),
             0x14: MotorPort_SetPortControlValueCommand(),
             0x15: MotorPort_GetMotorPositionCommand(),
-            # 0x16: MotorPort_GetMotorStatusCommand(),  # combined position, speed, power
+
+            0x1A: DriveTrain_SetMotorsCommand(),
+            0x1B: DriveTrain_ControlCommand(),
 
             0x20: SensorPort_GetPortAmountCommand(),
             0x21: SensorPort_GetPortTypesCommand(),
@@ -306,6 +331,12 @@ class RevvyControl:
 
     def get_motor_position(self, port_idx):
         return self.send(self.command_get_motor_position, port_idx)
+
+    def set_drivetrain_motors(self, drivetrain_type, motors):
+        return self.send(self.command_set_drivatrain_motors, drivetrain_type, motors)
+
+    def set_drivetrain_control(self, control):
+        return self.send(self.command_set_drivetrain_control, control)
 
     # sensor commands
 

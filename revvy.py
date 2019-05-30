@@ -17,7 +17,13 @@ from revvy.robot_config import *
 import sys
 
 
-mcu_features = {}
+mcu_features = {
+    '0.1-r213': [
+        'motor-driver-constrained-control',
+        'drivetrain-control',
+        'motor-control-in-physical-values'
+    ]
+}
 
 
 def toggle_ring_led(args):
@@ -28,11 +34,12 @@ def toggle_ring_led(args):
             args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
 
 
-test_ring_led_str = """
-if robot._ring_led:
-    robot._ring_led.set_scenario(RingLed.ColorWheel)
-    time.sleep(2)
-    robot._ring_led.set_scenario(RingLed.Off)
+test_drivetrain = """
+robot.drive(Direction.FORWARD, 5)
+time.sleep(3)
+robot.drive(Direction.FORWARD, 5, RPM(450))
+time.sleep(3)
+robot.drive(Direction.RIGHT, 5)
 """
 
 
