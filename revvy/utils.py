@@ -69,21 +69,29 @@ class DifferentialDrivetrain:
 
     def __init__(self, owner):
         self._owner = owner
+        self._motors = []
         self._left_motors = []
         self._right_motors = []
         self._controller = lambda x, y: (0, 0)
+
+    @property
+    def motors(self):
+        return self._motors
 
     def set_controller(self, controller):
         self._controller = controller
 
     def reset(self):
-        self._left_motors = []
-        self._right_motors = []
+        self._motors.clear()
+        self._left_motors.clear()
+        self._right_motors.clear()
 
     def add_left_motor(self, motor):
+        self._motors.append(motor)
         self._left_motors.append(motor)
 
     def add_right_motor(self, motor):
+        self._motors.append(motor)
         self._right_motors.append(motor)
 
     def configure(self):
@@ -106,6 +114,10 @@ class DifferentialDrivetrain:
         sr = map_values(sr, 0, 1, 0, 900)
         self.set_speeds(sl, sr)
 
+    @property
+    def is_moving(self):
+        return any(motor.is_moving for motor in self._motors)
+
     def set_speeds(self, left, right, power_limit=None):
         if 'drivetrain-control' in self._owner.features:
             if power_limit is None:
@@ -114,7 +126,7 @@ class DifferentialDrivetrain:
             self._owner._robot.set_drivetrain_control(speed_cmd)
         else:
             if 'motor-driver-constrained-control' not in self._owner.features:
-                for motor in self._left_motors + self._right_motors:
+                for motor in self._motors:
                     motor.set_power_limit(power_limit)
                     motor.apply_configuration()
                 power_limit = None

@@ -1,5 +1,4 @@
 import time
-
 import math
 
 from revvy.ports.motor import MotorPortInstance, MotorPortHandler
@@ -33,9 +32,8 @@ class MotorPortWrapper:
         close_threshold = math.fabs(position - current_pos) * 0.1
         self._motor.set_position(position)
         while math.fabs(position - self._motor.position) > close_threshold:
-            print(self._motor.position)
             time.sleep(0.2)
-        while math.fabs(self._motor.speed) > self._motor.get_speed_limit() / 10:
+        while self._motor.is_moving:
             time.sleep(0.2)
 
 
@@ -114,6 +112,9 @@ class DriveTrainWrapper:
             elif limit is Power:
                 self._drivetrain.move(-degrees, degrees, power_limit=limit.power)
 
+        while self._drivetrain.is_moving:
+            time.sleep(0.2)
+
 
 # FIXME: type hints missing because of circular reference that causes ImportError
 class RobotInterface:
@@ -125,6 +126,8 @@ class RobotInterface:
         self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap)
         self._ring_led = RingLedWrapper(robot._ring_led)
         self._drivetrain = DriveTrainWrapper(robot._drivetrain)
+
+        # shorthand functions
         self.drive = self._drivetrain.drive
 
     @property
@@ -139,3 +142,9 @@ class RobotInterface:
     def ring_led(self):
         return self._ring_led
 
+    @property
+    def drivetrain(self):
+        return self._drivetrain
+
+    # property alias
+    led_ring = ring_led
