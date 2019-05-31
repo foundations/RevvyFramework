@@ -49,7 +49,7 @@ class SensorPortInstance:
         self._owner = owner
         self._handlers = {
             'NotConfigured': lambda: None,
-            'AnalogButton': lambda: BumperSwitch(self, port_idx),
+            'BumperSwitch': lambda: BumperSwitch(self, port_idx),
             'HC_SR04': lambda: HcSr04(self, port_idx)
         }
         self._driver = None
