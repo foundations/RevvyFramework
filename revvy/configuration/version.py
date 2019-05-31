@@ -5,12 +5,12 @@ class Version:
     @staticmethod
     def parse(version):
         """
-        >>> Version.parse('1.0-r1')
-        {'major': 1, 'minor': 0, 'revision': 1}
+        >>> Version.parse('1.0-r123')
+        {'major': 1, 'minor': 0, 'revision': 123}
         >>> Version.parse('1.0')
         {'major': 1, 'minor': 0, 'revision': 0}
         """
-        match = re.match('(?P<major>\\d+?).(?P<minor>\\d+?)(-r(?P<rev>\\d+?))?', version)
+        match = re.match('(?P<major>\\d+?).(?P<minor>\\d+?)(-r(?P<rev>\\d+))?', version)
         major = int(match.group('major'))
         minor = int(match.group('minor'))
         rev = int(match.group('rev')) if match.group('rev') is not None else 0
