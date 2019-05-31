@@ -13,6 +13,14 @@ class Wrapper:
     def try_take(self, resource_name):
         return self._resources[resource_name].try_take(self._priority)
 
+    def using_resource(self, resource_name, callback):
+        resource = self.try_take(resource_name)
+        if resource:
+            try:
+                resource.run(callback)
+            finally:
+                resource.release()
+
 
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
@@ -40,16 +48,17 @@ class MotorPortWrapper(Wrapper):
     def move_to_position(self, position):
         """Move the motor to the given position - give control back only if we're close"""
         resource = self.try_take('motor_{}')
-        try:
-            resource.run(lambda: self._motor.set_position(position))
-            current_pos = self._motor.position
-            close_threshold = math.fabs(position - current_pos) * 0.1
-            while not resource.is_interrupted and math.fabs(position - self._motor.position) > close_threshold:
-                time.sleep(0.2)
-            while not resource.is_interrupted and self._motor.is_moving:
-                time.sleep(0.2)
-        finally:
-            resource.release()
+        if resource:
+            try:
+                resource.run(lambda: self._motor.set_position(position))
+                current_pos = self._motor.position
+                close_threshold = math.fabs(position - current_pos) * 0.1
+                while not resource.is_interrupted and math.fabs(position - self._motor.position) > close_threshold:
+                    time.sleep(0.2)
+                while not resource.is_interrupted and self._motor.is_moving:
+                    time.sleep(0.2)
+            finally:
+                resource.release()
 
 
 class RingLedWrapper(Wrapper):
@@ -105,6 +114,12 @@ class DriveTrainWrapper(Wrapper):
         super().__init__(resources, priority)
         self._drivetrain = drivetrain
 
+    def drive_joystick(self, x, y):
+        pass
+
+    def drive_2sticks(self, x, y):
+        pass
+
     def drive(self, direction, amount, limit=None):
         degrees = amount * 360
         if direction in [Direction.BACKWARD, Direction.RIGHT]:
@@ -135,6 +150,9 @@ class DriveTrainWrapper(Wrapper):
                     time.sleep(0.2)
             finally:
                 resource.release()
+
+    def set_speeds(self, sl, sr):
+        self.using_resource('drivetrain', lambda: self._drivetrain.set_speeds(sl, sr))
 
 
 class RemoteControllerWrapper:
@@ -177,7 +195,7 @@ class RobotInterface:
         return self._drivetrain
 
     @property
-    def remote_controller(self):
+    def controller(self):
         return self._remote_controller
 
     def play_tune(self, name): pass  # TODO

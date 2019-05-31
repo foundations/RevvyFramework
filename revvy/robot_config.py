@@ -22,10 +22,7 @@ class SensorConfig:
 
 class RemoteControlConfig:
     def __init__(self):
-        self.analog_scripts = [
-            # for now, analog[0] and analog[1] are hardwired to drivetrain
-            {'channels': [0, 1], 'script': 'drivetrain'}
-        ]
+        self.analog = []
         self.buttons = [None] * 32
 
 

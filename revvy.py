@@ -43,6 +43,32 @@ robot.drive(Direction.RIGHT, 5)
 """
 
 
+def drivetrain_joystick(args):
+    robot = args['robot']
+    channels = args['input']
+    x = clip((channels[0] - 127) / 127.0, -1, 1)
+    y = clip((channels[1] - 127) / 127.0, -1, 1)
+    (sl, sr) = joystick(x, y)
+
+    sl = map_values(sl, 0, 1, 0, 900)
+    sr = map_values(sr, 0, 1, 0, 900)
+
+    robot.drivetrain.set_speeds(sl, sr)
+
+
+def drivetrain_2sticks(args):
+    robot = args['robot']
+    channels = args['input']
+    x = clip((channels[0] - 127) / 127.0, -1, 1)
+    y = clip((channels[1] - 127) / 127.0, -1, 1)
+    (sl, sr) = stick_contoller(x, y)
+
+    sl = map_values(sl, 0, 1, 0, 900)
+    sr = map_values(sr, 0, 1, 0, 900)
+
+    robot.drivetrain.set_speeds(sl, sr)
+
+
 def test_position_control(args):
     robot = args['robot']
     print('moving to 720')
@@ -121,12 +147,15 @@ def main():
     default_config.drivetrain['right'] = [5, 6]
 
     default_config.sensors[1] = "HC_SR04"
-    # default_config.analog_handlers.push({'channels': [0, 1], )
+    default_config.sensors[2] = "BumperSwitch"
+    default_config.controller.analog.push({'channels': [0, 1], 'script': 'drivetrain_joystick'})
     default_config.controller.buttons[0] = 'toggle_ring_led'
     default_config.controller.buttons[1] = 'test_position_control'
 
+    default_config.scripts['drivetrain_joystick'] = {'script': drivetrain_joystick, 'priority': 0}
+    default_config.scripts['drivetrain_2sticks'] = {'script': drivetrain_2sticks, 'priority': 0}
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
-    default_config.scripts['test_position_control'] = {'script': test_position_control, 'priority': 0}
+    default_config.scripts['test_position_control'] = {'script': test_drivetrain, 'priority': 1}
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         startRevvy(robot_interface, default_config)

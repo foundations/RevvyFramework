@@ -105,16 +105,6 @@ class DifferentialDrivetrain:
 
             self._owner._robot.set_drivetrain_motors(0, motors)
 
-    def update(self, channels):
-        x = clip((channels[0] - 127) / 127.0, -1, 1)
-        y = clip((channels[1] - 127) / 127.0, -1, 1)
-
-        sl, sr = self._controller(x, y)
-
-        sl = map_values(sl, 0, 1, 0, 900)
-        sr = map_values(sr, 0, 1, 0, 900)
-        self.set_speeds(sl, sr)
-
     @property
     def is_moving(self):
         return any(motor.is_moving for motor in self._motors)
@@ -291,8 +281,10 @@ class RemoteController:
     def reset(self):
         print('RemoteController: reset')
         with self._button_mutex:
-            self._analogActions = []
+            self._analogActions.clear()
+            self._analogStates.clear()
             self._buttonActions = [lambda: None] * 32
+            self._buttonStates = [False] * 32
             self._message = None
             self._missedKeepAlives = -1
 
@@ -554,6 +546,10 @@ class RobotManager:
         # print('Sensor {}: {}'.format(sid, value['converted']))
         self._ble.update_sensor(sid, value['raw'])
 
+    def _run_analog(self, script, script_input):
+        self._scripts[script].assign('input', script_input)
+        self._scripts[script].start()
+
     def configure(self, config):
         if self._status != self.StatusStopped:
             self.run_in_background(lambda: self._configure(config))
@@ -603,7 +599,12 @@ class RobotManager:
                     self._scripts.add_script(name, config.scripts[name]['script'], config.scripts[name]['priority'])
 
                 # set up remote controller
-                self._remote_controller.on_analog_values([0, 1], self._drivetrain.update)  # TODO make this a script?
+                for analog in config.controller.analog:
+                    self._remote_controller.on_analog_values(
+                        analog['channels'],
+                        lambda input, scr=analog['script']: self._run_analog(scr, input)
+                    )
+
                 for button in range(len(config.controller.buttons)):
                     script = config.controller.buttons[button]
                     if script:
