@@ -259,8 +259,10 @@ class RemoteController:
         self._button_mutex = Lock()
 
         self._analogActions = []
+        self._analogStates = []
         self._buttonActions = [lambda: None] * 32
         self._buttonHandlers = [None] * 32
+        self._buttonStates = [False] * 32
         self._controller_detected = lambda: None
         self._controller_disappeared = lambda: None
 
@@ -271,6 +273,14 @@ class RemoteController:
             handler = EdgeTrigger()
             handler.onRisingEdge(lambda idx=i: self._button_pressed(idx))
             self._buttonHandlers[i] = handler
+
+    def is_button_pressed(self, button_idx):
+        with self._button_mutex:
+            return self._buttonStates[button_idx]
+
+    def analog_value(self, analog_idx):
+        with self._button_mutex:
+            return self._analogStates[analog_idx]
 
     def _button_pressed(self, idx):
         print('Button {} pressed'.format(idx))
@@ -296,6 +306,11 @@ class RemoteController:
             if self._missedKeepAlives == -1:
                 self._controller_detected()
             self._missedKeepAlives = 0
+
+            # copy states
+            with self._button_mutex:
+                self._analogStates = message['analog']
+                self._buttonStates = message['buttons']
 
             # handle analog channels
             for handler in self._analogActions:
@@ -588,7 +603,7 @@ class RobotManager:
                     self._scripts.add_script(name, config.scripts[name]['script'], config.scripts[name]['priority'])
 
                 # set up remote controller
-                self._remote_controller.on_analog_values([0, 1], self._drivetrain.update)
+                self._remote_controller.on_analog_values([0, 1], self._drivetrain.update)  # TODO make this a script?
                 for button in range(len(config.controller.buttons)):
                     script = config.controller.buttons[button]
                     if script:

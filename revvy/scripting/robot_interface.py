@@ -137,6 +137,14 @@ class DriveTrainWrapper(Wrapper):
                 resource.release()
 
 
+class RemoteControllerWrapper:
+    def __init__(self, remote_controller):
+        self._remote_controller = remote_controller
+
+        self.is_button_pressed = remote_controller.is_button_pressed
+        self.analog_value = remote_controller.analog_value
+
+
 # FIXME: type hints missing because of circular reference that causes ImportError
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
@@ -147,6 +155,7 @@ class RobotInterface:
         self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap)
         self._ring_led = RingLedWrapper(robot._ring_led, robot.resources, priority)
         self._drivetrain = DriveTrainWrapper(robot._drivetrain, robot.resources, priority)
+        self._remote_controller = RemoteControllerWrapper(robot._remote_controller)
 
         # shorthand functions
         self.drive = self._drivetrain.drive
@@ -166,6 +175,13 @@ class RobotInterface:
     @property
     def drivetrain(self):
         return self._drivetrain
+
+    @property
+    def remote_controller(self):
+        return self._remote_controller
+
+    def play_tune(self, name): pass  # TODO
+    def play_note(self): pass  # TODO
 
     # property alias
     led_ring = ring_led
