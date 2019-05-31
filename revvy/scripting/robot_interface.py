@@ -89,29 +89,28 @@ class DriveTrainWrapper:
         self._drivetrain = drivetrain
 
     def drive(self, direction, amount, limit=None):
-        if direction in [Direction.FORWARD, Direction.BACKWARD]:
-            degrees = amount * 360
-            if direction == Direction.BACKWARD:
-                degrees *= -1
-            print('Moving {} degrees'.format(degrees))
-            if limit is None:
-                self._drivetrain.move(degrees, degrees)
-            elif limit is RPM:
-                self._drivetrain.move(degrees, degrees, limit.rpm, limit.rpm)
-            elif limit is Power:
-                self._drivetrain.move(degrees, degrees, power_limit=limit.power)
-        else:
-            degrees = amount * 360
-            if direction == Direction.RIGHT:
-                degrees *= -1
-            print('Turning {} degrees'.format(degrees))
-            if limit is None:
-                self._drivetrain.move(-degrees, degrees)
-            elif limit is RPM:
-                self._drivetrain.move(-degrees, degrees, limit.rpm, limit.rpm)
-            elif limit is Power:
-                self._drivetrain.move(-degrees, degrees, power_limit=limit.power)
+        degrees = amount * 360
+        if direction in [Direction.BACKWARD, Direction.RIGHT]:
+            degrees *= -1
 
+        if direction in [Direction.FORWARD, Direction.BACKWARD]:
+            print('Moving {} degrees'.format(degrees))
+            left_degrees = degrees
+            right_degrees = degrees
+        else:
+            print('Turning {} degrees'.format(degrees))
+            left_degrees = -degrees
+            right_degrees = degrees
+
+        # start moving depending on limits
+        if limit is None:
+            self._drivetrain.move(left_degrees, right_degrees)
+        elif limit is RPM:
+            self._drivetrain.move(left_degrees, right_degrees, limit.rpm, limit.rpm)
+        elif limit is Power:
+            self._drivetrain.move(left_degrees, right_degrees, power_limit=limit.power)
+
+        # wait for movement to finish
         while self._drivetrain.is_moving:
             time.sleep(0.2)
 
