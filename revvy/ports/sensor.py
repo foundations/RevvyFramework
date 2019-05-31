@@ -106,30 +106,26 @@ class BaseSensorPort:
         self._configured = False
 
     def read(self):
-        result = self.read_sensor()
-        self._value = result['converted']
-        return result
+        if not self._configured:
+            raise EnvironmentError("Port is not configured")
+
+        raw = self._interface.get_sensor_port_value(self._port_idx)
+        self._value = self.convert_sensor_value(raw)
+
+        return {'raw': raw, 'converted': self._value}
 
     @property
     def value(self):
         return self._value
 
-    def read_sensor(self): raise NotImplementedError
+    def convert_sensor_value(self, raw): raise NotImplementedError
 
 
 class BumperSwitch(BaseSensorPort):
-    def read_sensor(self):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
-        result = self._interface.get_sensor_port_value(self._port_idx)
-        return {'raw': result, 'converted': result[0] == 1}
+    def convert_sensor_value(self, raw):
+        return raw[0] == 1
 
 
 class HcSr04(BaseSensorPort):
-    def read_sensor(self):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
-        result = self._interface.get_sensor_port_value(self._port_idx)
-        return {'raw': result, 'converted':  int.from_bytes(result, byteorder='little')}
+    def convert_sensor_value(self, raw):
+        return int.from_bytes(raw, byteorder='little')
