@@ -2,23 +2,31 @@ import re
 
 
 class Version:
-    @staticmethod
-    def parse(version):
+    def __init__(self, ver_str):
         """
-        >>> Version.parse('1.0-r123')
-        {'major': 1, 'minor': 0, 'revision': 123}
-        >>> Version.parse('1.0')
-        {'major': 1, 'minor': 0, 'revision': 0}
+        >>> Version('1.0-r123')
+        Version(1.0-r123)
+        >>> Version('1.0')
+        Version(1.0-r0)
         """
-        match = re.match('(?P<major>\\d+?).(?P<minor>\\d+?)(-r(?P<rev>\\d+))?', version)
+        match = re.match('(?P<major>\\d+?).(?P<minor>\\d+?)(-r(?P<rev>\\d+))?', ver_str)
         major = int(match.group('major'))
         minor = int(match.group('minor'))
         rev = int(match.group('rev')) if match.group('rev') is not None else 0
-        return {'major': major, 'minor': minor, 'revision': rev}
-
-    def __init__(self, ver_str):
-        self._version = Version.parse(ver_str)
+        self._version = {'major': major, 'minor': minor, 'revision': rev}
         self._normalized = '{}.{}-r{}'.format(self._version['major'], self._version['minor'], self._version['revision'])
+
+    @property
+    def major(self):
+        return self._version['major']
+
+    @property
+    def minor(self):
+        return self._version['minor']
+
+    @property
+    def revision(self):
+        return self._version['revision']
 
     def __le__(self, other):
         """
@@ -150,7 +158,8 @@ class Version:
         """
         return self._normalized
 
-    __repr__ = __str__
+    def __repr__(self):
+        return 'Version({})'.format(self._normalized)
 
     def __hash__(self) -> int:
         return self._normalized.__hash__()
