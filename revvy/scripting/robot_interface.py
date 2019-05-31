@@ -3,7 +3,6 @@ import math
 
 from revvy.ports.motor import MotorPortInstance, MotorPortHandler
 from revvy.ports.sensor import SensorPortInstance, SensorPortHandler
-from revvy.scripting.resource import Resource
 
 
 class Wrapper:
@@ -142,21 +141,12 @@ class DriveTrainWrapper(Wrapper):
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
     def __init__(self, robot, priority=0):
-        resources = {
-            'led_ring': Resource(),
-            'drivetrain': Resource()
-        }
-        for port in robot._motor_ports:
-            resources['motor_{}'.format(port.id)] = Resource()
-        for port in robot._sensor_ports:
-            resources['motor_{}'.format(port.id)] = Resource()
-
-        motor_wrappers = list(map(lambda port: MotorPortWrapper(port, resources, priority), robot._motor_ports))
-        sensor_wrappers = list(map(lambda port: SensorPortWrapper(port, resources, priority), robot._sensor_ports))
+        motor_wrappers = list(map(lambda port: MotorPortWrapper(port, robot.resources, priority), robot._motor_ports))
+        sensor_wrappers = list(map(lambda port: SensorPortWrapper(port, robot.resources, priority), robot._sensor_ports))
         self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap)
         self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap)
-        self._ring_led = RingLedWrapper(robot._ring_led, resources, priority)
-        self._drivetrain = DriveTrainWrapper(robot._drivetrain, resources, priority)
+        self._ring_led = RingLedWrapper(robot._ring_led, robot.resources, priority)
+        self._drivetrain = DriveTrainWrapper(robot._drivetrain, robot.resources, priority)
 
         # shorthand functions
         self.drive = self._drivetrain.drive

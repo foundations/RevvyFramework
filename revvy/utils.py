@@ -2,6 +2,7 @@
 from revvy.configuration.features import FeatureMap
 from revvy.configuration.version import Version
 from revvy.file_storage import StorageInterface, StorageError
+from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RobotInterface, Direction, RPM
 from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import *
@@ -415,12 +416,17 @@ class RobotManager:
         # revvy.on_configuration_received(self._process_new_configuration)
 
         self._scripts = ScriptManager(self)
+        self._resources = {}
 
         self._status = self.StatusStartingUp
 
     @property
     def features(self):
         return self._features
+
+    @property
+    def resources(self):
+        return self._resources
 
     def _on_controller_message_received(self, message):
         self._remote_controller.update(message)
@@ -467,11 +473,17 @@ class RobotManager:
         self._sensor_ports.reset()
         self._motor_ports.reset()
 
+        self._resources = {
+            'led_ring': Resource(),
+            'drivetrain': Resource()
+        }
         for port in self._motor_ports:
             port.on_config_changed(self._motor_config_changed)
+            self._resources['motor_{}'.format(port.id)] = Resource()
 
         for port in self._sensor_ports:
             port.on_config_changed(self._sensor_config_changed)
+            self._resources['sensor_{}'.format(port.id)] = Resource()
 
         self._ble.start()
 
@@ -573,7 +585,7 @@ class RobotManager:
                 self._scripts.assign('RPM', RPM)
                 self._scripts.assign('RingLed', RingLed)
                 for name in config.scripts.keys():
-                    self._scripts[name] = config.scripts[name]['script']
+                    self._scripts.add_script(name, config.scripts[name]['script'], config.scripts[name]['priority'])
 
                 # set up remote controller
                 self._remote_controller.on_analog_values([0, 1], self._drivetrain.update)
