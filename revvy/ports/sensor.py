@@ -1,46 +1,23 @@
+from revvy.ports.common import PortHandler
 from revvy.rrrc_control import RevvyControl
 
 
-class SensorPortHandler:
+class SensorPortHandler(PortHandler):
     # index: logical number; value: physical number
     sensorPortMap = [-1, 0, 1, 2, 3]
 
-    def __init__(self, interface: RevvyControl):
-        self._interface = interface
-        self._types = {"NotConfigured": 0}
-        self._ports = []
+    def __init__(self, interface: RevvyControl, configs: dict, robot):
+        super().__init__(interface, configs, robot, self.sensorPortMap)
+
+    def _get_port_types(self):
+        return self._interface.get_sensor_port_types()
+
+    def _get_port_amount(self):
+        return self._interface.get_sensor_port_amount()
 
     def reset(self):
-        for port in self._ports:
-            port.uninitialize()
-        self._ports.clear()
-
-        self._types = self._interface.get_sensor_port_types()
-        count = self._interface.get_sensor_port_amount()
-        if count != len(self.sensorPortMap) - 1:
-            raise ValueError('Unexpected sensor port count ({} instead of {})'.format(count, len(self.sensorPortMap)))
-        self._ports = [SensorPortInstance(i, self) for i in range(count)]
-
-    def __getitem__(self, item):
-        return self.port(item)
-
-    def __iter__(self):
-        return self._ports.__iter__()
-
-    @property
-    def available_types(self):
-        return self._types
-
-    @property
-    def port_count(self):
-        return len(self._ports)
-
-    @property
-    def interface(self):
-        return self._interface
-
-    def port(self, port_idx):
-        return self._ports[self.sensorPortMap[port_idx]]
+        super().reset()
+        self._ports = [SensorPortInstance(i, self) for i in range(self.port_count)]
 
 
 class SensorPortInstance:
