@@ -155,9 +155,12 @@ class DcMotorController(BaseMotorController):
         if 'motor-control-in-physical-values' not in self._handler._robot.features:
             # convert from degrees per sec to ticks per sec
             limit = math.fabs(map_values(limit, 0, 360, 0, self._config['encoder_resolution']))
-        self._config['position_controller'][3] = -limit
-        self._config['position_controller'][4] = limit
-        self._config_changed = True
+
+        prev_limit = self._config['position_controller'][4]
+        if limit != prev_limit:
+            self._config['position_controller'][3] = -limit
+            self._config['position_controller'][4] = limit
+            self._config_changed = True
 
     def get_speed_limit(self):
         return self._config['position_controller'][4]
@@ -165,20 +168,23 @@ class DcMotorController(BaseMotorController):
     def set_position_limit(self, lower, upper):
         # convert from degrees to ticks
         if 'motor-control-in-physical-values' not in self._handler._robot.features:
-            lower = math.fabs(map_values(lower, 0, 360, 0, self._config['encoder_resolution']))
-            upper = math.fabs(map_values(upper, 0, 360, 0, self._config['encoder_resolution']))
+            lower_sign = -1 if lower < 0 else 1
+            upper_sign = -1 if upper < 0 else 1
+            lower = lower_sign * math.fabs(map_values(lower, 0, 360, 0, self._config['encoder_resolution']))
+            upper = upper_sign * math.fabs(map_values(upper, 0, 360, 0, self._config['encoder_resolution']))
 
         self._config['position_limits'] = [lower, upper]
         self._config_changed = True
 
     def set_power_limit(self, limit):
         if limit is None:
-            self._config['speed_controller'][3] = self._original_config['speed_controller'][3]
-            self._config['speed_controller'][4] = self._original_config['speed_controller'][4]
-        else:
+            limit = self._original_config['speed_controller'][4]
+
+        prev_limit = self._config['speed_controller'][4]
+        if limit != prev_limit:
             self._config['speed_controller'][3] = -limit
             self._config['speed_controller'][4] = limit
-        self._config_changed = True
+            self._config_changed = True
 
     def get_power_limit(self):
         return self._config['speed_controller'][4]
@@ -197,10 +203,10 @@ class DcMotorController(BaseMotorController):
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._config['speed_controller']
 
         if 'motor-control-in-physical-values' not in self._handler._robot.features:
-            speedLowerLimit = map_values(speedLowerLimit, 0, 360, 0, self._config['encoder_resolution'])
-            speedUpperLimit = map_values(speedUpperLimit, 0, 360, 0, self._config['encoder_resolution'])
-            powerLowerLimit = map_values(powerLowerLimit, 0, 360, 0, self._config['encoder_resolution'])
-            powerUpperLimit = map_values(powerUpperLimit, 0, 360, 0, self._config['encoder_resolution'])
+            speedLowerLimit = -math.fabs(map_values(speedLowerLimit, 0, 360, 0, self._config['encoder_resolution']))
+            speedUpperLimit = math.fabs(map_values(speedUpperLimit, 0, 360, 0, self._config['encoder_resolution']))
+            powerLowerLimit = -math.fabs(map_values(powerLowerLimit, 0, 360, 0, self._config['encoder_resolution']))
+            powerUpperLimit = math.fabs(map_values(powerUpperLimit, 0, 360, 0, self._config['encoder_resolution']))
 
         config = list(struct.pack("<ll", posMin, posMax))
         config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
