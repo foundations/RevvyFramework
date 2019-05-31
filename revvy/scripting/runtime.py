@@ -1,3 +1,4 @@
+from revvy.scripting.robot_interface import RobotInterface
 from revvy.thread_wrapper import *
 import time
 
@@ -33,7 +34,8 @@ class ScriptHandle:
 
 
 class ScriptManager:
-    def __init__(self):
+    def __init__(self, robot):
+        self._robot = robot
         self._globals = {}
         self._scripts = {}
 
@@ -49,12 +51,14 @@ class ScriptManager:
         for script in self._scripts:
             self._scripts[script].assign(name, value)
 
-    def __setitem__(self, name, script):
+    def add_script(self, name, script, priority=0):
         if name in self._scripts:
             self._scripts[name].cleanup()
 
         print('New script: {}'.format(name))
-        self._scripts[name] = ScriptHandle(script, name, self._globals)
+        script = ScriptHandle(script, name, self._globals)
+        script.assign('robot', RobotInterface(self._robot, priority))
+        self._scripts[name] = script
 
     def __getitem__(self, name):
         return self._scripts[name]

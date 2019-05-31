@@ -33,3 +33,15 @@ class TestResource(unittest.TestCase):
         self.assertEqual(False, handle.is_interrupted)
         self.assertIsNone(handle2)
         self.assertEqual(0, mock.call_count)
+
+    def test_run_should_only_run_on_active_handle(self):
+        r = Resource()
+
+        mock = Mock()
+
+        handle = r.try_take(0)
+        handle2 = r.try_take(1)
+
+        handle2.run(mock)
+        handle.run(lambda: self.fail('This should not run'))
+        self.assertEqual(1, mock.call_count)

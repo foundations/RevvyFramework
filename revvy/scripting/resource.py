@@ -4,7 +4,7 @@ from threading import Lock
 class ResourceHandle:
     def __init__(self, resource, callback=None):
         self._resource = resource
-        self._callback = callback
+        self._callback = callback if callback is not None else lambda: None
         self._is_interrupted = False
 
     def release(self):
@@ -13,6 +13,11 @@ class ResourceHandle:
     def interrupt(self):
         self._is_interrupted = True
         self._callback()
+
+    def run(self, callback):
+        with self._resource._lock:
+            if not self._is_interrupted:
+                callback()
 
     @property
     def is_interrupted(self):

@@ -3,11 +3,22 @@ import math
 
 from revvy.ports.motor import MotorPortInstance, MotorPortHandler
 from revvy.ports.sensor import SensorPortInstance, SensorPortHandler
+from revvy.scripting.resource import Resource
 
 
-class SensorPortWrapper:
+class Wrapper:
+    def __init__(self, resources: dict, priority=0):
+        self._resources = resources
+        self._priority = priority
+
+    def try_take(self, resource_name):
+        return self._resources[resource_name].try_take(self._priority)
+
+
+class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
-    def __init__(self, sensor: SensorPortInstance):
+    def __init__(self, sensor: SensorPortInstance, resources: dict, priority=0):
+        super().__init__(resources, priority)
         self._sensor = sensor
 
     def configure(self, config_name):
@@ -18,9 +29,10 @@ class SensorPortWrapper:
         return self._sensor.value
 
 
-class MotorPortWrapper:
+class MotorPortWrapper(Wrapper):
     """Wrapper class to expose motor ports to user scripts"""
-    def __init__(self, motor: MotorPortInstance):
+    def __init__(self, motor: MotorPortInstance, resources: dict, priority=0):
+        super().__init__(resources, priority)
         self._motor = motor
 
     def configure(self, config_name):
@@ -28,18 +40,23 @@ class MotorPortWrapper:
 
     def move_to_position(self, position):
         """Move the motor to the given position - give control back only if we're close"""
-        current_pos = self._motor.position
-        close_threshold = math.fabs(position - current_pos) * 0.1
-        self._motor.set_position(position)
-        while math.fabs(position - self._motor.position) > close_threshold:
-            time.sleep(0.2)
-        while self._motor.is_moving:
-            time.sleep(0.2)
+        resource = self.try_take('motor_{}')
+        try:
+            resource.run(lambda: self._motor.set_position(position))
+            current_pos = self._motor.position
+            close_threshold = math.fabs(position - current_pos) * 0.1
+            while not resource.is_interrupted and math.fabs(position - self._motor.position) > close_threshold:
+                time.sleep(0.2)
+            while not resource.is_interrupted and self._motor.is_moving:
+                time.sleep(0.2)
+        finally:
+            resource.release()
 
 
-class RingLedWrapper:
+class RingLedWrapper(Wrapper):
     """Wrapper class to expose LED ring to user scripts"""
-    def __init__(self, ring_led):
+    def __init__(self, ring_led, resources: dict, priority=0):
+        super().__init__(resources, priority)
         self._ring_led = ring_led
 
     @property
@@ -84,8 +101,9 @@ class Power:
         return self._power
 
 
-class DriveTrainWrapper:
-    def __init__(self, drivetrain):
+class DriveTrainWrapper(Wrapper):
+    def __init__(self, drivetrain, resources: dict, priority=0):
+        super().__init__(resources, priority)
         self._drivetrain = drivetrain
 
     def drive(self, direction, amount, limit=None):
@@ -103,28 +121,42 @@ class DriveTrainWrapper:
             right_degrees = degrees
 
         # start moving depending on limits
-        if limit is None:
-            self._drivetrain.move(left_degrees, right_degrees)
-        elif limit is RPM:
-            self._drivetrain.move(left_degrees, right_degrees, limit.rpm, limit.rpm)
-        elif limit is Power:
-            self._drivetrain.move(left_degrees, right_degrees, power_limit=limit.power)
+        resource = self.try_take('drivetrain')
+        if resource:
+            try:
+                if limit is None:
+                    resource.run(lambda: self._drivetrain.move(left_degrees, right_degrees))
+                elif limit is RPM:
+                    resource.run(lambda: self._drivetrain.move(left_degrees, right_degrees, limit.rpm, limit.rpm))
+                elif limit is Power:
+                    resource.run(lambda: self._drivetrain.move(left_degrees, right_degrees, power_limit=limit.power))
 
-        # wait for movement to finish
-        while self._drivetrain.is_moving:
-            time.sleep(0.2)
+                # wait for movement to finish
+                while not resource.is_interrupted and self._drivetrain.is_moving:
+                    time.sleep(0.2)
+            finally:
+                resource.release()
 
 
 # FIXME: type hints missing because of circular reference that causes ImportError
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
-    def __init__(self, robot):
-        motor_wrappers = list(map(lambda port: MotorPortWrapper(port), robot._motor_ports))
-        sensor_wrappers = list(map(lambda port: SensorPortWrapper(port), robot._sensor_ports))
+    def __init__(self, robot, priority=0):
+        resources = {
+            'led_ring': Resource(),
+            'drivetrain': Resource()
+        }
+        for port in robot._motor_ports:
+            resources['motor_{}'.format(port.id)] = Resource()
+        for port in robot._sensor_ports:
+            resources['motor_{}'.format(port.id)] = Resource()
+
+        motor_wrappers = list(map(lambda port: MotorPortWrapper(port, resources, priority), robot._motor_ports))
+        sensor_wrappers = list(map(lambda port: SensorPortWrapper(port, resources, priority), robot._sensor_ports))
         self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap)
         self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap)
-        self._ring_led = RingLedWrapper(robot._ring_led)
-        self._drivetrain = DriveTrainWrapper(robot._drivetrain)
+        self._ring_led = RingLedWrapper(robot._ring_led, resources, priority)
+        self._drivetrain = DriveTrainWrapper(robot._drivetrain, resources, priority)
 
         # shorthand functions
         self.drive = self._drivetrain.drive

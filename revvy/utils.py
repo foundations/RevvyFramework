@@ -414,7 +414,7 @@ class RobotManager:
         revvy.registerConnectionChangedHandler(self._on_connection_changed)
         # revvy.on_configuration_received(self._process_new_configuration)
 
-        self._scripts = ScriptManager()
+        self._scripts = ScriptManager(self)
 
         self._status = self.StatusStartingUp
 
@@ -569,7 +569,6 @@ class RobotManager:
 
                 # set up scripts
                 self._scripts.reset()
-                self._scripts.assign('robot', RobotInterface(self))
                 self._scripts.assign('Direction', Direction)
                 self._scripts.assign('RPM', RPM)
                 self._scripts.assign('RingLed', RingLed)
