@@ -9,8 +9,10 @@ import os
 
 from revvy.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
+from revvy.functions import getserial
 from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
 from revvy.rrrc_transport_i2c import RevvyTransportI2C
+from revvy.scripting.builtin_scripts import drive_2sticks, drive_joystick
 from revvy.utils import *
 from revvy.rrrc_transport import *
 from revvy.robot_config import *
@@ -43,32 +45,6 @@ robot.drive(Direction.RIGHT, 5)
 """
 
 
-def drivetrain_joystick(args):
-    robot = args['robot']
-    channels = args['input']
-    x = clip((channels[0] - 127) / 127.0, -1, 1)
-    y = clip((channels[1] - 127) / 127.0, -1, 1)
-    (sl, sr) = joystick(x, y)
-
-    sl = map_values(sl, 0, 1, 0, 900)
-    sr = map_values(sr, 0, 1, 0, 900)
-
-    robot.drivetrain.set_speeds(sl, sr)
-
-
-def drivetrain_2sticks(args):
-    robot = args['robot']
-    channels = args['input']
-    x = clip((channels[0] - 127) / 127.0, -1, 1)
-    y = clip((channels[1] - 127) / 127.0, -1, 1)
-    (sl, sr) = stick_contoller(x, y)
-
-    sl = map_values(sl, 0, 1, 0, 900)
-    sr = map_values(sr, 0, 1, 0, 900)
-
-    robot.drivetrain.set_speeds(sl, sr)
-
-
 def test_position_control(args):
     robot = args['robot']
     print('moving to 720')
@@ -86,14 +62,16 @@ def test_position_control(args):
 def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     # prepare environment
     directory = os.path.dirname(os.path.realpath(__file__))
+    serial = getserial()
+
     print('Revvy run from {} ({})'.format(directory, __file__))
     os.chdir(directory)
 
-    dnp = DeviceNameProvider(FileStorage('./data/device'), lambda: 'Revvy_{}'.format(getserial().lstrip('0')))
+    dnp = DeviceNameProvider(FileStorage('./data/device'), lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
     long_message_handler = LongMessageHandler(LongMessageStorage(FileStorage("./data/ble"), MemoryStorage()))
 
-    ble = RevvyBLE(device_name, getserial(), long_message_handler)
+    ble = RevvyBLE(device_name, serial, long_message_handler)
 
     robot = RobotManager(interface, ble, config, mcu_features)
 
@@ -107,10 +85,12 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
         if message_type == LongMessageType.TEST_KIT:
             print('Running test script: {}'.format(message_data))
-            robot._scripts["test_kit"] = message_data
+            robot._scripts.add_script("test_kit", message_data, 0)
             robot._scripts["test_kit"].start()
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             print('New configuration: {}'.format(message_data))
+            config = RobotConfig.from_string(message_data)
+            # robot.configure(config)
 
     device_name.subscribe(on_device_name_changed)
     long_message_handler.on_message_updated(on_message_updated)
@@ -152,8 +132,8 @@ def main():
     default_config.controller.buttons[0] = 'toggle_ring_led'
     default_config.controller.buttons[1] = 'test_position_control'
 
-    default_config.scripts['drivetrain_joystick'] = {'script': drivetrain_joystick, 'priority': 0}
-    default_config.scripts['drivetrain_2sticks'] = {'script': drivetrain_2sticks, 'priority': 0}
+    default_config.scripts['drivetrain_joystick'] = {'script': drive_joystick, 'priority': 0}
+    default_config.scripts['drivetrain_2sticks'] = {'script': drive_2sticks, 'priority': 0}
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
     default_config.scripts['test_position_control'] = {'script': test_drivetrain, 'priority': 1}
 

@@ -14,7 +14,6 @@ from revvy.ports.motor import *
 from revvy.ports.sensor import *
 from revvy.fw_version import *
 from revvy.activation import EdgeTrigger
-from revvy.functions import *
 
 
 class Motors:
@@ -73,14 +72,10 @@ class DifferentialDrivetrain:
         self._motors = []
         self._left_motors = []
         self._right_motors = []
-        self._controller = lambda x, y: (0, 0)
 
     @property
     def motors(self):
         return self._motors
-
-    def set_controller(self, controller):
-        self._controller = controller
 
     def reset(self):
         self._motors.clear()
@@ -159,40 +154,6 @@ class DifferentialDrivetrain:
 
             for motor in self._right_motors:
                 motor.set_position(right, motor.position + right, right_speed, power_limit)
-
-
-def stick_contoller(x, y):
-    """Two wheel speeds are controlled independently, just pass through"""
-    return x, y
-
-
-def joystick(x, y):
-    """Calculate control vector length and angle based on touch (x, y) coordinates
-
-    >>> joystick(0, 0)
-    (0.0, 0.0)
-    >>> joystick(0, 1)
-    (-1.0, 1.0)
-    >>> joystick(0, -1)
-    (1.0, -1.0)
-    >>> joystick(1, 0)
-    (-1.0, -1.0)
-    >>> joystick(-1, 0)
-    (1.0, 1.0)
-    """
-
-    if x == y == 0:
-        return 0.0, 0.0
-
-    angle = math.atan2(y, x) - math.pi / 2
-    length = math.sqrt(x * x + y * y)
-
-    v = length * math.cos(angle)
-    w = length * math.sin(angle)
-
-    sr = round(+(v + w), 3)
-    sl = round(-(v - w), 3)
-    return sl, sr
 
 
 class RingLed:
@@ -546,9 +507,10 @@ class RobotManager:
         # print('Sensor {}: {}'.format(sid, value['converted']))
         self._ble.update_sensor(sid, value['raw'])
 
-    def _run_analog(self, script, script_input):
-        self._scripts[script].assign('input', script_input)
-        self._scripts[script].start()
+    def _run_analog(self, script_name, script_input):
+        script = self._scripts[script_name]
+        script.assign('input', script_input)
+        script.start()
 
     def configure(self, config):
         if self._status != self.StatusStopped:
@@ -565,7 +527,6 @@ class RobotManager:
                 self._ring_led.set_scenario(RingLed.Off)
 
                 self._drivetrain.reset()
-                self._drivetrain.set_controller(joystick)
                 self._remote_controller_scheduler.reset()
 
                 # set up status reader, data dispatcher
@@ -613,8 +574,7 @@ class RobotManager:
                 self._remote_controller_scheduler.start()
                 self._robot.set_master_status(self.status_led_configured)
                 print('Robot configured')
-                if self._status != self.StatusStopped:
-                    self._status = self.StatusConfigured
+                self._set_status(self.StatusConfigured)
             else:
                 print("Deinitialize robot")
                 self._ring_led.set_scenario(RingLed.Off)
@@ -627,8 +587,7 @@ class RobotManager:
                 self._sensor_ports.reset()
                 self._reader.reset()
                 self._remote_controller_scheduler.stop()
-                if self._status != self.StatusStopped:
-                    self._status = self.StatusNotConfigured
+                self._set_status(self.StatusNotConfigured)
 
     def stop(self):
         print("Stopping robot manager")
@@ -638,6 +597,9 @@ class RobotManager:
         self._scripts.reset()
         self._status_update_thread.exit()
 
+    def _set_status(self, status):
+        if self._status != self.StatusStopped:
+            self._status = status
 
 class FunctionSerializer:
     def __init__(self, default_action=lambda: None):
