@@ -34,6 +34,26 @@ class TestResource(unittest.TestCase):
         self.assertIsNone(handle2)
         self.assertEqual(0, mock.call_count)
 
+    def test_resource_handle_needed_to_release(self):
+        r = Resource()
+
+        handle = r.try_take(0)
+        handle2 = r.try_take(1)
+        r.release(handle)
+        handle3 = r.try_take(0)
+        self.assertIsNone(handle3)
+        self.assertEqual(False, handle2.is_interrupted)
+
+    def test_lower_priority_can_take_resource_after_higher_priority_releases(self):
+        r = Resource()
+
+        handle = r.try_take(1)
+        handle.release()
+        handle2 = r.try_take(0)
+        self.assertIsNotNone(handle)
+        self.assertEqual(False, handle.is_interrupted)
+        self.assertIsNotNone(handle2)
+
     def test_run_should_only_run_on_active_handle(self):
         r = Resource()
 
