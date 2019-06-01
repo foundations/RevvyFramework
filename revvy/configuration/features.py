@@ -16,5 +16,5 @@ class FeatureMap:
         if max_version is None:
             raise ValueError("Can't find feature map for version {}".format(for_version))
         else:
-            print('Returning features for verion {}'.format(max_version))
+            print('Returning features for version {}'.format(max_version))
         return self._feature_map[max_version]

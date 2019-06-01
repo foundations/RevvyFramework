@@ -18,14 +18,26 @@ class Version:
 
     @property
     def major(self):
+        """
+        >>> Version('2.3').major
+        2
+        """
         return self._version['major']
 
     @property
     def minor(self):
+        """
+        >>> Version('2.3').minor
+        3
+        """
         return self._version['minor']
 
     @property
     def revision(self):
+        """
+        >>> Version('2.3-r45').revision
+        45
+        """
         return self._version['revision']
 
     def __le__(self, other):
