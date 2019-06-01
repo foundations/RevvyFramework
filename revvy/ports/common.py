@@ -47,3 +47,58 @@ class PortHandler:
 
     def _get_port_types(self): raise NotImplementedError
     def _get_port_amount(self): raise NotImplementedError
+
+
+class PortInstance:
+    def __init__(self, port_idx, owner: PortHandler, robot, drivers):
+        self._port_idx = port_idx
+        self._robot = robot
+        self._owner = owner
+        self._handlers = drivers
+        self._driver = None
+        self._config_changed_callback = lambda motor, cfg_name: None
+
+    def on_config_changed(self, callback):
+        self._config_changed_callback = callback
+
+    def _notify_config_changed(self, config_name):
+        self._config_changed_callback(self, config_name)
+
+    def configure(self, config_name):
+        if self._driver is not None and config_name != 'NotConfigured':
+            self._driver.uninitialize()
+
+        config = self._owner.configurations[config_name]
+
+        new_driver_name = config['driver']
+        print('PortInstance: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
+        self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[new_driver_name])
+
+        handler = self._handlers[new_driver_name](config['config'])
+        self._driver = handler
+
+        self._notify_config_changed(config_name)
+
+        return handler
+
+    def uninitialize(self):
+        self.configure("NotConfigured")
+
+    def handler(self):
+        return self._driver
+
+    @property
+    def interface(self):
+        return self._owner.interface
+
+    @property
+    def idx(self):
+        return self._port_idx
+
+    @property
+    def id(self):
+        """User-facing motor port number"""
+        return self._owner._port_idx_map.index(self._port_idx)
+
+    def __getattr__(self, name):
+        return self._driver.__getattribute__(name)

@@ -1,4 +1,4 @@
-from revvy.ports.common import PortHandler
+from revvy.ports.common import PortHandler, PortInstance
 from revvy.rrrc_control import RevvyControl
 
 
@@ -17,57 +17,16 @@ class SensorPortHandler(PortHandler):
 
     def reset(self):
         super().reset()
-        self._ports = [SensorPortInstance(i, self) for i in range(self.port_count)]
+        self._ports = [SensorPortInstance(i, self, self._robot) for i in range(self.port_count)]
 
 
-class SensorPortInstance:
-    def __init__(self, port_idx, owner: SensorPortHandler):
-        self._port_idx = port_idx
-        self._owner = owner
-        self._handlers = {
-            'NotConfigured': lambda: None,
-            'BumperSwitch': lambda: BumperSwitch(self, port_idx),
-            'HC_SR04': lambda: HcSr04(self, port_idx)
-        }
-        self._driver = None
-        self._config_changed_callback = lambda sensor, cfg_name: None
-
-    def on_config_changed(self, callback):
-        self._config_changed_callback = callback
-
-    def _notify_config_changed(self, config_name):
-        self._config_changed_callback(self, config_name)
-
-    def configure(self, config_name):
-        if self._driver is not None and config_name != 'NotConfigured':
-            self._driver.uninitialize()
-
-        print('SensorPort: Configuring port {} to {}'.format(self._port_idx, config_name))
-        self._owner.interface.set_sensor_port_type(self._port_idx, self._owner.available_types[config_name])
-
-        handler = self._handlers[config_name]()
-        self._driver = handler
-
-        self._notify_config_changed(config_name)
-
-        return handler
-
-    def uninitialize(self):
-        self.configure("NotConfigured")
-
-    def handler(self):
-        return self._driver
-
-    @property
-    def id(self):
-        return SensorPortHandler.sensorPortMap.index(self._port_idx)
-
-    @property
-    def interface(self):
-        return self._owner.interface
-
-    def __getattr__(self, name):
-        return self._driver.__getattribute__(name)
+class SensorPortInstance(PortInstance):
+    def __init__(self, port_idx, owner: SensorPortHandler, robot):
+        super().__init__(port_idx, owner, robot, {
+            'NotConfigured': lambda cfg: None,
+            'BumperSwitch': lambda cfg: BumperSwitch(self, port_idx),
+            'HC_SR04': lambda cfg: HcSr04(self, port_idx)
+        })
 
 
 class BaseSensorPort:

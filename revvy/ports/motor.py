@@ -1,7 +1,7 @@
 import math
 
 from revvy.functions import map_values
-from revvy.ports.common import PortHandler
+from revvy.ports.common import PortHandler, PortInstance
 from revvy.rrrc_control import RevvyControl
 import struct
 
@@ -24,62 +24,12 @@ class MotorPortHandler(PortHandler):
         self._ports = [MotorPortInstance(i, self, self._robot) for i in range(self.port_count)]
 
 
-class MotorPortInstance:
+class MotorPortInstance(PortInstance):
     def __init__(self, port_idx, owner: MotorPortHandler, robot):
-        self._port_idx = port_idx
-        self._robot = robot
-        self._owner = owner
-        self._handlers = {
+        super().__init__(port_idx, owner, robot, {
             'NotConfigured': lambda cfg: None,
             'DcMotor': lambda cfg: DcMotorController(self, port_idx, cfg)
-        }
-        self._driver = None
-        self._config_changed_callback = lambda motor, cfg_name: None
-
-    def on_config_changed(self, callback):
-        self._config_changed_callback = callback
-
-    def _notify_config_changed(self, config_name):
-        self._config_changed_callback(self, config_name)
-
-    def configure(self, config_name):
-        if self._driver is not None and config_name != 'NotConfigured':
-            self._driver.uninitialize()
-
-        config = self._owner.configurations[config_name]
-
-        new_driver_name = config['driver']
-        print('MotorPort: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
-        self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[new_driver_name])
-
-        handler = self._handlers[new_driver_name](config['config'])
-        self._driver = handler
-
-        self._notify_config_changed(config_name)
-
-        return handler
-
-    def uninitialize(self):
-        self.configure("NotConfigured")
-
-    def handler(self):
-        return self._driver
-
-    @property
-    def interface(self):
-        return self._owner.interface
-
-    @property
-    def idx(self):
-        return self._port_idx
-
-    @property
-    def id(self):
-        """User-facing motor port number"""
-        return MotorPortHandler.motorPortMap.index(self._port_idx)
-
-    def __getattr__(self, name):
-        return self._driver.__getattribute__(name)
+        })
 
 
 class BaseMotorController:
