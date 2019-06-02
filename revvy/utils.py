@@ -136,14 +136,11 @@ class RingLed:
 
 class RemoteController:
     def __init__(self):
-        self._data_mutex = Lock()
         self._button_mutex = Lock()
 
         self._analogActions = []
         self._buttonActions = [lambda: None] * 32
         self._buttonHandlers = [None] * 32
-
-        self._message = None
 
         for i in range(len(self._buttonHandlers)):
             handler = EdgeTrigger()
@@ -161,41 +158,27 @@ class RemoteController:
         with self._button_mutex:
             self._analogActions = []
             self._buttonActions = [lambda: None] * 32
-            self._message = None
 
-    def tick(self):
-        # copy data
-        with self._data_mutex:
-            message = self._message
-            self._message = None
+    def tick(self, message):
+        # handle analog channels
+        for handler in self._analogActions:
+            # check if all channels are present in the message
+            if all(map(lambda x: x < len(message['analog']), handler['channels'])):
+                values = list(map(lambda x: message['analog'][x], handler['channels']))
+                handler['action'](values)
+            else:
+                print('Skip analog handler for channels {}'.format(",".join(map(str, handler['channels']))))
 
-        if message is not None:
-            # handle analog channels
-            for handler in self._analogActions:
-                # check if all channels are present in the message
-                if all(map(lambda x: x < len(message['analog']), handler['channels'])):
-                    values = list(map(lambda x: message['analog'][x], handler['channels']))
-                    handler['action'](values)
-                else:
-                    print('Skip analog handler for channels {}'.format(",".join(map(str, handler['channels']))))
-
-            # handle button presses
-            for idx in range(len(self._buttonHandlers)):
-                with self._button_mutex:
-                    self._buttonHandlers[idx].handle(message['buttons'][idx])
+        # handle button presses
+        for idx in range(len(self._buttonHandlers)):
+            with self._button_mutex:
+                self._buttonHandlers[idx].handle(message['buttons'][idx])
 
     def on_button_pressed(self, button, action):
         self._buttonActions[button] = action
 
     def on_analog_values(self, channels, action):
         self._analogActions.append({'channels': channels, 'action': action})
-
-    def update(self, message):
-        with self._data_mutex:
-            self._message = message
-
-    def start(self):
-        print('RemoteController: start')
 
 
 class RemoteControllerScheduler(ThreadWrapper):
@@ -205,9 +188,17 @@ class RemoteControllerScheduler(ThreadWrapper):
         super().__init__(self._schedule_controller, "RemoteControllerThread")
         self._controller_detected_callback = lambda: None
         self._controller_lost_callback = lambda: None
+        self._data_mutex = Lock()
+        self._message = None
 
-    def data_ready(self):
+    def data_ready(self, message):
+        with self._data_mutex:
+            self._message = message
         self._data_ready_event.set()
+
+    def get_message(self):
+        with self._data_mutex:
+            return self._message
 
     def _schedule_controller(self, ctx: ThreadContext):
         while not ctx.stop_requested:
@@ -220,14 +211,14 @@ class RemoteControllerScheduler(ThreadWrapper):
             self._controller_detected_callback()
 
             self._data_ready_event.clear()
-            self._controller.tick()
+            self._controller.tick(self.get_message())
 
             while self._data_ready_event.wait(0.5):
                 if ctx.stop_requested:
                     break
 
                 self._data_ready_event.clear()
-                self._controller.tick()
+                self._controller.tick(self.get_message())
 
             if ctx.stop_requested:
                 break
@@ -236,7 +227,6 @@ class RemoteControllerScheduler(ThreadWrapper):
 
     def start(self):
         self._data_ready_event.clear()
-        self._controller.start()
         super().start()
 
     def stop(self):
@@ -299,8 +289,7 @@ class RobotManager:
         self._status = self.StatusStartingUp
 
     def _on_controller_message_received(self, message):
-        self._remote_controller.update(message)
-        self._remote_controller_scheduler.data_ready()
+        self._remote_controller_scheduler.data_ready(message)
 
     def start(self):
         if self._status != self.StatusStartingUp:

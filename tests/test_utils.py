@@ -154,17 +154,14 @@ class TestRemoteController(unittest.TestCase):
         for i in range(32):
             buttons = [False] * 32
 
-            rc.update({'buttons': buttons, 'analog': [0] * 10})
-            rc.tick()
+            rc.tick({'buttons': buttons, 'analog': [0] * 10})
 
             # ith button is pressed
             buttons[i] = True
-            rc.update({'buttons': buttons, 'analog': [0] * 10})
-            rc.tick()
+            rc.tick({'buttons': buttons, 'analog': [0] * 10})
 
             # button is kept pressed
-            rc.update({'buttons': buttons, 'analog': [0] * 10})
-            rc.tick()
+            rc.tick({'buttons': buttons, 'analog': [0] * 10})
 
             for j in range(32):
                 self.assertEqual(mocks[j].call_count, 1 if i == j else 0)
@@ -180,8 +177,7 @@ class TestRemoteController(unittest.TestCase):
         rc.on_analog_values([3], mock3)
         rc.on_analog_values([3, 11], mock_invalid)
 
-        rc.update({'buttons': [False] * 32, 'analog': [255, 254, 253, 123, 43, 65, 45, 42]})
-        rc.tick()
+        rc.tick({'buttons': [False] * 32, 'analog': [255, 254, 253, 123, 43, 65, 45, 42]})
 
         self.assertEqual(mock24.call_count, 1)
         self.assertEqual(mock3.call_count, 1)
