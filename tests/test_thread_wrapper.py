@@ -99,6 +99,24 @@ class TestThreadWrapper(unittest.TestCase):
 
         self.assertEqual(1, mock.call_count)
 
+    def test_exception_stops_but_does_not_crash(self):
+        mock = Mock()
+
+        def _dummy_thread_fn(ctx: ThreadContext):
+            raise Exception
+
+        tw = ThreadWrapper(_dummy_thread_fn)
+        tw.on_stopped(mock)
+
+        tw.start()
+        time.sleep(0.01)
+
+        tw.start()
+        time.sleep(0.01)
+
+        tw.exit()
+        self.assertEqual(2, mock.call_count)
+
     def test_exited_thread_can_not_be_restarted(self):
         tw = ThreadWrapper(lambda x: None)
 

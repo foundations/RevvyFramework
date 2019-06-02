@@ -33,7 +33,6 @@ class ThreadWrapper:
 
                 print('{}: stopped'.format(self._name))
                 self._stopped_callback()
-                self.on_stopped(lambda: None)
             self._control.clear()
 
     @property
