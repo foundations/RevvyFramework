@@ -2,6 +2,7 @@
 from revvy.configuration.features import FeatureMap
 from revvy.configuration.version import Version
 from revvy.file_storage import StorageInterface, StorageError
+from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RobotInterface, Direction, RPM
 from revvy.scripting.runtime import ScriptManager
@@ -393,6 +394,7 @@ class RobotManager:
 
         self._scripts = ScriptManager(self)
         self._resources = {}
+        self._config = RobotConfig()
 
         self._status = self.StatusStartingUp
 
@@ -403,6 +405,10 @@ class RobotManager:
     @property
     def resources(self):
         return self._resources
+
+    @property
+    def config(self):
+        return self._config
 
     def _on_controller_message_received(self, message):
         self._remote_controller.update(message)
@@ -596,6 +602,7 @@ class RobotManager:
                 self._reader.reset()
                 self._remote_controller_scheduler.stop()
                 self._set_status(self.StatusNotConfigured)
+            self._config = config
 
     def stop(self):
         print("Stopping robot manager")

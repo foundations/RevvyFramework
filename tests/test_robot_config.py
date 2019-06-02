@@ -103,7 +103,12 @@ class TestRobotConfig(unittest.TestCase):
         self.assertListEqual([2, 3], config.drivetrain['left'])
         self.assertListEqual([5, 6], config.drivetrain['right'])
 
-        # todo motor names
+        self.assertEqual(1, config.motors.names["M1"])
+        self.assertEqual(2, config.motors.names["M2"])
+        self.assertEqual(3, config.motors.names["M3"])
+        self.assertEqual(4, config.motors.names["M4"])
+        self.assertEqual(5, config.motors.names["M5"])
+        self.assertEqual(6, config.motors.names["M6"])
 
     def test_sensor_title_is_parsed_as_list_of_sensors(self):
         json = '''
@@ -141,4 +146,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual("NotConfigured", config.sensors[3])
         self.assertEqual("NotConfigured", config.sensors[4])
 
-        # todo sensor names
+        self.assertEqual(1, config.sensors.names["S1"])
+        self.assertEqual(2, config.sensors.names["S2"])
+        self.assertEqual(3, config.sensors.names["S3"])
+        self.assertEqual(4, config.sensors.names["S4"])

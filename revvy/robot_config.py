@@ -16,6 +16,11 @@ sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch"]
 class MotorConfig:
     def __init__(self):
         self._motors = {}
+        self._port_names = {}
+
+    @property
+    def names(self):
+        return self._port_names
 
     def __getitem__(self, item):
         return self._motors.get(item, "NotConfigured")
@@ -27,6 +32,11 @@ class MotorConfig:
 class SensorConfig:
     def __init__(self):
         self._sensors = {}
+        self._port_names = {}
+
+    @property
+    def names(self):
+        return self._port_names
 
     def __getitem__(self, item):
         return self._sensors.get(item, "NotConfigured")
@@ -66,6 +76,7 @@ class RobotConfig:
                     for motor in partial_config['data']:
                         motor_type = motor_types[motor['type']][motor['direction']]
                         config.motors[i] = motor_type
+                        config.motors.names[motor['name']] = i
 
                         if motor['type'] == 2:  # drivetrain
                             config.drivetrain[motor_sides[motor['side']]].append(i)
@@ -76,6 +87,7 @@ class RobotConfig:
                     for sensor in partial_config['data']:
                         sensor_type = sensor_types[sensor['type']]
                         config.sensors[i] = sensor_type
+                        config.sensors.names[sensor['name']] = i
 
                         i += 1
 
@@ -91,3 +103,4 @@ class RobotConfig:
         self.sensors = SensorConfig()
         self.controller = RemoteControlConfig()
         self.scripts = {}
+

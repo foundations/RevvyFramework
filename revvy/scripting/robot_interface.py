@@ -76,11 +76,14 @@ class RingLedWrapper(Wrapper):
 
 
 class PortCollection:
-    def __init__(self, ports: list, port_map: list):
+    def __init__(self, ports: list, port_map: list, names: dict):
         self._ports = ports
         self._portMap = port_map
+        self._portNameMap = names
 
     def __getitem__(self, item):
+        if item is str:
+            item = self._portNameMap[item]
         return self._ports[self._portMap[item]]
 
 
@@ -169,8 +172,8 @@ class RobotInterface:
     def __init__(self, robot, priority=0):
         motor_wrappers = list(map(lambda port: MotorPortWrapper(port, robot.resources, priority), robot._motor_ports))
         sensor_wrappers = list(map(lambda port: SensorPortWrapper(port, robot.resources, priority), robot._sensor_ports))
-        self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap)
-        self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap)
+        self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap, robot.config.motors.names)
+        self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap, robot.config.sensors.names)
         self._ring_led = RingLedWrapper(robot._ring_led, robot.resources, priority)
         self._drivetrain = DriveTrainWrapper(robot._drivetrain, robot.resources, priority)
         self._remote_controller = RemoteControllerWrapper(robot._remote_controller)
