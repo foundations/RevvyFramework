@@ -58,6 +58,14 @@ class Motors:
     }
 
 
+class Sensors:
+    types = {
+        'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
+        'HC_SR04': {'driver': 'HC_SR04', 'config': {}},
+        'BumperSwitch': {'driver': 'BumperSwitch', 'config': {}},
+    }
+
+
 class DifferentialDrivetrain:
     NOT_ASSIGNED = 0
     LEFT = 1
@@ -377,7 +385,7 @@ class RobotManager:
         self._drivetrain = DifferentialDrivetrain(self)
         self._ring_led = RingLed(self._robot)
         self._motor_ports = MotorPortHandler(self._robot, Motors.types, self)
-        self._sensor_ports = SensorPortHandler(self._robot)
+        self._sensor_ports = SensorPortHandler(self._robot, Sensors.types, self)
 
         revvy.register_remote_controller_handler(self._on_controller_message_received)
         revvy.registerConnectionChangedHandler(self._on_connection_changed)
