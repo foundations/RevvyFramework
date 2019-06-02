@@ -170,8 +170,8 @@ class RemoteControllerWrapper:
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
     def __init__(self, robot, priority=0):
-        motor_wrappers = list(map(lambda port: MotorPortWrapper(port, robot.resources, priority), robot._motor_ports))
-        sensor_wrappers = list(map(lambda port: SensorPortWrapper(port, robot.resources, priority), robot._sensor_ports))
+        motor_wrappers = list(MotorPortWrapper(port, robot.resources, priority) for port in robot._motor_ports)
+        sensor_wrappers = list(SensorPortWrapper(port, robot.resources, priority) for port in robot._sensor_ports)
         self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap, robot.config.motors.names)
         self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap, robot.config.sensors.names)
         self._ring_led = RingLedWrapper(robot._ring_led, robot.resources, priority)
