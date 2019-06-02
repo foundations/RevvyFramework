@@ -90,7 +90,8 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             print('New configuration: {}'.format(message_data))
             config = RobotConfig.from_string(message_data)
-            # robot.configure(config)
+            if config is not None:
+                # robot.configure(config)
 
     device_name.subscribe(on_device_name_changed)
     long_message_handler.on_message_updated(on_message_updated)

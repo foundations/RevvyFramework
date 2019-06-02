@@ -1,3 +1,8 @@
+import json
+import traceback
+from json import JSONDecodeError
+
+
 class MotorConfig:
     def __init__(self):
         self._motors = {}
@@ -29,9 +34,26 @@ class RemoteControlConfig:
 class RobotConfig:
     @staticmethod
     def from_string(config_string):
-        config = RobotConfig()
+        try:
+            json_config = json.loads(config_string)
 
-        return config
+            robot_config = json_config['robotConfig']
+            scripts = json_config['blocklies']
+
+            config = RobotConfig()
+
+            for script in scripts:
+                btn_id = script['assignments']['btnId']
+                script_name = 'script_btn_{}'.format(btn_id)
+                priority = 0 # TODO
+                config.controller.buttons[btn_id] = script_name
+                config.scripts[script_name] = {'script': script['pythonCode'], 'priority': priority}
+
+            return config
+        except (JSONDecodeError, KeyError):
+            print('Failed to decode received configuration')
+            print(traceback.format_exc())
+            return None
 
     def __init__(self):
         self.motors = MotorConfig()
