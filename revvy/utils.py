@@ -142,11 +142,8 @@ class RemoteController:
         self._analogActions = []
         self._buttonActions = [lambda: None] * 32
         self._buttonHandlers = [None] * 32
-        self._controller_detected = lambda: None
-        self._controller_disappeared = lambda: None
 
         self._message = None
-        self._missedKeepAlives = -1
 
         for i in range(len(self._buttonHandlers)):
             handler = EdgeTrigger()
@@ -165,7 +162,6 @@ class RemoteController:
             self._analogActions = []
             self._buttonActions = [lambda: None] * 32
             self._message = None
-            self._missedKeepAlives = -1
 
     def tick(self):
         # copy data
@@ -174,10 +170,6 @@ class RemoteController:
             self._message = None
 
         if message is not None:
-            if self._missedKeepAlives == -1:
-                self._controller_detected()
-            self._missedKeepAlives = 0
-
             # handle analog channels
             for handler in self._analogActions:
                 # check if all channels are present in the message
@@ -191,26 +183,6 @@ class RemoteController:
             for idx in range(len(self._buttonHandlers)):
                 with self._button_mutex:
                     self._buttonHandlers[idx].handle(message['buttons'][idx])
-        else:
-            if not self._handle_keep_alive_missed():
-                self._controller_disappeared()
-
-    def _handle_keep_alive_missed(self):
-        if self._missedKeepAlives >= 0:
-            self._missedKeepAlives += 1
-            print('RemoteController: Missed {}'.format(self._missedKeepAlives))
-
-        if self._missedKeepAlives >= 5:
-            self._missedKeepAlives = -1
-            return False
-        else:
-            return True
-
-    def on_controller_detected(self, action):
-        self._controller_detected = action
-
-    def on_controller_disappeared(self, action):
-        self._controller_disappeared = action
 
     def on_button_pressed(self, button, action):
         self._buttonActions[button] = action
@@ -224,7 +196,6 @@ class RemoteController:
 
     def start(self):
         print('RemoteController: start')
-        self._missedKeepAlives = -1
 
 
 class RemoteControllerScheduler(ThreadWrapper):
@@ -232,24 +203,56 @@ class RemoteControllerScheduler(ThreadWrapper):
         self._controller = rc
         self._data_ready_event = Event()
         super().__init__(self._schedule_controller, "RemoteControllerThread")
+        self._controller_detected_callback = lambda: None
+        self._controller_lost_callback = lambda: None
 
     def data_ready(self):
         self._data_ready_event.set()
 
     def _schedule_controller(self, ctx: ThreadContext):
         while not ctx.stop_requested:
-            self._data_ready_event.wait(0.15)
+            # wait for first message
+            self._data_ready_event.wait()
+
+            if ctx.stop_requested:
+                break
+
+            self._controller_detected_callback()
+
             self._data_ready_event.clear()
             self._controller.tick()
+
+            while self._data_ready_event.wait(0.5):
+                if ctx.stop_requested:
+                    break
+
+                self._data_ready_event.clear()
+                self._controller.tick()
+
+            if ctx.stop_requested:
+                break
+
+            self._controller_lost_callback()
 
     def start(self):
         self._data_ready_event.clear()
         self._controller.start()
         super().start()
 
+    def stop(self):
+        super().stop()
+        # break out of a wait-for-message
+        self._data_ready_event.set()
+
     def reset(self):
         self.stop()
         self._controller.reset()
+
+    def on_controller_detected(self, callback):
+        self._controller_detected_callback = callback
+
+    def on_controller_lost(self, callback):
+        self._controller_lost_callback = callback
 
 
 class RobotManager:
@@ -275,11 +278,12 @@ class RobotManager:
         self._background_fn = None
 
         rc = RemoteController()
-        rc.on_controller_detected(self._on_controller_detected)
-        rc.on_controller_disappeared(self._on_controller_lost)
+        rcs = RemoteControllerScheduler(rc)
+        rcs.on_controller_detected(self._on_controller_detected)
+        rcs.on_controller_lost(self._on_controller_lost)
 
         self._remote_controller = rc
-        self._remote_controller_scheduler = RemoteControllerScheduler(rc)
+        self._remote_controller_scheduler = rcs
 
         self._drivetrain = DifferentialDrivetrain()
         self._ring_led = RingLed(self._robot)
