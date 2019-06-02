@@ -3,6 +3,16 @@ import traceback
 from json import JSONDecodeError
 
 
+motor_types = [
+    ["NotConfigured", "NotConfigured"],
+    ["RevvyMotor", "RevvyMotor_CCW"],  # motor
+    ["RevvyMotor", "RevvyMotor_CCW"],  # drivetrain
+]
+motor_sides = ["left", "right"]
+
+sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch"]
+
+
 class MotorConfig:
     def __init__(self):
         self._motors = {}
@@ -31,13 +41,6 @@ class RemoteControlConfig:
         self.buttons = [None] * 32
 
 
-motor_types = [
-    ["NotConfigured", "NotConfigured"],
-    ["RevvyMotor", "RevvyMotor_CCW"],  # motor
-    ["RevvyMotor", "RevvyMotor_CCW"],  # drivetrain
-]
-motor_sides = ["left", "right"]
-
 class RobotConfig:
     @staticmethod
     def from_string(config_string):
@@ -50,6 +53,7 @@ class RobotConfig:
             config = RobotConfig()
 
             for script in scripts:
+                # todo background scripts, analog channel scripts
                 btn_id = script['assignments']['btnId']
                 script_name = 'script_btn_{}'.format(btn_id)
                 priority = 0  # TODO
@@ -68,8 +72,12 @@ class RobotConfig:
 
                         i += 1
                 elif partial_config['title'] == 'Sensors':
+                    i = 1
                     for sensor in partial_config['data']:
-                        pass
+                        sensor_type = sensor_types[sensor['type']]
+                        config.sensors[i] = sensor_type
+
+                        i += 1
 
             return config
         except (JSONDecodeError, KeyError):

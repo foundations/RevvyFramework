@@ -42,7 +42,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual('some code', config.scripts['script_btn_0']['script'])
         self.assertEqual(0, config.scripts['script_btn_0']['priority'])
 
-    def test_motor_config_is_parsed(self):
+    def test_motor_title_is_parsed_as_list_of_motors(self):
         json = '''
         {
             "robotConfig": [
@@ -104,3 +104,41 @@ class TestRobotConfig(unittest.TestCase):
         self.assertListEqual([5, 6], config.drivetrain['right'])
 
         # todo motor names
+
+    def test_sensor_title_is_parsed_as_list_of_sensors(self):
+        json = '''
+        {
+            "robotConfig": [
+                {
+                    "title": "Sensors",
+                    "data": [
+                        {
+                            "name": "S1",
+                            "type": 1
+                        },
+                        {
+                            "name": "S2",
+                            "type": 2
+                        },
+                        {
+                            "name": "S3",
+                            "type": 0
+                        },
+                        {
+                            "name": "S4",
+                            "type": 0
+                        }
+                    ]
+                }
+            ],
+            "blocklies": []
+        }'''
+
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual("HC_SR04", config.sensors[1])
+        self.assertEqual("BumperSwitch", config.sensors[2])
+        self.assertEqual("NotConfigured", config.sensors[3])
+        self.assertEqual("NotConfigured", config.sensors[4])
+
+        # todo sensor names
