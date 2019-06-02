@@ -47,7 +47,7 @@ class MotorPortWrapper(Wrapper):
 
     def move_to_position(self, position):
         """Move the motor to the given position - give control back only if we're close"""
-        resource = self.try_take('motor_{}')
+        resource = self.try_take('motor_{}'.format(self._motor.id))
         if resource:
             try:
                 resource.run(lambda: self._motor.set_position(position))
