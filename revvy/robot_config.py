@@ -31,6 +31,13 @@ class RemoteControlConfig:
         self.buttons = [None] * 32
 
 
+motor_types = [
+    ["NotConfigured", "NotConfigured"],
+    ["RevvyMotor", "RevvyMotor_CCW"],  # motor
+    ["RevvyMotor", "RevvyMotor_CCW"],  # drivetrain
+]
+motor_sides = ["left", "right"]
+
 class RobotConfig:
     @staticmethod
     def from_string(config_string):
@@ -45,9 +52,24 @@ class RobotConfig:
             for script in scripts:
                 btn_id = script['assignments']['btnId']
                 script_name = 'script_btn_{}'.format(btn_id)
-                priority = 0 # TODO
+                priority = 0  # TODO
                 config.controller.buttons[btn_id] = script_name
                 config.scripts[script_name] = {'script': script['pythonCode'], 'priority': priority}
+
+            for partial_config in robot_config:
+                if partial_config['title'] == 'Motors':
+                    i = 1
+                    for motor in partial_config['data']:
+                        motor_type = motor_types[motor['type']][motor['direction']]
+                        config.motors[i] = motor_type
+
+                        if motor['type'] == 2:  # drivetrain
+                            config.drivetrain[motor_sides[motor['side']]].append(i)
+
+                        i += 1
+                elif partial_config['title'] == 'Sensors':
+                    for sensor in partial_config['data']:
+                        pass
 
             return config
         except (JSONDecodeError, KeyError):
