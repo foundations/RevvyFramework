@@ -30,7 +30,7 @@ class Resource:
         self._current_priority = -1
         self._active_handle = None
 
-    def try_take(self, with_priority=0, on_taken_away=None):
+    def request(self, with_priority=0, on_taken_away=None):
         with self._lock:
             if self._current_priority < with_priority:
                 if self._active_handle is not None:

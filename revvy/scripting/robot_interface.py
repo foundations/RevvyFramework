@@ -11,7 +11,7 @@ class Wrapper:
         self._priority = priority
 
     def try_take(self, resource_name):
-        return self._resources[resource_name].try_take(self._priority)
+        return self._resources[resource_name].request(self._priority)
 
     def using_resource(self, resource_name, callback):
         resource = self.try_take(resource_name)
