@@ -1,6 +1,9 @@
 import re
 
 
+version_re = re.compile('(?P<major>\\d+?).(?P<minor>\\d+?)(-r(?P<rev>\\d+))?')
+
+
 class Version:
     def __init__(self, ver_str):
         """
@@ -9,7 +12,7 @@ class Version:
         >>> Version('1.0')
         Version(1.0-r0)
         """
-        match = re.match('(?P<major>\\d+?).(?P<minor>\\d+?)(-r(?P<rev>\\d+))?', ver_str)
+        match = version_re.match(ver_str)
         major = int(match.group('major'))
         minor = int(match.group('minor'))
         rev = int(match.group('rev')) if match.group('rev') is not None else 0
