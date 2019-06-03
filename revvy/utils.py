@@ -176,6 +176,10 @@ class RingLed:
         self._current_scenario = self.Off
         self._user_led_feature_supported = False
 
+    @property
+    def count(self):
+        return self._ring_led_count
+
     def reset(self):
         try:
             self.set_scenario(RingLed.Off)

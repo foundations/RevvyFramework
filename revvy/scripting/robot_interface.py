@@ -1,6 +1,7 @@
 import time
 import math
 
+from revvy.functions import hex2rgb
 from revvy.ports.motor import MotorPortInstance, MotorPortHandler
 from revvy.ports.sensor import SensorPortInstance, SensorPortHandler
 
@@ -66,6 +67,7 @@ class RingLedWrapper(Wrapper):
     def __init__(self, ring_led, resources: dict, priority=0):
         super().__init__(resources, priority)
         self._ring_led = ring_led
+        self._user_leds = [0] * ring_led.count
 
     @property
     def scenario(self):
@@ -73,6 +75,19 @@ class RingLedWrapper(Wrapper):
 
     def set_scenario(self, scenario):
         return self._ring_led.set_scenario(scenario)
+
+    def set(self, led_index, str_color):
+        if type(led_index) is not list:
+            led_index = [led_index]
+
+        color = hex2rgb(str_color)
+
+        for idx in led_index:
+            if not (1 <= idx <= self._ring_led.count):
+                raise ValueError('Led index invalid: {}'.format(idx))
+            self._user_leds[idx - 1] = color
+
+        self._ring_led.display_user_frame(self._user_leds)
 
 
 class PortCollection:
@@ -190,7 +205,7 @@ class RobotInterface:
         return self._sensors
 
     @property
-    def ring_led(self):
+    def led(self):
         return self._ring_led
 
     @property
@@ -205,4 +220,4 @@ class RobotInterface:
     def play_note(self): pass  # TODO
 
     # property alias
-    led_ring = ring_led
+    led_ring = led

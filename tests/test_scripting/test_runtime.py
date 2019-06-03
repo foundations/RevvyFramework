@@ -6,14 +6,22 @@ from revvy.scripting.robot_interface import RobotInterface
 from revvy.scripting.runtime import ScriptManager
 
 
+def create_robot_mock():
+    robot_mock = Mock()
+    robot_mock._ring_led = Mock()
+    robot_mock._ring_led.count = 6
+    robot_mock.resources = []
+    robot_mock._motor_ports = []
+    robot_mock._sensor_ports = []
+    robot_mock._remote_controller = Mock()
+    robot_mock._remote_controller.is_button_pressed = Mock(return_value=False)
+
+    return robot_mock
+
+
 class TestRuntime(unittest.TestCase):
     def test_string_script_can_access_assigned_variables(self):
-        robot_mock = Mock()
-        robot_mock.resources = []
-        robot_mock._motor_ports = []
-        robot_mock._sensor_ports = []
-        robot_mock._remote_controller = Mock()
-        robot_mock._remote_controller.is_button_pressed = Mock(return_value=False)
+        robot_mock = create_robot_mock()
 
         mock = Mock()
 
@@ -32,12 +40,7 @@ mock()''')
         self.assertEqual(1, mock.call_count)
 
     def test_variables_are_passed_to_callable_script_as_args(self):
-        robot_mock = Mock()
-        robot_mock.resources = []
-        robot_mock._motor_ports = []
-        robot_mock._sensor_ports = []
-        robot_mock._remote_controller = Mock()
-        robot_mock._remote_controller.is_button_pressed = Mock(return_value=False)
+        robot_mock = create_robot_mock()
 
         mock = Mock()
 
@@ -59,12 +62,7 @@ mock()''')
         self.assertEqual(1, mock.call_count)
 
     def test_string_script_can_access_variables_assigned_after_creation(self):
-        robot_mock = Mock()
-        robot_mock.resources = []
-        robot_mock._motor_ports = []
-        robot_mock._sensor_ports = []
-        robot_mock._remote_controller = Mock()
-        robot_mock._remote_controller.is_button_pressed = Mock(return_value=False)
+        robot_mock = create_robot_mock()
 
         mock = Mock()
 
@@ -83,12 +81,7 @@ mock()''')
         self.assertEqual(1, mock.call_count)
 
     def test_overwriting_a_script_stops_the_previous_one(self):
-        robot_mock = Mock()
-        robot_mock.resources = []
-        robot_mock._motor_ports = []
-        robot_mock._sensor_ports = []
-        robot_mock._remote_controller = Mock()
-        robot_mock._remote_controller.is_button_pressed = Mock(return_value=False)
+        robot_mock = create_robot_mock()
 
         mock = Mock()
         stopped_mock = Mock()
@@ -126,12 +119,7 @@ mock()''')
         sm['test'].cleanup()
 
     def test_resetting_the_manager_stops_running_scripts(self):
-        robot_mock = Mock()
-        robot_mock.resources = []
-        robot_mock._motor_ports = []
-        robot_mock._sensor_ports = []
-        robot_mock._remote_controller = Mock()
-        robot_mock._remote_controller.is_button_pressed = Mock(return_value=False)
+        robot_mock = create_robot_mock()
 
         stopped_mock = Mock()
 
