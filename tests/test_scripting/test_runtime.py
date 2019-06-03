@@ -26,7 +26,7 @@ test.assertIsInstance(robot, RobotInterface)
 mock()''')
 
         sm['test'].start()
-        time.sleep(0.0000001)
+        time.sleep(0.1)
         sm['test'].cleanup()
 
         self.assertEqual(1, mock.call_count)
