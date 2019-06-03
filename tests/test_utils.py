@@ -260,6 +260,34 @@ class TestRemoteController(unittest.TestCase):
                 self.assertEqual(mocks[j].call_count, 1 if i == j else 0)
                 mocks[j].reset_mock()
 
+    def test_last_button_pressed_state_can_be_read(self):
+        rc = RemoteController()
+
+        for i in range(32):
+            buttons = [False] * 32
+            # ith button is pressed
+            buttons[i] = True
+
+            rc.update({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick()
+
+            for j in range(32):
+                self.assertEqual(buttons[i], rc.is_button_pressed(i))
+
+    def test_last_analog_channel_state_can_be_read(self):
+        rc = RemoteController()
+
+        for i in range(10):
+            analog = [0] * 10
+            # ith button is pressed
+            analog[i] = 255
+
+            rc.update({'buttons': [False] * 32, 'analog': analog})
+            rc.tick()
+
+            for j in range(10):
+                self.assertEqual(analog[i], rc.analog_value(i))
+
     def test_requested_channels_are_passed_to_analog_handlers(self):
         rc = RemoteController()
         mock24 = Mock()
