@@ -32,7 +32,7 @@ class TestThreadWrapper(unittest.TestCase):
         def _dummy_thread_fn(ctx: ThreadContext):
             mock()
             while not ctx.stop_requested:
-                time.sleep(0.1)
+                time.sleep(0.001)
 
         tw = ThreadWrapper(_dummy_thread_fn)
 
@@ -60,7 +60,7 @@ class TestThreadWrapper(unittest.TestCase):
         def _dummy_thread_fn(ctx: ThreadContext):
             mock()
             while not ctx.stop_requested:
-                time.sleep(0.1)
+                time.sleep(0.001)
 
         tw = ThreadWrapper(_dummy_thread_fn)
 
