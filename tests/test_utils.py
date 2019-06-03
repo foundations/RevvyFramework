@@ -98,6 +98,16 @@ class TestDeviceNameProvider(unittest.TestCase):
         dnp = DeviceNameProvider(storage, lambda: 'default')
         self.assertEqual(dnp.get_device_name(), 'default')
 
+    def test_setting_device_name_stores(self):
+        storage = Mock()
+        storage.read = Mock()
+        storage.write = Mock()
+        dnp = DeviceNameProvider(storage, lambda: 'default')
+        dnp.update_device_name('something else')
+        self.assertEqual(dnp.get_device_name(), 'something else')
+        self.assertEqual('device-name', storage.write.call_args[0][0])
+        self.assertEqual(b'something else', storage.write.call_args[0][1])
+
 
 class TestDataDispatcher(unittest.TestCase):
     def test_only_handlers_with_data_are_called(self):
