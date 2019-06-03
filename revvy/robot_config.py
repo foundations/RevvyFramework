@@ -103,4 +103,3 @@ class RobotConfig:
         self.sensors = SensorConfig()
         self.controller = RemoteControlConfig()
         self.scripts = {}
-

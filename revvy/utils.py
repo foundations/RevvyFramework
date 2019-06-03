@@ -616,6 +616,7 @@ class RobotManager:
         if self._status != self.StatusStopped:
             self._status = status
 
+
 class FunctionSerializer:
     def __init__(self, default_action=lambda: None):
         self._functions = {}
