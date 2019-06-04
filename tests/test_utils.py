@@ -195,8 +195,7 @@ class TestRemoteController(unittest.TestCase):
             # ith button is pressed
             buttons[i] = True
 
-            rc.update({'buttons': buttons, 'analog': [0] * 10})
-            rc.tick()
+            rc.tick({'buttons': buttons, 'analog': [0] * 10})
 
             for j in range(32):
                 self.assertEqual(buttons[i], rc.is_button_pressed(i))
@@ -209,8 +208,7 @@ class TestRemoteController(unittest.TestCase):
             # ith button is pressed
             analog[i] = 255
 
-            rc.update({'buttons': [False] * 32, 'analog': analog})
-            rc.tick()
+            rc.tick({'buttons': [False] * 32, 'analog': analog})
 
             for j in range(10):
                 self.assertEqual(analog[i], rc.analog_value(i))
