@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import array
+import struct
 import traceback
 
 from functools import reduce
@@ -167,10 +168,20 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
         self._updateValueCallback = None
 
     def update(self, value):
-        self._value = [len(value)] + value
+        self._value = value
 
         if self._updateValueCallback:
             self._updateValueCallback(self._value)
+
+
+class SensorCharacteristic(BrainToMobileFunctionCharacteristic):
+    def update(self, value):
+        value = [len(value)] + value
+        super().update(value)
+
+
+class MotorCharacteristic(BrainToMobileFunctionCharacteristic):
+    pass
 
 
 class LiveMessageService(BlenoPrimaryService):
@@ -178,10 +189,19 @@ class LiveMessageService(BlenoPrimaryService):
         self._message_handler = lambda x: None
 
         self._sensor_characteristics = [
-                BrainToMobileFunctionCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', 'Sensor 1'),
-                BrainToMobileFunctionCharacteristic('36e944ef-34fe-4de2-9310-394d482e20e6', 'Sensor 2'),
-                BrainToMobileFunctionCharacteristic('b3a71566-9af2-4c9d-bc4a-6f754ab6fcf0', 'Sensor 3'),
-                BrainToMobileFunctionCharacteristic('9ace575c-0b70-4ed5-96f1-979a8eadbc6b', 'Sensor 4'),
+                SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', 'Sensor 1'),
+                SensorCharacteristic('36e944ef-34fe-4de2-9310-394d482e20e6', 'Sensor 2'),
+                SensorCharacteristic('b3a71566-9af2-4c9d-bc4a-6f754ab6fcf0', 'Sensor 3'),
+                SensorCharacteristic('9ace575c-0b70-4ed5-96f1-979a8eadbc6b', 'Sensor 4'),
+        ]
+
+        self._motor_characteristics = [
+                MotorCharacteristic('4bdfb409-93cc-433a-83bd-7f4f8e7eaf54', 'Motor 1'),
+                MotorCharacteristic('454885b9-c9d1-4988-9893-a0437d5e6e9f', 'Motor 2'),
+                MotorCharacteristic('00fcd93b-0c3c-4940-aac1-b4c21fac3420', 'Motor 3'),
+                MotorCharacteristic('49aaeaa4-bb74-4f84-aa8f-acf46e5cf922', 'Motor 4'),
+                MotorCharacteristic('ceea8e45-5ff9-4325-be13-48cf40c0e0c3', 'Motor 5'),
+                MotorCharacteristic('8e4c474f-188e-4d2a-910a-cf66f674f569', 'Motor 6'),
         ]
 
         super().__init__({
@@ -189,10 +209,8 @@ class LiveMessageService(BlenoPrimaryService):
             'characteristics': [
                 MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, 'simpleControl',
                                                     self.simple_control_callback),
-                self._sensor_characteristics[0],
-                self._sensor_characteristics[1],
-                self._sensor_characteristics[2],
-                self._sensor_characteristics[3],
+                *self._sensor_characteristics,
+                *self._motor_characteristics
             ]
         })
 
@@ -211,6 +229,11 @@ class LiveMessageService(BlenoPrimaryService):
     def update_sensor(self, sensor, value):
         if 0 < sensor <= len(self._sensor_characteristics):
             self._sensor_characteristics[sensor - 1].update(value)
+
+    def update_motor(self, motor, power, speed, position):
+        if 0 < motor <= len(self._motor_characteristics):
+            data = list(struct.pack(">flb", speed, position, power))
+            self._motor_characteristics[motor - 1].update(data)
 
     @staticmethod
     def extract_button_states(data):
@@ -509,6 +532,9 @@ class RevvyBLE:
 
     def update_sensor(self, sensor, value):
         self._liveMessageService.update_sensor(sensor, value)
+
+    def update_motor(self, motor, power, speed, position):
+        self._liveMessageService.update_motor(motor, power, speed, position)
 
     def register_remote_controller_handler(self, callback):
         self._liveMessageService.register_message_handler(callback)

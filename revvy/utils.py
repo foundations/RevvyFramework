@@ -481,8 +481,11 @@ class RobotManager:
         motor_name = 'motor_{}'.format(motor.id)
         if config_name != 'NotConfigured':
             self._reader.add(motor_name, motor.get_status)
+            self._data_dispatcher.add(motor_name, lambda value, mid=motor.id:
+                self._update_motor(mid, value['power'], value['speed'], value['position']))
         else:
             self._reader.remove(motor_name)
+            self._data_dispatcher.remove(motor_name)
 
     def _sensor_config_changed(self, sensor: SensorPortInstance, config_name):
         sensor_name = 'sensor_{}'.format(sensor.id)
@@ -526,6 +529,10 @@ class RobotManager:
     def _update_sensor(self, sid, value):
         # print('Sensor {}: {}'.format(sid, value['converted']))
         self._ble.update_sensor(sid, value['raw'])
+
+    def _update_motor(self, mid, power, speed, position):
+        # print('Sensor {}: {}'.format(sid, value['converted']))
+        self._ble.update_motor(mid, power, speed, position)
 
     def _run_analog(self, script_name, script_input):
         script = self._scripts[script_name]
