@@ -65,10 +65,17 @@ class RobotConfig:
             for script in scripts:
                 # todo background scripts, analog channel scripts
                 btn_id = script['assignments']['btnId']
-                script_name = 'script_btn_{}'.format(btn_id)
-                priority = 0  # TODO
-                config.controller.buttons[btn_id] = script_name
-                config.scripts[script_name] = {'script': script['pythonCode'], 'priority': priority}
+                if btn_id == -1:
+                    # background script
+                    script_name = 'script_background_{}'.format(len(config.background_scripts))
+                    priority = 0  # TODO
+                    config.background_scripts.append(script_name)
+                    config.scripts[script_name] = {'script': script['pythonCode'], 'priority': priority}
+                else:
+                    script_name = 'script_btn_{}'.format(btn_id)
+                    priority = 0  # TODO
+                    config.controller.buttons[btn_id] = script_name
+                    config.scripts[script_name] = {'script': script['pythonCode'], 'priority': priority}
 
             for partial_config in robot_config:
                 if partial_config['title'] == 'Motors':
@@ -103,3 +110,4 @@ class RobotConfig:
         self.sensors = SensorConfig()
         self.controller = RemoteControlConfig()
         self.scripts = {}
+        self.background_scripts = []

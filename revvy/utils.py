@@ -590,8 +590,13 @@ class RobotManager:
 
                 self._remote_controller_scheduler.start()
                 self._robot.set_master_status(self.status_led_configured)
+
                 print('Robot configured')
                 self._set_status(self.StatusConfigured)
+
+                # start background scripts
+                for script in config.background_scripts:
+                    self._scripts[script].start()
             else:
                 print("Deinitialize robot")
                 self._ring_led.set_scenario(RingLed.Off)
