@@ -26,8 +26,8 @@ class TestRobotConfig(unittest.TestCase):
         {
             "robotConfig": [],
             "blocklies": [
-                {"pythonCode": "some code", "assignments": {"layoutId": 0, "btnId": 0}},
-                {"pythonCode": "other code", "assignments": {"layoutId": 0, "btnId": 1}}
+                {"pythonCode": "some code", "assignments": [{"layoutId": 0, "btnId": 0, "priority": 2}]},
+                {"pythonCode": "other code", "assignments": [{"layoutId": 0, "btnId": 1}]}
             ]
         }'''
         config = RobotConfig.from_string(json)
@@ -40,7 +40,8 @@ class TestRobotConfig(unittest.TestCase):
         self.assertIsNone(config.controller.buttons[2])
 
         self.assertEqual('some code', config.scripts['script_btn_0']['script'])
-        self.assertEqual(0, config.scripts['script_btn_0']['priority'])
+        self.assertEqual(2, config.scripts['script_btn_0']['priority'])
+        self.assertEqual(0, config.scripts['script_btn_1']['priority'])
 
     def test_motor_title_is_parsed_as_list_of_motors(self):
         json = '''
