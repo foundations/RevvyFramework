@@ -6,9 +6,14 @@ from revvy.ports.sensor import SensorPortInstance, SensorPortHandler
 
 
 class Wrapper:
-    def __init__(self, resources: dict, priority=0):
+    def __init__(self, robot, resources: dict, priority=0):
         self._resources = resources
         self._priority = priority
+        self._robot = robot
+
+    @property
+    def is_stop_requested(self):
+        return self._robot.is_stop_requested
 
     def try_take(self, resource_name):
         return self._resources[resource_name].request(self._priority)
@@ -24,8 +29,8 @@ class Wrapper:
 
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
-    def __init__(self, sensor: SensorPortInstance, resources: dict, priority=0):
-        super().__init__(resources, priority)
+    def __init__(self, robot, sensor: SensorPortInstance, resources: dict, priority=0):
+        super().__init__(robot, resources, priority)
         self._sensor = sensor
 
     def configure(self, config_name):
@@ -38,8 +43,8 @@ class SensorPortWrapper(Wrapper):
 
 class MotorPortWrapper(Wrapper):
     """Wrapper class to expose motor ports to user scripts"""
-    def __init__(self, motor: MotorPortInstance, resources: dict, priority=0):
-        super().__init__(resources, priority)
+    def __init__(self, robot, motor: MotorPortInstance, resources: dict, priority=0):
+        super().__init__(robot, resources, priority)
         self._motor = motor
 
     def configure(self, config_name):
@@ -125,8 +130,8 @@ class MotorPortWrapper(Wrapper):
 
 class RingLedWrapper(Wrapper):
     """Wrapper class to expose LED ring to user scripts"""
-    def __init__(self, ring_led, resources: dict, priority=0):
-        super().__init__(resources, priority)
+    def __init__(self, robot, ring_led, resources: dict, priority=0):
+        super().__init__(robot, resources, priority)
         self._ring_led = ring_led
         self._user_leds = [0] * ring_led.count
 
@@ -187,8 +192,8 @@ class MotorConstants:
 
 
 class DriveTrainWrapper(Wrapper):
-    def __init__(self, drivetrain, resources: dict, priority=0):
-        super().__init__(resources, priority)
+    def __init__(self, robot, drivetrain, resources: dict, priority=0):
+        super().__init__(robot, resources, priority)
         self._drivetrain = drivetrain
 
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
@@ -258,14 +263,16 @@ class RemoteControllerWrapper:
 # FIXME: type hints missing because of circular reference that causes ImportError
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
-    def __init__(self, robot, priority=0):
-        motor_wrappers = list(MotorPortWrapper(port, robot.resources, priority) for port in robot._motor_ports)
-        sensor_wrappers = list(SensorPortWrapper(port, robot.resources, priority) for port in robot._sensor_ports)
+    def __init__(self, script, robot, priority=0):
+        motor_wrappers = list(MotorPortWrapper(self, port, robot.resources, priority) for port in robot._motor_ports)
+        sensor_wrappers = list(SensorPortWrapper(self, port, robot.resources, priority) for port in robot._sensor_ports)
         self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap, robot.config.motors.names)
         self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap, robot.config.sensors.names)
-        self._ring_led = RingLedWrapper(robot._ring_led, robot.resources, priority)
-        self._drivetrain = DriveTrainWrapper(robot._drivetrain, robot.resources, priority)
+        self._ring_led = RingLedWrapper(self, robot._ring_led, robot.resources, priority)
+        self._drivetrain = DriveTrainWrapper(self, robot._drivetrain, robot.resources, priority)
         self._remote_controller = RemoteControllerWrapper(robot._remote_controller)
+
+        self._script = script
 
         # shorthand functions
         self.drive = self._drivetrain.drive
@@ -273,6 +280,10 @@ class RobotInterface:
     def stop_all_motors(self, action):
         for motor in self._motors:
             motor.stop(action)
+
+    @property
+    def is_stop_requested(self):
+        return self._script.is_stop_requested
 
     @property
     def motors(self):

@@ -14,6 +14,10 @@ class ScriptHandle:
         else:
             self._runnable = lambda x: exec(script, x)
 
+    @property
+    def is_stop_requested(self):
+        return self._thread.stopping
+
     def on_stopped(self, callback):
         self._thread.on_stopped(callback)
 
@@ -57,7 +61,7 @@ class ScriptManager:
 
         print('New script: {}'.format(name))
         script = ScriptHandle(script, name, self._globals)
-        script.assign('robot', RobotInterface(self._robot, priority))
+        script.assign('robot', RobotInterface(script, self._robot, priority))
         self._scripts[name] = script
 
     def __getitem__(self, name):
