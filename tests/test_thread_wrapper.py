@@ -122,3 +122,12 @@ class TestThreadWrapper(unittest.TestCase):
 
         tw.exit()
         self.assertRaises(AssertionError, tw.start)
+
+    def test_sleep_can_be_interrupted(self):
+        tw = ThreadWrapper(lambda ctx: ctx.sleep(10000))
+        start_time = time.time()
+        tw.start()
+        time.sleep(0.1)
+        tw.exit()
+        end_time = time.time()
+        self.assertLess(end_time - start_time, 2)

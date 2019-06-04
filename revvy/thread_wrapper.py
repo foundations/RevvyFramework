@@ -17,6 +17,7 @@ class ThreadWrapper:
         self._stopped_callback = lambda: None
         self._stop_requested_callback = lambda: None
         self._control = Event()
+        self._stop_event = Event()
         self._thread = Thread(target=self._thread_func, args=())
         self._thread.start()
 
@@ -35,6 +36,10 @@ class ThreadWrapper:
                 self._stopped_callback()
             self._control.clear()
 
+    def sleep(self, s):
+        if self._stop_event.wait(s):
+            raise InterruptedError
+
     @property
     def stopping(self):
         return self._stopping
@@ -44,11 +49,13 @@ class ThreadWrapper:
             raise AssertionError("Can't restart thread")
         print("{}: starting".format(self._name))
         self._stopping = False
+        self._stop_event.clear()
         self._control.set()
 
     def stop(self):
         print("{}: stopping".format(self._name))
         self._stopping = True
+        self._stop_event.set()
         self._stop_requested_callback()
 
     def exit(self):
@@ -69,6 +76,9 @@ class ThreadWrapper:
 class ThreadContext:
     def __init__(self, thread: ThreadWrapper):
         self._thread = thread
+
+    def sleep(self, s):
+        self._thread.sleep(s)
 
     @property
     def stop_requested(self):

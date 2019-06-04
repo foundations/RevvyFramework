@@ -3,6 +3,17 @@ from revvy.thread_wrapper import *
 import time
 
 
+class TimeWrapper:
+    def __init__(self, ctx: ThreadContext):
+        self._ctx = ctx
+
+    def time(self):
+        return time.time()
+
+    def sleep(self, s):
+        self._ctx.sleep(s)
+
+
 class ScriptHandle:
     def __init__(self, script, name, global_variables: dict):
         self._globals = global_variables
@@ -25,7 +36,11 @@ class ScriptHandle:
         self._globals[name] = value
 
     def _run(self, ctx):
-        self._runnable({**self._globals, 'ctx': ctx, 'time': time})
+        self._runnable({
+            **self._globals,
+            'ctx': ctx,
+            'time': TimeWrapper(ctx)
+        })
 
     def start(self):
         self._thread.start()
