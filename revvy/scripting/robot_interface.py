@@ -135,7 +135,7 @@ class RingLedWrapper(Wrapper):
         return self._ring_led.scenario
 
     def set_scenario(self, scenario):
-        return self._ring_led.set_scenario(scenario)
+        self.using_resource('led_ring', lambda: self._ring_led.set_scenario(scenario))
 
     def set(self, led_index, str_color):
         if type(led_index) is not list:
@@ -148,7 +148,7 @@ class RingLedWrapper(Wrapper):
                 raise ValueError('Led index invalid: {}'.format(idx))
             self._user_leds[idx - 1] = color
 
-        self._ring_led.display_user_frame(self._user_leds)
+        self.using_resource('led_ring', lambda: self._ring_led.display_user_frame(self._user_leds))
 
 
 class PortCollection:
@@ -184,6 +184,7 @@ class MotorConstants:
 
     ACTION_STOP_AND_HOLD = 0
     ACTION_RELEASE = 1
+
 
 class DriveTrainWrapper(Wrapper):
     def __init__(self, drivetrain, resources: dict, priority=0):
