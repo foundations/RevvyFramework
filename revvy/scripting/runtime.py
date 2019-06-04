@@ -17,20 +17,29 @@ class TimeWrapper:
 class ScriptHandle:
     def __init__(self, script, name, global_variables: dict):
         self._globals = global_variables
-
-        self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
+        self._thread = None
+        self._thread_name = name
 
         if callable(script):
             self._runnable = script
         else:
             self._runnable = lambda x: exec(script, x)
 
+    def _get_thread_object(self):
+        if self._thread is None:
+            self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(self._thread_name))
+
+        return self._thread
+
     @property
     def is_stop_requested(self):
+        if self._thread is None:
+            return False
+
         return self._thread.stopping
 
     def on_stopped(self, callback):
-        self._thread.on_stopped(callback)
+        self._get_thread_object().on_stopped(callback)
 
     def assign(self, name, value):
         self._globals[name] = value
@@ -43,13 +52,15 @@ class ScriptHandle:
         })
 
     def start(self):
-        self._thread.start()
+        self._get_thread_object().start()
 
     def stop(self):
-        self._thread.stop()
+        if self._thread is not None:
+            self._thread.stop()
 
     def cleanup(self):
-        self._thread.exit()
+        if self._thread is not None:
+            self._thread.exit()
 
 
 class ScriptManager:
