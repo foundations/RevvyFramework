@@ -100,69 +100,33 @@ class DifferentialDrivetrain:
         self._right_motors.append(motor)
 
     def configure(self):
-        if 'drivetrain-control' in self._owner.features:
-            motors = [DifferentialDrivetrain.NOT_ASSIGNED] * self._owner._motor_ports.port_count
-            for motor in self._left_motors:
-                motors[motor.idx] = DifferentialDrivetrain.LEFT
-            for motor in self._right_motors:
-                motors[motor.idx] = DifferentialDrivetrain.RIGHT
+        motors = [DifferentialDrivetrain.NOT_ASSIGNED] * self._owner._motor_ports.port_count
+        for motor in self._left_motors:
+            motors[motor.idx] = DifferentialDrivetrain.LEFT
+        for motor in self._right_motors:
+            motors[motor.idx] = DifferentialDrivetrain.RIGHT
 
-            self._owner._robot.set_drivetrain_motors(0, motors)
+        self._owner._robot.set_drivetrain_motors(0, motors)
 
     @property
     def is_moving(self):
         return any(motor.is_moving for motor in self._motors)
 
     def set_speeds(self, left, right, power_limit=None):
-        if 'drivetrain-control' in self._owner.features:
-            if power_limit is None:
-                power_limit = 0
-            speed_cmd = list(struct.pack('<bffb', self.CONTROL_GO_SPD, left, right, power_limit))
-            self._owner._robot.set_drivetrain_control(speed_cmd)
-        else:
-            if 'motor-driver-constrained-control' not in self._owner.features:
-                for motor in self._motors:
-                    motor.set_power_limit(power_limit)
-                    motor.apply_configuration()
-                power_limit = None
-
-            for motor in self._left_motors:
-                motor.set_speed(left, power_limit)
-
-            for motor in self._right_motors:
-                motor.set_speed(right, power_limit)
+        if power_limit is None:
+            power_limit = 0
+        speed_cmd = list(struct.pack('<bffb', self.CONTROL_GO_SPD, left, right, power_limit))
+        self._owner._robot.set_drivetrain_control(speed_cmd)
 
     def move(self, left, right, left_speed=None, right_speed=None, power_limit=None):
-        if 'drivetrain-control' in self._owner.features:
-            if left_speed is None:
-                left_speed = 0
-            if right_speed is None:
-                right_speed = 0
-            if power_limit is None:
-                power_limit = 0
-            pos_cmd = list(struct.pack('<bllffb', self.CONTROL_GO_POS, left, right, left_speed, right_speed, power_limit))
-            self._owner._robot.set_drivetrain_control(pos_cmd)
-        else:
-            if 'motor-driver-constrained-control' not in self._owner.features:
-                for motor in self._left_motors:
-                    motor.set_speed_limit(left_speed)
-                    motor.set_power_limit(power_limit)
-                    motor.apply_configuration()
-
-                for motor in self._right_motors:
-                    motor.set_speed_limit(right_speed)
-                    motor.set_power_limit(power_limit)
-                    motor.apply_configuration()
-
-                left_speed = None
-                right_speed = None
-                power_limit = None
-
-            for motor in self._left_motors:
-                motor.set_position(left, motor.position + left, left_speed, power_limit)
-
-            for motor in self._right_motors:
-                motor.set_position(right, motor.position + right, right_speed, power_limit)
+        if left_speed is None:
+            left_speed = 0
+        if right_speed is None:
+            right_speed = 0
+        if power_limit is None:
+            power_limit = 0
+        pos_cmd = list(struct.pack('<bllffb', self.CONTROL_GO_POS, left, right, left_speed, right_speed, power_limit))
+        self._owner._robot.set_drivetrain_control(pos_cmd)
 
 
 class RingLed:

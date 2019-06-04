@@ -20,11 +20,6 @@ import sys
 
 
 mcu_features = {
-    '0.1-r213': [
-        'motor-driver-constrained-control',
-        'drivetrain-control',
-        'motor-control-in-physical-values'
-    ]
 }
 
 
@@ -34,20 +29,6 @@ def toggle_ring_led(args):
             args['robot']._ring_led.set_scenario(RingLed.Off)
         else:
             args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
-
-
-def test_position_control(args):
-    robot = args['robot']
-    print('moving to 720')
-    robot.motors[1].move_to_position(720)
-    time.sleep(1)
-    print('moving to 0')
-    robot.motors[1].move_to_position(0)
-    time.sleep(1)
-    print('moving to 720')
-    robot.motors[1].move_to_position(720)
-    print('moving to 0')
-    robot.motors[1].move_to_position(0)
 
 
 def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
