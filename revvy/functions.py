@@ -62,3 +62,14 @@ def retry(fn, retries=5):
         retry_num += 1
 
     return status
+
+
+def hex2rgb(hex):
+    """
+    >>> hex2rgb("#aabbcc")
+    11189196
+    """
+    stripped_hex = hex.lstrip('#')
+    rgb = tuple(int(stripped_hex[i:i + 2], 16) for i in range(0, len(stripped_hex), 2))
+
+    return rgb[0] << 16 | rgb[1] << 8 | rgb[2]

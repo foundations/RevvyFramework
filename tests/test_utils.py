@@ -14,6 +14,11 @@ class TestFunctionSerializer(unittest.TestCase):
         ser.run()
         self.assertEqual(default_mock.call_count, 1)
 
+    def test_remove_ignores_missing_keys(self):
+        ser = FunctionSerializer(None)
+
+        ser.remove('foo')
+
     def test_default_action_is_not_called_when_not_empty(self):
         default_mock = Mock()
         reader_mock = Mock()
@@ -93,6 +98,16 @@ class TestDeviceNameProvider(unittest.TestCase):
         dnp = DeviceNameProvider(storage, lambda: 'default')
         self.assertEqual(dnp.get_device_name(), 'default')
 
+    def test_setting_device_name_stores(self):
+        storage = Mock()
+        storage.read = Mock()
+        storage.write = Mock()
+        dnp = DeviceNameProvider(storage, lambda: 'default')
+        dnp.update_device_name('something else')
+        self.assertEqual(dnp.get_device_name(), 'something else')
+        self.assertEqual('device-name', storage.write.call_args[0][0])
+        self.assertEqual(b'something else', storage.write.call_args[0][1])
+
 
 class TestDataDispatcher(unittest.TestCase):
     def test_only_handlers_with_data_are_called(self):
@@ -124,6 +139,11 @@ class TestDataDispatcher(unittest.TestCase):
 
         self.assertEqual(foo.call_count, 0)
         self.assertEqual(bar.call_count, 1)
+
+    def test_remove_ignores_missing_keys(self):
+        dsp = DataDispatcher()
+
+        dsp.remove('foo')
 
     def test_reset_removes_all_handlers(self):
         dsp = DataDispatcher()
@@ -166,6 +186,34 @@ class TestRemoteController(unittest.TestCase):
             for j in range(32):
                 self.assertEqual(mocks[j].call_count, 1 if i == j else 0)
                 mocks[j].reset_mock()
+
+    def test_last_button_pressed_state_can_be_read(self):
+        rc = RemoteController()
+
+        for i in range(32):
+            buttons = [False] * 32
+            # ith button is pressed
+            buttons[i] = True
+
+            rc.update({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick()
+
+            for j in range(32):
+                self.assertEqual(buttons[i], rc.is_button_pressed(i))
+
+    def test_last_analog_channel_state_can_be_read(self):
+        rc = RemoteController()
+
+        for i in range(10):
+            analog = [0] * 10
+            # ith button is pressed
+            analog[i] = 255
+
+            rc.update({'buttons': [False] * 32, 'analog': analog})
+            rc.tick()
+
+            for j in range(10):
+                self.assertEqual(analog[i], rc.analog_value(i))
 
     def test_requested_channels_are_passed_to_analog_handlers(self):
         rc = RemoteController()

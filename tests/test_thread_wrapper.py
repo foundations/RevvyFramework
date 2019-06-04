@@ -32,7 +32,7 @@ class TestThreadWrapper(unittest.TestCase):
         def _dummy_thread_fn(ctx: ThreadContext):
             mock()
             while not ctx.stop_requested:
-                pass
+                time.sleep(0.001)
 
         tw = ThreadWrapper(_dummy_thread_fn)
 
@@ -60,7 +60,7 @@ class TestThreadWrapper(unittest.TestCase):
         def _dummy_thread_fn(ctx: ThreadContext):
             mock()
             while not ctx.stop_requested:
-                pass
+                time.sleep(0.001)
 
         tw = ThreadWrapper(_dummy_thread_fn)
 
@@ -89,7 +89,7 @@ class TestThreadWrapper(unittest.TestCase):
         def _dummy_thread_fn(ctx: ThreadContext):
             ctx.on_stopped(mock)
             while not ctx.stop_requested:
-                pass
+                time.sleep(0.1)
 
         tw = ThreadWrapper(_dummy_thread_fn)
 
@@ -99,8 +99,35 @@ class TestThreadWrapper(unittest.TestCase):
 
         self.assertEqual(1, mock.call_count)
 
+    def test_exception_stops_but_does_not_crash(self):
+        mock = Mock()
+
+        def _dummy_thread_fn(ctx: ThreadContext):
+            raise Exception
+
+        tw = ThreadWrapper(_dummy_thread_fn)
+        tw.on_stopped(mock)
+
+        tw.start()
+        time.sleep(0.1)
+
+        tw.start()
+        time.sleep(0.1)
+
+        tw.exit()
+        self.assertEqual(2, mock.call_count)
+
     def test_exited_thread_can_not_be_restarted(self):
         tw = ThreadWrapper(lambda x: None)
 
         tw.exit()
         self.assertRaises(AssertionError, tw.start)
+
+    def test_sleep_can_be_interrupted(self):
+        tw = ThreadWrapper(lambda ctx: ctx.sleep(10000))
+        start_time = time.time()
+        tw.start()
+        time.sleep(0.1)
+        tw.exit()
+        end_time = time.time()
+        self.assertLess(end_time - start_time, 2)
