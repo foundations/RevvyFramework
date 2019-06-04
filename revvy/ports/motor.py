@@ -19,6 +19,9 @@ class MotorPortHandler(PortHandler):
     def _get_port_types(self):
         return self._interface.get_motor_port_types()
 
+    def _set_port_type(self, port, port_type):
+        self.interface.set_motor_port_type(port, port_type)
+
     def reset(self):
         super().reset()
         self._ports = [MotorPortInstance(i, self, self._robot) for i in range(self.port_count)]

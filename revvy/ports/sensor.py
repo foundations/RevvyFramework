@@ -15,6 +15,9 @@ class SensorPortHandler(PortHandler):
     def _get_port_amount(self):
         return self._interface.get_sensor_port_amount()
 
+    def _set_port_type(self, port, port_type):
+        self.interface.set_sensor_port_type(port, port_type)
+
     def reset(self):
         super().reset()
         self._ports = [SensorPortInstance(i, self, self._robot) for i in range(self.port_count)]

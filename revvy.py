@@ -121,7 +121,7 @@ def main():
 
     default_config.sensors[1] = "HC_SR04"
     default_config.sensors[2] = "BumperSwitch"
-    default_config.controller.analog.push({'channels': [0, 1], 'script': 'drivetrain_joystick'})
+    default_config.controller.analog.append({'channels': [0, 1], 'script': 'drivetrain_joystick'})
     default_config.controller.buttons[0] = 'toggle_ring_led'
 
     default_config.scripts['drivetrain_joystick'] = {'script': drive_joystick, 'priority': 0}

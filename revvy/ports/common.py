@@ -47,6 +47,7 @@ class PortHandler:
 
     def _get_port_types(self): raise NotImplementedError
     def _get_port_amount(self): raise NotImplementedError
+    def _set_port_type(self, port, port_type): raise NotImplementedError
 
 
 class PortInstance:
@@ -72,7 +73,7 @@ class PortInstance:
 
         new_driver_name = config['driver']
         print('PortInstance: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
-        self._owner.interface.set_motor_port_type(self._port_idx, self._owner.available_types[new_driver_name])
+        self._owner._set_port_type(self._port_idx, self._owner.available_types[new_driver_name])
 
         handler = self._handlers[new_driver_name](config['config'])
         self._driver = handler
