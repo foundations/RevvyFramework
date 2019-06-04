@@ -5,8 +5,8 @@ from json import JSONDecodeError
 
 motor_types = [
     ["NotConfigured", "NotConfigured"],
-    ["RevvyMotor", "RevvyMotor_CCW"],  # motor
-    ["RevvyMotor", "RevvyMotor_CCW"],  # drivetrain
+    ["RevvyMotor_CCW", "RevvyMotor"],  # motor
+    ["RevvyMotor_CCW", "RevvyMotor"],  # drivetrain
 ]
 motor_sides = ["left", "right"]
 

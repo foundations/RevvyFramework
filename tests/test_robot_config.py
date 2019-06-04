@@ -95,11 +95,11 @@ class TestRobotConfig(unittest.TestCase):
         config = RobotConfig.from_string(json)
 
         self.assertEqual("NotConfigured", config.motors[1])
-        self.assertEqual("RevvyMotor_CCW", config.motors[4])
-        self.assertEqual("RevvyMotor", config.motors[2])
-        self.assertEqual("RevvyMotor", config.motors[3])
-        self.assertEqual("RevvyMotor", config.motors[5])
-        self.assertEqual("RevvyMotor", config.motors[6])
+        self.assertEqual("RevvyMotor", config.motors[4])
+        self.assertEqual("RevvyMotor_CCW", config.motors[2])
+        self.assertEqual("RevvyMotor_CCW", config.motors[3])
+        self.assertEqual("RevvyMotor_CCW", config.motors[5])
+        self.assertEqual("RevvyMotor_CCW", config.motors[6])
 
         self.assertListEqual([2, 3], config.drivetrain['left'])
         self.assertListEqual([5, 6], config.drivetrain['right'])
