@@ -4,7 +4,7 @@ from revvy.configuration.version import Version
 from revvy.file_storage import StorageInterface, StorageError
 from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import RobotInterface, Direction, RPM
+from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import *
 import time
@@ -571,8 +571,7 @@ class RobotManager:
 
                 # set up scripts
                 self._scripts.reset()
-                self._scripts.assign('Direction', Direction)
-                self._scripts.assign('RPM', RPM)
+                self._scripts.assign('Motor', MotorConstants)
                 self._scripts.assign('RingLed', RingLed)
                 for name in config.scripts.keys():
                     self._scripts.add_script(name, config.scripts[name]['script'], config.scripts[name]['priority'])

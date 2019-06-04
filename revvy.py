@@ -36,15 +36,6 @@ def toggle_ring_led(args):
             args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
 
 
-test_drivetrain = """
-robot.drive(Direction.FORWARD, 5)
-time.sleep(3)
-robot.drive(Direction.FORWARD, 5, RPM(450))
-time.sleep(3)
-robot.drive(Direction.RIGHT, 5)
-"""
-
-
 def test_position_control(args):
     robot = args['robot']
     print('moving to 720')
@@ -132,12 +123,10 @@ def main():
     default_config.sensors[2] = "BumperSwitch"
     default_config.controller.analog.push({'channels': [0, 1], 'script': 'drivetrain_joystick'})
     default_config.controller.buttons[0] = 'toggle_ring_led'
-    default_config.controller.buttons[1] = 'test_position_control'
 
     default_config.scripts['drivetrain_joystick'] = {'script': drive_joystick, 'priority': 0}
     default_config.scripts['drivetrain_2sticks'] = {'script': drive_2sticks, 'priority': 0}
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
-    default_config.scripts['test_position_control'] = {'script': test_drivetrain, 'priority': 1}
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         startRevvy(robot_interface, default_config)
