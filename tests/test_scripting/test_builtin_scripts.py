@@ -26,11 +26,11 @@ class TestJoystickScripts(unittest.TestCase):
 
         args = {'robot': robot, 'input': [127, 255]}
         drive_joystick(args)
-        self.assertEqual((-900, 900), mock.call_args[0])
+        self.assertEqual((900, 900), mock.call_args[0])
 
         args = {'robot': robot, 'input': [127, 0]}
         drive_joystick(args)
-        self.assertEqual((900, -900), mock.call_args[0])
+        self.assertEqual((-900, -900), mock.call_args[0])
 
 
 class TestStickDriveScripts(unittest.TestCase):
@@ -55,8 +55,8 @@ class TestStickDriveScripts(unittest.TestCase):
 
         args = {'robot': robot, 'input': [127, 255]}
         drive_joystick(args)
-        self.assertEqual((-900, 900), mock.call_args[0])
+        self.assertEqual((900, 900), mock.call_args[0])
 
         args = {'robot': robot, 'input': [127, 0]}
         drive_joystick(args)
-        self.assertEqual((900, -900), mock.call_args[0])
+        self.assertEqual((-900, -900), mock.call_args[0])

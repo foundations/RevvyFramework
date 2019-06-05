@@ -18,13 +18,13 @@ def joystick(x, y):
     >>> joystick(0, 0)
     (0.0, 0.0)
     >>> joystick(0, 1)
-    (-1.0, 1.0)
-    >>> joystick(0, -1)
-    (1.0, -1.0)
-    >>> joystick(1, 0)
-    (-1.0, -1.0)
-    >>> joystick(-1, 0)
     (1.0, 1.0)
+    >>> joystick(0, -1)
+    (-1.0, -1.0)
+    >>> joystick(1, 0)
+    (1.0, -1.0)
+    >>> joystick(-1, 0)
+    (-1.0, 1.0)
     """
 
     if x == y == 0:
@@ -36,6 +36,6 @@ def joystick(x, y):
     v = length * math.cos(angle)
     w = length * math.sin(angle)
 
-    sr = round(+(v + w), 3)
-    sl = round(-(v - w), 3)
+    sr = round(v + w, 3)
+    sl = round(v - w, 3)
     return sl, sr

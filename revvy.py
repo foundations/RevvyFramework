@@ -87,15 +87,91 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     sys.exit(1)
 
 
+motor_test_spin = '''
+robot.motors[1].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[2].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[3].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[4].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[5].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[6].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+'''
+
+
+motor_test_move_sec = '''
+while True:
+    robot.motors[1].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
+    robot.motors[2].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
+    robot.motors[3].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
+    robot.motors[4].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
+    robot.motors[5].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
+    robot.motors[6].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
+'''
+
+
+motor_test_move_deg = '''
+while True:
+    robot.motors[1].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[2].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[3].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[4].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[5].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[6].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+'''
+
+
+motor_test_move_rot = '''
+while True:
+    robot.motors[1].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[2].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[3].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[4].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[5].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+    robot.motors[6].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+'''
+
+
+motor_test_stop = '''
+robot.motors[1].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[2].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[3].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[4].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[5].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[6].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+time.sleep(3)
+
+robot.stop_all_motors(Motor.ACTION_RELEASE)
+time.sleep(3)
+
+robot.motors[1].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[2].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[3].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[4].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[5].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+robot.motors[6].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+time.sleep(3)
+
+robot.stop_all_motors(Motor.ACTION_STOP_AND_HOLD)
+'''
+
+
+motor_test = '''
+while True:
+    robot.drive(direction=Motor.DIRECTION_RIGHT, rotation=1, unit_rotation=Motor.UNIT_SEC, speed=20, unit_speed=Motor.UNIT_SPEED_PWR)
+    time.sleep(1)
+    robot.drive(direction=Motor.DIRECTION_LEFT, rotation=1, unit_rotation=Motor.UNIT_SEC, speed=20, unit_speed=Motor.UNIT_SPEED_PWR)
+    time.sleep(1)
+'''
+
+
 def main():
 
     default_config = RobotConfig()
-    default_config.motors[1] = "RevvyMotor_CCW"
-    default_config.motors[2] = "RevvyMotor_CCW"
-    default_config.motors[3] = "RevvyMotor_CCW"
-    default_config.motors[4] = "RevvyMotor_CCW"
-    default_config.motors[5] = "RevvyMotor_CCW"
-    default_config.motors[6] = "RevvyMotor_CCW"
+    default_config.motors[1] = "RevvyMotor"
+    default_config.motors[2] = "RevvyMotor"
+    default_config.motors[3] = "RevvyMotor"
+    default_config.motors[4] = "RevvyMotor"
+    default_config.motors[5] = "RevvyMotor"
+    default_config.motors[6] = "RevvyMotor"
 
     default_config.drivetrain['left'] = [2, 3]
     default_config.drivetrain['right'] = [5, 6]
@@ -108,6 +184,9 @@ def main():
     default_config.scripts['drivetrain_joystick'] = {'script': drive_joystick, 'priority': 0}
     default_config.scripts['drivetrain_2sticks'] = {'script': drive_2sticks, 'priority': 0}
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
+    default_config.scripts['motor_test'] = {'script': motor_test, 'priority': 0}
+
+    # default_config.background_scripts.append('motor_test')
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         startRevvy(robot_interface, default_config)
