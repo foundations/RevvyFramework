@@ -93,10 +93,16 @@ class MotorPortWrapper(Wrapper):
             if resource:
                 try:
                     if unit_limit == MotorConstants.UNIT_SPEED_RPM:
+                        if direction == MotorConstants.DIR_CCW:
+                            limit *= -1
+
                         limit = rpm2dps(limit)
                         resource.run(lambda: self._motor.set_speed(limit))
                     elif unit_limit == MotorConstants.UNIT_SPEED_PWR:
-                        resource.run(lambda: self._motor.set_speed(900, power_limit=limit))
+                        if direction == MotorConstants.DIR_CCW:
+                            resource.run(lambda: self._motor.set_speed(-900, power_limit=limit))
+                        else:
+                            resource.run(lambda: self._motor.set_speed(900, power_limit=limit))
                     else:
                         raise ValueError
 
