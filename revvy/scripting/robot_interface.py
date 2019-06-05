@@ -73,6 +73,7 @@ class MotorPortWrapper(Wrapper):
             resource = self.try_take('motor_{}'.format(self._motor.id))
             if resource:
                 try:
+                    print("Rotating {} degrees".format(amount))
                     if unit_limit == MotorConstants.UNIT_SPEED_RPM:
                         limit = rpm2dps(limit)
                         resource.run(lambda: self._motor.set_position(amount, speed_limit=limit, pos_type='relative'))
@@ -82,6 +83,7 @@ class MotorPortWrapper(Wrapper):
                         raise ValueError
 
                     # wait for movement to finish
+                    self.sleep(0.2)
                     while not resource.is_interrupted and self._motor.is_moving:
                         self.sleep(0.2)
                 finally:
