@@ -16,7 +16,7 @@ class TimeWrapper:
 
 class ScriptHandle:
     def __init__(self, script, name, global_variables: dict):
-        self._globals = global_variables
+        self._globals = dict(global_variables)
         self._thread = None
         self._thread_name = name
 
