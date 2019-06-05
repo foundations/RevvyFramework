@@ -53,12 +53,8 @@ class ScriptHandle:
         })
 
     def sleep(self, s):
-        print("Sleeping for {}s".format(s))
         if self._thread is not None:
             self._thread.sleep(s)
-        else:
-            print('Can not sleep thread: {}'.format(self._thread_name))
-            traceback.print_stack()
 
     def start(self):
         self._get_thread_object().start()
