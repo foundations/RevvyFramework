@@ -60,7 +60,7 @@ class BaseMotorController:
     @property
     def is_moving(self):
         # FIXME probably not really reliable
-        return math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 50
+        return not (math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 20)
 
     def uninitialize(self):
         self._handler.uninitialize()
@@ -80,7 +80,6 @@ class DcMotorController(BaseMotorController):
         self.apply_configuration()
 
     def set_speed_limit(self, limit):
-
         prev_limit = self._config['position_controller'][4]
         if limit != prev_limit:
             self._config['position_controller'][3] = -limit
@@ -130,6 +129,7 @@ class DcMotorController(BaseMotorController):
         self._interface.set_motor_port_config(self._port_idx, config)
 
     def set_speed(self, speed, power_limit=None):
+        print('Motor::set_speed')
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
@@ -140,6 +140,7 @@ class DcMotorController(BaseMotorController):
         self._interface.set_motor_port_control_value(self._port_idx, [1] + control)
 
     def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute'):
+        print('Motor::set_position')
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
@@ -160,6 +161,7 @@ class DcMotorController(BaseMotorController):
             raise ValueError('Unknown position type {}'.format(pos_type))
 
     def set_power(self, power):
+        print('Motor::set_power')
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
