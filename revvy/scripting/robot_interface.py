@@ -42,6 +42,16 @@ class SensorPortWrapper(Wrapper):
         return self._sensor.value
 
 
+def rpm2dps(rpm):
+    """
+    >>> rpm2dps(1)
+    6
+    >>> rpm2dps(60)
+    360
+    """
+    return rpm * 6
+
+
 class MotorPortWrapper(Wrapper):
     """Wrapper class to expose motor ports to user scripts"""
     def __init__(self, robot, motor: MotorPortInstance, resources: dict, priority=0):
@@ -64,6 +74,7 @@ class MotorPortWrapper(Wrapper):
             if resource:
                 try:
                     if unit_limit == MotorConstants.UNIT_SPEED_RPM:
+                        limit = rpm2dps(limit)
                         resource.run(lambda: self._motor.set_position(amount, speed_limit=limit, pos_type='relative'))
                     elif unit_limit == MotorConstants.UNIT_SPEED_PWR:
                         resource.run(lambda: self._motor.set_position(amount, power_limit=limit, pos_type='relative'))
@@ -103,6 +114,7 @@ class MotorPortWrapper(Wrapper):
         if resource:
             try:
                 if unit_rotation == MotorConstants.UNIT_SPEED_RPM:
+                    rotation = rpm2dps(rotation)
                     if direction == MotorConstants.DIR_CCW:
                         rotation *= -1
 
