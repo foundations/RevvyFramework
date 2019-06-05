@@ -3,11 +3,9 @@
 # create manifest file containing the version and individual file checksum values
 # start using 'python -m tools.generate_manifest' from the root directory
 import json
-from os import listdir, path
+from datetime import datetime
 from hashlib import md5
-
-from datetime import date, datetime
-
+from os import listdir, path
 from revvy.fw_version import FRAMEWORK_VERSION
 
 
@@ -26,7 +24,7 @@ prefix = path.join(path.dirname(path.realpath(path.join(__file__, '..'))), '')
 
 hashes = {}
 
-sources = ['revvy/', 'revvy.py', 'fw_version.py']
+sources = ['revvy/', 'revvy.py']
 for source in sources:
     for file in find_files(source):
         if file.startswith(prefix) and file.endswith('.py'):
