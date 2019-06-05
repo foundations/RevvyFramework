@@ -1,24 +1,28 @@
 #!/usr/bin/python3
 import os
 
-file = "revvy/fw_version.py"
-template = """
-# This file is generated before each commit
-FRAMEWORK_VERSION = "0.1-r{{VERSION}}"
-"""
 
-version = os.popen('git rev-list --count HEAD').read()
-version = version.strip()
+def gen_version(out_file):
+    template = '# This file is generated before each commit\n' \
+               'FRAMEWORK_VERSION = "0.1-r{{VERSION}}"\n'
 
-branch = os.popen('git rev-parse --abbrev-ref HEAD').read()
-branch = branch.strip()
+    version = os.popen('git rev-list --count HEAD').read()
+    version = version.strip()
 
-if branch != 'master':
-    template = template.replace('{{VERSION}}', '{{VERSION}}-{{BRANCH}}')
+    branch = os.popen('git rev-parse --abbrev-ref HEAD').read()
+    branch = branch.strip()
 
-print("Generating version file for revision {}".format(version))
+    if branch != 'master':
+        template = template.replace('{{VERSION}}', '{{VERSION}}-{{BRANCH}}')
 
-with open(file, 'w') as out:
-    out.write(template.replace("{{BRANCH}}", branch).replace("{{VERSION}}", version))
+    print("Generating version file for revision {}".format(version))
 
-os.popen('git add {}'.format(file)).read()
+    with open(out_file, 'w') as out:
+        out.write(template.replace("{{BRANCH}}", branch).replace("{{VERSION}}", version))
+
+    os.popen('git add {}'.format(out_file)).read()
+
+
+if __name__ == "__main__":
+    file = "revvy/fw_version.py"
+    gen_version(file)
