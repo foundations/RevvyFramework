@@ -53,7 +53,7 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
     def on_message_updated(storage, message_type):
         print('Received message: {}'.format(message_type))
-        message_data = storage.get_long_message(message_type)
+        message_data = storage.get_long_message(message_type).decode()
 
         if message_type == LongMessageType.TEST_KIT:
             print('Running test script: {}'.format(message_data))
