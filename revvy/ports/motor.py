@@ -60,7 +60,7 @@ class BaseMotorController:
     @property
     def is_moving(self):
         # FIXME probably not really reliable
-        return not (math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 20)
+        return not (math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80)
 
     def uninitialize(self):
         self._handler.uninitialize()

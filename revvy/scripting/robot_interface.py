@@ -238,6 +238,7 @@ class DriveTrainWrapper(Wrapper):
             if resource:
                 try:
                     if unit_speed == MotorConstants.UNIT_SPEED_RPM:
+                        speed = rpm2dps(speed)
                         resource.run(lambda: self._drivetrain.move(left_degrees, right_degrees, speed, speed))
                     elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
                         resource.run(lambda: self._drivetrain.move(left_degrees, right_degrees, power_limit=speed))
@@ -245,6 +246,7 @@ class DriveTrainWrapper(Wrapper):
                         raise ValueError
 
                     # wait for movement to finish
+                    self.sleep(0.2)
                     while not resource.is_interrupted and self._drivetrain.is_moving:
                         self.sleep(0.2)
                 finally:
@@ -256,9 +258,41 @@ class DriveTrainWrapper(Wrapper):
             if resource:
                 try:
                     if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-                        resource.run(lambda: self._drivetrain.set_speeds(speed, speed))
+
+                        if direction == MotorConstants.DIRECTION_FWD:
+                            left = rpm2dps(speed)
+                            right = rpm2dps(speed)
+                        elif direction == MotorConstants.DIRECTION_BACK:
+                            left = -rpm2dps(speed)
+                            right = -rpm2dps(speed)
+                        elif direction == MotorConstants.DIRECTION_RIGHT:
+                            left = rpm2dps(speed)
+                            right = -rpm2dps(speed)
+                        elif direction == MotorConstants.DIRECTION_LEFT:
+                            left = -rpm2dps(speed)
+                            right = rpm2dps(speed)
+                        else:
+                            raise ValueError
+
+                        resource.run(lambda: self._drivetrain.set_speeds(left, right))
                     elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-                        resource.run(lambda: self._drivetrain.set_speeds(900, 900, power_limit=speed))
+
+                        if direction == MotorConstants.DIRECTION_FWD:
+                            left = 900
+                            right = 900
+                        elif direction == MotorConstants.DIRECTION_BACK:
+                            left = -900
+                            right = -900
+                        elif direction == MotorConstants.DIRECTION_RIGHT:
+                            left = 900
+                            right = -900
+                        elif direction == MotorConstants.DIRECTION_LEFT:
+                            left = -900
+                            right = 900
+                        else:
+                            raise ValueError
+
+                        resource.run(lambda: self._drivetrain.set_speeds(left, right, power_limit=speed))
                     else:
                         raise ValueError
 
