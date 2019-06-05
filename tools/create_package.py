@@ -29,5 +29,13 @@ if __name__ == "__main__":
     mf_sources = ['revvy/', 'revvy.py']
     gen_manifest(mf_sources, 'manifest.json')
 
-    package_sources = ['revvy/', 'data/', 'install/requirements.txt', 'install/packages/', 'revvy.py', 'manifest.json']
+    package_sources = [
+        'revvy/',
+        'data/',
+        'install/requirements.txt',
+        'install/packages/',
+        'revvy.py',
+        '__init__.py',
+        'manifest.json'
+    ]
     create_package(package_sources, 'install/package.tar.gz')
