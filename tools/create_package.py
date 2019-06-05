@@ -1,9 +1,10 @@
 import tarfile
 import os
+import shutil
 from os import path
 
+from revvy.fw_version import FRAMEWORK_VERSION
 from tools.common import find_files
-from tools.gen_version import gen_version
 from tools.generate_manifest import gen_manifest
 
 
@@ -24,8 +25,6 @@ def create_package(sources, output):
 
 
 if __name__ == "__main__":
-    gen_version('revvy/fw_version.py')
-
     mf_sources = ['revvy/', 'revvy.py']
     gen_manifest(mf_sources, 'manifest.json')
 
@@ -38,4 +37,7 @@ if __name__ == "__main__":
         '__init__.py',
         'manifest.json'
     ]
-    create_package(package_sources, 'install/package.tar.gz')
+    create_package(package_sources, 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION))
+
+    print('Remove downloaded packages')
+    shutil.rmtree('install/packages')
