@@ -1,3 +1,3 @@
 
 # This file is generated before each commit
-FRAMEWORK_VERSION = "0.1-r321"
+FRAMEWORK_VERSION = "0.1-r323"

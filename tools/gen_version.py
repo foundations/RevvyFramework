@@ -20,3 +20,5 @@ print("Generating version file for revision {}".format(version))
 
 with open(file, 'w') as out:
     out.write(template.replace("{{BRANCH}}", branch).replace("{{VERSION}}", version))
+
+os.popen('git add {}'.format(file)).read()
