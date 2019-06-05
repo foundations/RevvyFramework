@@ -546,7 +546,7 @@ class RobotManager:
                 self._scripts.reset()
                 self._scripts.assign('Motor', MotorConstants)
                 self._scripts.assign('RingLed', RingLed)
-                for name in config.scripts.keys():
+                for name in config.scripts:
                     self._scripts.add_script(name, config.scripts[name]['script'], config.scripts[name]['priority'])
 
                 # set up remote controller

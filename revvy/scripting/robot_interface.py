@@ -1,5 +1,3 @@
-import time
-
 from revvy.functions import hex2rgb
 from revvy.ports.motor import MotorPortInstance, MotorPortHandler
 from revvy.ports.sensor import SensorPortInstance, SensorPortHandler
@@ -17,6 +15,9 @@ class Wrapper:
 
     def try_take(self, resource_name):
         return self._resources[resource_name].request(self._priority)
+
+    def sleep(self, s):
+        self._robot._script.sleep(s)
 
     def using_resource(self, resource_name, callback):
         resource = self.try_take(resource_name)
@@ -71,7 +72,7 @@ class MotorPortWrapper(Wrapper):
 
                     # wait for movement to finish
                     while not resource.is_interrupted and self._motor.is_moving:
-                        time.sleep(0.2)
+                        self.sleep(0.2)
                 finally:
                     resource.release()
 
@@ -81,13 +82,14 @@ class MotorPortWrapper(Wrapper):
             if resource:
                 try:
                     if unit_limit == MotorConstants.UNIT_SPEED_RPM:
+                        limit = rpm2dps(limit)
                         resource.run(lambda: self._motor.set_speed(limit))
                     elif unit_limit == MotorConstants.UNIT_SPEED_PWR:
                         resource.run(lambda: self._motor.set_speed(900, power_limit=limit))
                     else:
                         raise ValueError
 
-                    time.sleep(amount)
+                    self.sleep(amount)
 
                     resource.run(lambda: self._motor.set_speed(0))
                 finally:
@@ -224,7 +226,7 @@ class DriveTrainWrapper(Wrapper):
 
                     # wait for movement to finish
                     while not resource.is_interrupted and self._drivetrain.is_moving:
-                        time.sleep(0.2)
+                        self.sleep(0.2)
                 finally:
                     resource.release()
 
@@ -240,7 +242,7 @@ class DriveTrainWrapper(Wrapper):
                     else:
                         raise ValueError
 
-                    time.sleep(rotation)
+                    self.sleep(rotation)
 
                     resource.run(lambda: self._drivetrain.set_speeds(0, 0))
                 finally:
