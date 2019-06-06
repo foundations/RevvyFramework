@@ -9,7 +9,7 @@ import os
 
 from revvy.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
-from revvy.functions import getserial
+from revvy.functions import getserial, play_sound
 from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
 from revvy.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.scripting.builtin_scripts import drive_2sticks, drive_joystick
@@ -37,13 +37,19 @@ def toggle_ring_led(args):
 def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     # prepare environment
     directory = os.path.dirname(os.path.realpath(__file__))
+    data_dir = os.path.join(directory, '..', '..', 'data')
     serial = getserial()
 
     print('Revvy run from {} ({})'.format(directory, __file__))
 
-    dnp = DeviceNameProvider(FileStorage('../../data/device'), lambda: 'Revvy_{}'.format(serial.lstrip('0')))
+    device_storage = FileStorage(os.path.join(data_dir, 'device'))
+    ble_storage = FileStorage(os.path.join(data_dir, 'ble'))
+
+    play_sound(os.path.join(data_dir, 'assets', 'startup.mp3'))
+
+    dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
-    long_message_handler = LongMessageHandler(LongMessageStorage(FileStorage("../../data/ble"), MemoryStorage()))
+    long_message_handler = LongMessageHandler(LongMessageStorage(ble_storage, MemoryStorage()))
 
     ble = RevvyBLE(device_name, serial, long_message_handler)
 
@@ -171,7 +177,6 @@ while True:
 
 
 def main():
-
     default_config = RobotConfig()
     default_config.motors[1] = "RevvyMotor"
     default_config.motors[2] = "RevvyMotor"
