@@ -4,10 +4,9 @@
 # start using 'python -m tools.generate_manifest' from the root directory
 import json
 from datetime import datetime
-from hashlib import md5
 from os import path
 from revvy.fw_version import FRAMEWORK_VERSION
-from tools.common import find_files
+from tools.common import find_files, file_hash
 
 
 def gen_manifest(sources, output):
@@ -20,10 +19,7 @@ def gen_manifest(sources, output):
         for file in find_files(source):
             if file.startswith(prefix) and file.endswith('.py'):
                 filename = file[len(prefix):].replace(path.sep, '/')
-                hash_fn = md5()
-                with open(file, "rb") as f:
-                    hash_fn.update(f.read())
-                checksum = hash_fn.hexdigest()
+                checksum = file_hash(file)
                 print('Add file to manifest: {} (checksum: {})'.format(filename, checksum))
                 hashes[filename] = checksum
 
