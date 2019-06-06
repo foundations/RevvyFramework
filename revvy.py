@@ -26,10 +26,12 @@ mcu_features = {
 
 def toggle_ring_led(args):
     if args['robot']._ring_led:
-        if args['robot']._ring_led.scenario == RingLed.ColorWheel:
-            args['robot']._ring_led.set_scenario(RingLed.Off)
-        else:
+        if args['robot']._ring_led.scenario == RingLed.Off:
             args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
+        elif args['robot']._ring_led.scenario == RingLed.ColorWheel:
+            args['robot']._ring_led.set_scenario(RingLed.ColorFade)
+        else:
+            args['robot']._ring_led.set_scenario(RingLed.Off)
 
 
 def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):

@@ -133,6 +133,7 @@ class RingLed:
     Off = 0
     UserFrame = 1
     ColorWheel = 2
+    ColorFade = 3
 
     def __init__(self, interface: RevvyControl):
         self._interface = interface
