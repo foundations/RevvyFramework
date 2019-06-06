@@ -18,6 +18,7 @@ from revvy.rrrc_transport import *
 from revvy.robot_config import *
 import sys
 
+from tools.check_manifest import check_manifest
 
 mcu_features = {
 }
@@ -193,4 +194,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if check_manifest('manifest.json'):
+        main()
+    else:
+        sys.exit(2)
