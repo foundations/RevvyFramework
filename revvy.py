@@ -40,7 +40,6 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     serial = getserial()
 
     print('Revvy run from {} ({})'.format(directory, __file__))
-    os.chdir(directory)
 
     dnp = DeviceNameProvider(FileStorage('./data/device'), lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
@@ -196,7 +195,9 @@ def main():
 
 
 if __name__ == "__main__":
-    if check_manifest('manifest.json'):
+    directory = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(directory)
+    if check_manifest(os.path.join(directory, 'manifest.json')):
         main()
     else:
         sys.exit(2)
