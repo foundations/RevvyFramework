@@ -6,7 +6,7 @@ import shutil
 from os import path
 
 from revvy.fw_version import FRAMEWORK_VERSION
-from tools.common import find_files
+from tools.common import find_files, file_hash
 from tools.generate_manifest import gen_manifest
 
 
@@ -27,19 +27,23 @@ def create_package(sources, output):
 
 
 if __name__ == "__main__":
-    mf_sources = ['revvy/', 'revvy.py']
+    mf_sources = ['revvy/', 'tools/', 'revvy.py']
     gen_manifest(mf_sources, 'manifest.json')
 
     package_sources = [
         'revvy/',
-        'data/',
         'install/requirements.txt',
         'install/packages/',
         'revvy.py',
         '__init__.py',
+        'tools',
         'manifest.json'
     ]
-    create_package(package_sources, 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION))
+    package_path = 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION)
+    create_package(package_sources, package_path)
 
     print('Remove downloaded packages')
     shutil.rmtree('install/packages')
+
+    print('Package created: {}'.format(package_path))
+    print('Package checksum: {}'.format(file_hash(package_path)))

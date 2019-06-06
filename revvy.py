@@ -41,9 +41,9 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
     print('Revvy run from {} ({})'.format(directory, __file__))
 
-    dnp = DeviceNameProvider(FileStorage('./data/device'), lambda: 'Revvy_{}'.format(serial.lstrip('0')))
+    dnp = DeviceNameProvider(FileStorage('../../data/device'), lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
-    long_message_handler = LongMessageHandler(LongMessageStorage(FileStorage("./data/ble"), MemoryStorage()))
+    long_message_handler = LongMessageHandler(LongMessageStorage(FileStorage("../../data/ble"), MemoryStorage()))
 
     ble = RevvyBLE(device_name, serial, long_message_handler)
 
