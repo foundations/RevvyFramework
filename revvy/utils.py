@@ -368,6 +368,7 @@ class RobotManager:
         self._resources = {}
         self._config = RobotConfig()
 
+        self._update_requested = False
         self._status = self.StatusStartingUp
 
     @property
@@ -381,6 +382,13 @@ class RobotManager:
     @property
     def config(self):
         return self._config
+
+    @property
+    def update_requested(self):
+        return self._update_requested
+
+    def request_update(self):
+        self._update_requested = True
 
     def _on_controller_message_received(self, message):
         self._remote_controller_scheduler.data_ready(message)

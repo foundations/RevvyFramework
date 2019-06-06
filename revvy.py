@@ -67,26 +67,31 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
             if config is not None:
                 # robot.configure(config)
                 pass
+        elif message_type == LongMessageType.FRAMEWORK_DATA:
+            robot.request_update()
 
     device_name.subscribe(on_device_name_changed)
     long_message_handler.on_message_updated(on_message_updated)
 
+    # noinspection PyBroadException
     try:
         robot.start()
-        print("Press enter to exit")
-        input()
-    except KeyboardInterrupt:
-        pass
-    except EOFError:
-        # Running as a service will end up here as stdin is empty.
-        while True:
+        print("Press Ctrl-C to exit")
+        while not robot.update_requested:
             time.sleep(1)
+        # exit due to update request
+        ret_val = 3
+    except KeyboardInterrupt:
+        # manual exit
+        ret_val = 0
+    except Exception:
+        ret_val = 1
     finally:
         print('stopping')
         robot.stop()
 
     print('terminated.')
-    sys.exit(1)
+    return ret_val
 
 
 motor_test_spin = '''
@@ -191,13 +196,13 @@ def main():
     # default_config.background_scripts.append('motor_test')
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
-        startRevvy(robot_interface, default_config)
+        return startRevvy(robot_interface, default_config)
 
 
 if __name__ == "__main__":
     directory = os.path.dirname(os.path.realpath(__file__))
     os.chdir(directory)
     if check_manifest(os.path.join(directory, 'manifest.json')):
-        main()
+        sys.exit(main())
     else:
         sys.exit(2)
