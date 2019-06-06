@@ -1,3 +1,5 @@
+# start using 'python -m tools.create_package' from the root directory
+
 import tarfile
 import os
 import shutil
