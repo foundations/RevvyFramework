@@ -7,7 +7,6 @@ amp_en = gpiozero.LED(22)
 
 def setup_sound():
     subprocess.Popen("gpio -g mode 13 alt0", stdout=subprocess.PIPE, shell=True).wait()
-    # subprocess.Popen("gpio -g mode 18 alt5", stdout=subprocess.PIPE, shell=True).wait()
 
 
 def play_sound(sound):

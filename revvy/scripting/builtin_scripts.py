@@ -18,8 +18,6 @@ def drive(args, controller):
     robot = args['robot']
     channels = args['input']
 
-    print(repr(channels))
-
     x = normalize_analog(channels[0])
     y = normalize_analog(channels[1])
 
