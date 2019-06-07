@@ -4,7 +4,8 @@ from json import JSONDecodeError
 
 
 motor_types = [
-    ["NotConfigured", "NotConfigured"],
+    # left             right
+    ["NotConfigured",  "NotConfigured"],
     ["RevvyMotor_CCW", "RevvyMotor"],  # motor
     ["RevvyMotor_CCW", "RevvyMotor"],  # drivetrain
 ]
@@ -13,9 +14,9 @@ motor_sides = ["left", "right"]
 sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch"]
 
 
-class MotorConfig:
+class PortConfig:
     def __init__(self):
-        self._motors = {}
+        self._ports = {}
         self._port_names = {}
 
     @property
@@ -23,26 +24,10 @@ class MotorConfig:
         return self._port_names
 
     def __getitem__(self, item):
-        return self._motors.get(item, "NotConfigured")
+        return self._ports.get(item, "NotConfigured")
 
     def __setitem__(self, item, value):
-        self._motors[item] = value
-
-
-class SensorConfig:
-    def __init__(self):
-        self._sensors = {}
-        self._port_names = {}
-
-    @property
-    def names(self):
-        return self._port_names
-
-    def __getitem__(self, item):
-        return self._sensors.get(item, "NotConfigured")
-
-    def __setitem__(self, item, value):
-        self._sensors[item] = value
+        self._ports[item] = value
 
 
 class RemoteControlConfig:
@@ -106,9 +91,9 @@ class RobotConfig:
             return None
 
     def __init__(self):
-        self.motors = MotorConfig()
+        self.motors = PortConfig()
         self.drivetrain = {'left': [], 'right': []}
-        self.sensors = SensorConfig()
+        self.sensors = PortConfig()
         self.controller = RemoteControlConfig()
         self.scripts = {}
         self.background_scripts = []

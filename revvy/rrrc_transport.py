@@ -87,17 +87,10 @@ def crc7(data, crc=0xFF):
 
 
 class RevvyTransportInterface:
-    def read(self, length):
-        raise NotImplementedError()
-
-    def write(self, data):
-        raise NotImplementedError()
-
-    def write_and_read(self, data, read_length):
-        raise NotImplementedError()
-
-    def close(self):
-        raise NotImplementedError()
+    def read(self, length): raise NotImplementedError()
+    def write(self, data): raise NotImplementedError()
+    def write_and_read(self, data, read_length): raise NotImplementedError()
+    def close(self): raise NotImplementedError()
 
 
 class CommandHeader:
@@ -136,8 +129,7 @@ class CommandHeader:
 
 
 class Command:
-    def get_bytes(self):
-        raise NotImplementedError()
+    def get_bytes(self): raise NotImplementedError()
 
 
 class CommandStart(Command):

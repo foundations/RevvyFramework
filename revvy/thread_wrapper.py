@@ -12,7 +12,6 @@ class ThreadWrapper:
     def __init__(self, func, name="WorkerThread"):
         self._exiting = False
         self._name = name
-        self._stopping = False
         self._func = func
         self._stopped_callback = lambda: None
         self._stop_requested_callback = lambda: None
@@ -34,6 +33,7 @@ class ThreadWrapper:
 
                 print('{}: stopped'.format(self._name))
                 self._stopped_callback()
+            self._stop_event.clear()
             self._control.clear()
 
     def sleep(self, s):
@@ -42,19 +42,16 @@ class ThreadWrapper:
 
     @property
     def stopping(self):
-        return self._stopping
+        return self._stop_event.is_set()
 
     def start(self):
         if self._exiting:
             raise AssertionError("Can't restart thread")
         print("{}: starting".format(self._name))
-        self._stopping = False
-        self._stop_event.clear()
         self._control.set()
 
     def stop(self):
         print("{}: stopping".format(self._name))
-        self._stopping = True
         self._stop_event.set()
         self._stop_requested_callback()
 
