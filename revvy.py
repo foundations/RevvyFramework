@@ -188,6 +188,13 @@ while True:
 '''
 
 
+button_sound_test = '''
+while True:
+    if robot.sensors[2].read() == 1:
+        robot.play_tune('cheer')
+'''
+
+
 def main():
     default_config = RobotConfig()
     default_config.motors[1] = "RevvyMotor"
@@ -211,8 +218,9 @@ def main():
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
     default_config.scripts['motor_test'] = {'script': motor_test, 'priority': 0}
     default_config.scripts['sound_test'] = {'script': sound_test, 'priority': 0}
+    default_config.scripts['button_sound_test'] = {'script': button_sound_test, 'priority': 0}
 
-    # default_config.background_scripts.append('motor_test')
+    default_config.background_scripts.append('button_sound_test')
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         return startRevvy(robot_interface, default_config)
