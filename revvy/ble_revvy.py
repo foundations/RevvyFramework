@@ -130,8 +130,7 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
     def onWriteRequest(self, data, offset, without_response, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
-
-        if len(data) < self._minLength or len(data) > self._maxLength:
+        elif len(data) < self._minLength or len(data) > self._maxLength:
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         elif self._callbackFn(data):
             callback(Characteristic.RESULT_SUCCESS)
