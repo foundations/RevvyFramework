@@ -22,6 +22,10 @@ class StorageInterface:
     def read(self, filename): raise NotImplementedError
 
 
+def _hash(data):
+    return hashlib.md5(data).hexdigest()
+
+
 class MemoryStorage(StorageInterface):
     def __init__(self):
         self._entries = {}
@@ -34,7 +38,7 @@ class MemoryStorage(StorageInterface):
 
     def write(self, name, data, md5=None):
         if md5 is None:
-            md5 = hashlib.md5(data).hexdigest()
+            md5 = _hash(data)
 
         self._entries[name] = (md5, data)
 
@@ -42,7 +46,7 @@ class MemoryStorage(StorageInterface):
         metadata = self.read_metadata(name)
         data = self._entries[name][1]
 
-        if hashlib.md5(data).hexdigest() != metadata['md5']:
+        if _hash(data) != metadata['md5']:
             raise IntegrityError('Checksum')
         return data
 
@@ -88,7 +92,7 @@ class FileStorage(StorageInterface):
 
     def write(self, filename, data, md5=None):
         if md5 is None:
-            md5 = hashlib.md5(data).hexdigest()
+            md5 = _hash(data)
 
         with open(self._storage_file(filename), "wb") as data_file, open(self._meta_file(filename), "w") as meta_file:
             metadata = {
@@ -107,7 +111,7 @@ class FileStorage(StorageInterface):
                 data = data_file.read()
                 if len(data) != metadata['length']:
                     raise IntegrityError('Length')
-                if hashlib.md5(data).hexdigest() != metadata['md5']:
+                if _hash(data) != metadata['md5']:
                     raise IntegrityError('Checksum')
                 return data
         except IOError:
