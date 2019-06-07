@@ -352,36 +352,6 @@ class RevvyDeviceInformationService(BlenoPrimaryService):
         return self._named_characteristics[item]
 
 
-# BLE SIG battery service, that is differentiated via Characteristic Presentation Format
-class BatteryLevelCharacteristic(Characteristic):
-    def __init__(self, description, char_id):
-        super().__init__({
-            'uuid':        '2A19',
-            'properties':  ['read', 'notify'],
-            'value':       None,
-            'descriptors': [
-                Descriptor({
-                    'uuid':  '2901',
-                    'value': description.encode()
-                }),
-                Descriptor({
-                    'uuid':  '2904',
-                    'value': array.array('B', [0x04, 0x01, 0x27, 0xAD, 0x02, 0x00, char_id])
-                    # unsigned 8 bit, descriptor defined by RR
-                })
-            ]
-        })
-
-
-class BatteryService(BlenoPrimaryService):
-    def __init__(self, description, char_id):
-        super().__init__({
-            'uuid':            '180F',
-            'characteristics': [
-                BatteryLevelCharacteristic(description, char_id)
-            ]})
-
-
 # Custom battery service that contains 2 characteristics
 class CustomBatteryLevelCharacteristic(Characteristic):
     def __init__(self, uuid, description):
