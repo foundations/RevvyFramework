@@ -298,21 +298,6 @@ class VersionCharacteristic(Characteristic):
         self._version = version.encode("utf-8")
 
 
-class HardwareRevisionCharacteristic(VersionCharacteristic):
-    def __init__(self):
-        super().__init__('2A27')
-
-
-class FirmwareRevisionCharacteristic(VersionCharacteristic):
-    def __init__(self):
-        super().__init__('2A26')
-
-
-class SoftwareRevisionCharacteristic(VersionCharacteristic):
-    def __init__(self):
-        super().__init__('2A28')
-
-
 class SystemIdCharacteristic(Characteristic):
     def __init__(self, system_id: Observable):
         super().__init__({
@@ -341,9 +326,9 @@ class SystemIdCharacteristic(Characteristic):
 
 class RevvyDeviceInformationService(BlenoPrimaryService):
     def __init__(self, device_name: Observable, serial):
-        hw = HardwareRevisionCharacteristic()
-        fw = FirmwareRevisionCharacteristic()
-        sw = SoftwareRevisionCharacteristic()
+        hw = VersionCharacteristic('2A27')
+        fw = VersionCharacteristic('2A26')
+        sw = VersionCharacteristic('2A28')
 
         self._named_characteristics = {
             'hw_version': hw,
