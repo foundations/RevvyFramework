@@ -339,7 +339,7 @@ class SystemIdCharacteristic(Characteristic):
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
-class RevvyDeviceInforrmationService(BlenoPrimaryService):
+class RevvyDeviceInformationService(BlenoPrimaryService):
     def __init__(self, device_name: Observable, serial):
         self._hw_version_characteristic = HardwareRevisionCharacteristic()
         self._fw_version_characteristic = FirmwareRevisionCharacteristic()
@@ -461,7 +461,7 @@ class RevvyBLE:
 
         device_name.subscribe(self._device_name_changed)
 
-        self._deviceInformationService = RevvyDeviceInforrmationService(device_name, serial)
+        self._deviceInformationService = RevvyDeviceInformationService(device_name, serial)
         self._batteryService = CustomBatteryService()
         self._liveMessageService = LiveMessageService()
         self._longMessageService = LongMessageService(long_message_handler)
