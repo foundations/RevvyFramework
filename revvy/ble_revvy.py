@@ -341,29 +341,30 @@ class SystemIdCharacteristic(Characteristic):
 
 class RevvyDeviceInformationService(BlenoPrimaryService):
     def __init__(self, device_name: Observable, serial):
-        self._hw_version_characteristic = HardwareRevisionCharacteristic()
-        self._fw_version_characteristic = FirmwareRevisionCharacteristic()
-        self._sw_version_characteristic = SoftwareRevisionCharacteristic()
+        hw = HardwareRevisionCharacteristic()
+        fw = FirmwareRevisionCharacteristic()
+        sw = SoftwareRevisionCharacteristic()
+
+        self._named_characteristics = {
+            'hw_version': hw,
+            'fw_version': fw,
+            'sw_version': sw,
+        }
+
         super().__init__({
             'uuid':            '180A',
             'characteristics': [
                 SerialNumberCharacteristic(serial),
                 ManufacturerNameCharacteristic(b'RevolutionRobotics'),
                 ModelNumberCharacteristic(b"RevvyAlpha"),
-                self._hw_version_characteristic,
-                self._fw_version_characteristic,
-                self._sw_version_characteristic,
+                hw,
+                fw,
+                sw,
                 SystemIdCharacteristic(device_name),
             ]})
 
-    def update_hw_version(self, version):
-        self._hw_version_characteristic.update(version)
-
-    def update_fw_version(self, version):
-        self._fw_version_characteristic.update(version)
-
-    def update_sw_version(self, version):
-        self._sw_version_characteristic.update(version)
+    def __getitem__(self, item):
+        return self._named_characteristics[item]
 
 
 # BLE SIG battery service, that is differentiated via Characteristic Presentation Format

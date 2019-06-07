@@ -290,9 +290,9 @@ class RobotManager:
 
         print('MCU features: {}'.format(self._features))
 
-        self._ble['device_information_service'].update_hw_version(hw)
-        self._ble['device_information_service'].update_fw_version(fw)
-        self._ble['device_information_service'].update_sw_version(sw)
+        self._ble['device_information_service']['hw_version'].update(hw)
+        self._ble['device_information_service']['fw_version'].update(fw)
+        self._ble['device_information_service']['sw_version'].update(sw)
 
         # call reset to read port counts, types
         self._ring_led.reset()
