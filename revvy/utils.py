@@ -409,8 +409,7 @@ class RobotManager:
             retry_ping = False
             try:
                 self._robot.ping()
-            # TODO do NACK responses raise exceptions?
-            except (BrokenPipeError, IOError):
+            except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
 
         # start reader thread (do it here to prevent unwanted reset)
@@ -536,12 +535,22 @@ class RobotManager:
             if not config and self._status != self.StatusStopped:
                 config = self._default_configuration
 
+            self._ring_led.set_scenario(RingLed.Off)
+
+            self._scripts.reset()
+
+            # wait for a potential reset
+            retry_ping = True
+            while retry_ping:
+                retry_ping = False
+                try:
+                    self._robot.ping()
+                except (BrokenPipeError, IOError, OSError):
+                    retry_ping = True
+
             if config:
                 # apply new configuration
                 print("Applying new configuration")
-                self._ring_led.set_scenario(RingLed.Off)
-
-                self._scripts.reset()
 
                 # set up status reader, data dispatcher
                 self._reader.reset()
@@ -597,9 +606,7 @@ class RobotManager:
                     self._scripts[script].start()
             else:
                 print("Deinitialize robot")
-                self._ring_led.set_scenario(RingLed.Off)
                 self._remote_controller_scheduler.reset()
-                self._scripts.reset()
                 self._robot.set_master_status(self.status_led_not_configured)
                 self._drivetrain.reset()
                 self._drivetrain.configure()
