@@ -480,10 +480,11 @@ class RobotManager:
             self._background_fn = callback
 
     def _update_thread(self, ctx: ThreadContext):
+        _next_call = time.time()
+
         while not ctx.stop_requested:
             data = self._reader.run()
             self._data_dispatcher.dispatch(data)
-            time.sleep(0.1)
 
             with self._background_fn_lock:
                 fn = self._background_fn
@@ -491,6 +492,12 @@ class RobotManager:
 
             if callable(fn):
                 fn()
+                _next_call = time.time()
+            else:
+                _next_call += 0.1
+                diff = _next_call - time.time()
+                if diff > 0:
+                    time.sleep(diff)
 
     def _on_connection_changed(self, is_connected):
         self._is_connected = is_connected
