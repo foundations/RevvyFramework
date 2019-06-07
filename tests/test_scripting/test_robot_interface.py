@@ -14,7 +14,10 @@ class TestRingLed(unittest.TestCase):
 
         led_resource = Resource()
 
-        rw = RingLedWrapper(None, led_mock, {'led_ring': led_resource}, 0)
+        robot = Mock()
+        robot.is_stop_requested = False
+
+        rw = RingLedWrapper(robot, led_mock, {'led_ring': led_resource}, 0)
         self.assertRaises(ValueError, lambda: rw.set(0, '#112233'))
         rw.set(1, '#112233')
         rw.set(2, '#112233')
@@ -31,7 +34,10 @@ class TestRingLed(unittest.TestCase):
 
         led_resource = Resource()
 
-        rw = RingLedWrapper(None, led_mock, {'led_ring': led_resource}, 0)
+        robot = Mock()
+        robot.is_stop_requested = False
+
+        rw = RingLedWrapper(robot, led_mock, {'led_ring': led_resource}, 0)
         rw.set(1, '#112233')
         self.assertEqual([hex2rgb("#112233"), 0, 0, 0, 0, 0], led_mock.display_user_frame.call_args[0][0])
         self.assertEqual(1, led_mock.display_user_frame.call_count)
