@@ -1,7 +1,4 @@
-import subprocess
 import traceback
-
-import gpiozero
 import math
 
 
@@ -78,15 +75,3 @@ def hex2rgb(hex):
     rgb = tuple(int(stripped_hex[i:i + 2], 16) for i in range(0, len(stripped_hex), 2))
 
     return rgb[0] << 16 | rgb[1] << 8 | rgb[2]
-
-
-amp_en = gpiozero.LED(22)
-pwm = gpiozero.PWMOutputDevice(23)
-
-
-def play_sound(sound):
-    print('Playing sound: {}'.format(sound))
-
-    amp_en.on()
-    subprocess.Popen("omxplayer {}".format(sound), stdout=subprocess.PIPE, shell=True).wait()
-    amp_en.off()

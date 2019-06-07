@@ -9,9 +9,10 @@ import os
 
 from revvy.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
-from revvy.functions import getserial, play_sound
+from revvy.functions import getserial
+from revvy.hardware_dependent.sound import play_sound, setup_sound
 from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
-from revvy.rrrc_transport_i2c import RevvyTransportI2C
+from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.scripting.builtin_scripts import drive_2sticks, drive_joystick
 from revvy.utils import *
 from revvy.rrrc_transport import *
@@ -45,6 +46,7 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     device_storage = FileStorage(os.path.join(data_dir, 'device'))
     ble_storage = FileStorage(os.path.join(data_dir, 'ble'))
 
+    setup_sound()
     play_sound(os.path.join(data_dir, 'assets', 'startup.mp3'))
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
