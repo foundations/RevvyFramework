@@ -19,6 +19,10 @@ class Wrapper:
     def sleep(self, s):
         self._robot._script.sleep(s)
 
+    def check_terminated(self):
+        if self._robot.is_stop_requested:
+            raise InterruptedError
+
     def using_resource(self, resource_name, callback):
         resource = self.try_take(resource_name)
         if resource:
@@ -38,6 +42,7 @@ class SensorPortWrapper(Wrapper):
         self._sensor.configure(config_name)
 
     def read(self):
+        self.check_terminated()
         """Return the last converted value"""
         return self._sensor.value
 
@@ -62,6 +67,7 @@ class MotorPortWrapper(Wrapper):
         self._motor.configure(config_name)
 
     def move(self, direction, amount, unit_amount, limit, unit_limit):
+        self.check_terminated()
         if unit_amount in [MotorConstants.UNIT_ROT, MotorConstants.UNIT_DEG]:
             if unit_amount == MotorConstants.UNIT_ROT:
                 amount = amount * 360
@@ -165,6 +171,7 @@ class RingLedWrapper(Wrapper):
         self.using_resource('led_ring', lambda: self._ring_led.set_scenario(scenario))
 
     def set(self, led_index, str_color):
+        self.check_terminated()
         if type(led_index) is not list:
             led_index = [led_index]
 
@@ -219,6 +226,7 @@ class DriveTrainWrapper(Wrapper):
         self._drivetrain = drivetrain
 
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
+        self.check_terminated()
         if unit_rotation == MotorConstants.UNIT_ROT:
             degrees = rotation * 360
             if direction in [MotorConstants.DIRECTION_BACK, MotorConstants.DIRECTION_RIGHT]:
@@ -316,6 +324,22 @@ class RemoteControllerWrapper:
         self.analog_value = remote_controller.analog_value
 
 
+class SoundWrapper(Wrapper):
+    def __init__(self, robot, sound, resources: dict, priority=0):
+        super().__init__(robot, resources, priority)
+        self._sound = sound
+
+    def play_tune(self, name):
+        self.check_terminated()
+
+        resource = self.try_take('sound')
+        if resource:
+            try:
+                self._sound.play_tune(name)
+            finally:
+                resource.release()
+
+
 # FIXME: type hints missing because of circular reference that causes ImportError
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
@@ -324,6 +348,7 @@ class RobotInterface:
         sensor_wrappers = list(SensorPortWrapper(self, port, robot.resources, priority) for port in robot._sensor_ports)
         self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap, robot.config.motors.names)
         self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap, robot.config.sensors.names)
+        self._sound = SoundWrapper(self, robot.sound, robot.resources, priority)
         self._ring_led = RingLedWrapper(self, robot._ring_led, robot.resources, priority)
         self._drivetrain = DriveTrainWrapper(self, robot._drivetrain, robot.resources, priority)
         self._remote_controller = RemoteControllerWrapper(robot._remote_controller)
@@ -361,7 +386,9 @@ class RobotInterface:
     def controller(self):
         return self._remote_controller
 
-    def play_tune(self, name): pass  # TODO
+    def play_tune(self, name):
+        self._sound.play_tune(name)
+
     def play_note(self): pass  # TODO
 
     # property alias

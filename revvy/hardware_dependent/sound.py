@@ -13,6 +13,5 @@ def play_sound(sound):
     print('Playing sound: {}'.format(sound))
 
     amp_en.on()
-    subprocess.Popen("omxplayer {}".format(sound), stdout=subprocess.PIPE, shell=True).wait()
+    subprocess.Popen("mpg123 {}".format(sound), stdout=subprocess.PIPE, shell=True).wait()
     amp_en.off()
-

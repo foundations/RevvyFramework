@@ -14,6 +14,7 @@ from revvy.hardware_dependent.sound import play_sound, setup_sound
 from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.scripting.builtin_scripts import drive_2sticks, drive_joystick
+from revvy.sound import Sound
 from revvy.utils import *
 from revvy.rrrc_transport import *
 from revvy.robot_config import *
@@ -46,8 +47,11 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     device_storage = FileStorage(os.path.join(data_dir, 'device'))
     ble_storage = FileStorage(os.path.join(data_dir, 'ble'))
 
-    setup_sound()
-    play_sound(os.path.join(data_dir, 'assets', 'startup.mp3'))
+    sound = Sound(setup_sound, play_sound, {
+        'startup': os.path.join(data_dir, 'assets', 'startup.mp3'),
+        'cheer': os.path.join(data_dir, 'assets', 'startup.mp3'),
+    })
+    sound.play_tune('startup')
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
@@ -55,7 +59,7 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
     ble = RevvyBLE(device_name, serial, long_message_handler)
 
-    robot = RobotManager(interface, ble, config, mcu_features)
+    robot = RobotManager(interface, ble, sound, config, mcu_features)
 
     def on_device_name_changed(new_name):
         print('Device name changed to {}'.format(new_name))
@@ -100,6 +104,12 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
     print('terminated.')
     return ret_val
+
+
+sound_test = '''
+while True:
+    robot.play_tune('cheer')
+'''
 
 
 motor_test_spin = '''
@@ -194,11 +204,13 @@ def main():
     default_config.sensors[2] = "BumperSwitch"
     default_config.controller.analog.append({'channels': [0, 1], 'script': 'drivetrain_joystick'})
     default_config.controller.buttons[0] = 'toggle_ring_led'
+    default_config.controller.buttons[1] = 'sound_test'
 
     default_config.scripts['drivetrain_joystick'] = {'script': drive_joystick, 'priority': 0}
     default_config.scripts['drivetrain_2sticks'] = {'script': drive_2sticks, 'priority': 0}
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
     default_config.scripts['motor_test'] = {'script': motor_test, 'priority': 0}
+    default_config.scripts['sound_test'] = {'script': sound_test, 'priority': 0}
 
     # default_config.background_scripts.append('motor_test')
 

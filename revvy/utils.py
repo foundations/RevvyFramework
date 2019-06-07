@@ -331,13 +331,14 @@ class RobotManager:
     status_led_controlled = 2
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, interface: RevvyTransportInterface, revvy, default_config=None, feature_map=None):
+    def __init__(self, interface: RevvyTransportInterface, revvy, sound, default_config=None, feature_map=None):
         self._robot = RevvyControl(RevvyTransport(interface))
         self._ble = revvy
         self._is_connected = False
         self._default_configuration = default_config
         self._feature_map = FeatureMap(feature_map if feature_map is not None else {})
         self._features = {}
+        self._sound = sound
 
         self._reader = FunctionSerializer(self._robot.ping)
         self._data_dispatcher = DataDispatcher()
@@ -382,6 +383,10 @@ class RobotManager:
     @property
     def config(self):
         return self._config
+
+    @property
+    def sound(self):
+        return self._sound
 
     @property
     def update_requested(self):
@@ -436,7 +441,8 @@ class RobotManager:
 
         self._resources = {
             'led_ring': Resource(),
-            'drivetrain': Resource()
+            'drivetrain': Resource(),
+            'sound': Resource()
         }
         for port in self._motor_ports:
             port.on_config_changed(self._motor_config_changed)
@@ -493,10 +499,12 @@ class RobotManager:
             self.configure(None)
 
     def _on_controller_detected(self):
+        print('Controller detected')
         if self._status == self.StatusConfigured:
             self._robot.set_master_status(self.status_led_controlled)
 
     def _on_controller_lost(self):
+        print('Controller lost')
         self.configure(None)
 
     def _update_sensor(self, sid, value):
@@ -526,12 +534,14 @@ class RobotManager:
                 print("Applying new configuration")
                 self._ring_led.set_scenario(RingLed.Off)
 
-                self._drivetrain.reset()
-                self._remote_controller_scheduler.reset()
+                self._scripts.reset()
 
                 # set up status reader, data dispatcher
                 self._reader.reset()
                 self._data_dispatcher.reset()
+
+                self._drivetrain.reset()
+                self._remote_controller_scheduler.reset()
 
                 # set up motors
                 for motor in self._motor_ports:
@@ -552,7 +562,6 @@ class RobotManager:
                     sensor.configure(config.sensors[sensor.id])
 
                 # set up scripts
-                self._scripts.reset()
                 self._scripts.assign('Motor', MotorConstants)
                 self._scripts.assign('RingLed', RingLed)
                 for name in config.scripts:
