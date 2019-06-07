@@ -460,47 +460,42 @@ class RevvyBLE:
 
         device_name.subscribe(self._device_name_changed)
 
-        self._deviceInformationService = RevvyDeviceInformationService(device_name, serial)
-        self._batteryService = CustomBatteryService()
-        self._liveMessageService = LiveMessageService()
-        self._longMessageService = LongMessageService(long_message_handler)
+        dis = RevvyDeviceInformationService(device_name, serial)
+        bas = CustomBatteryService()
+        live = LiveMessageService()
+        long = LongMessageService(long_message_handler)
 
-        self._services = [
-            self._liveMessageService,
-            self._longMessageService,
-            self._deviceInformationService,
-            self._batteryService
-        ]
-        self._advertisedUuids = [
-            self._liveMessageService['uuid']
+        self._named_services = {
+            'device_information_service': dis,
+            'battery_service': bas,
+            'long_message_service': long,
+            'live_message_service': live
+        }
+
+        self._advertised_uuid_list = [
+            live['uuid']
         ]
 
         self._bleno = Bleno()
-        self._bleno.on('stateChange', self.onStateChange)
-        self._bleno.on('advertisingStart', self.onAdvertisingStart)
+        self._bleno.on('stateChange', self._on_state_change)
+        self._bleno.on('advertisingStart', self._on_advertising_start)
+
+    def __getitem__(self, item):
+        return self._named_services[item]
 
     def _device_name_changed(self, name):
         self._deviceName = name
-        self._bleno.stopAdvertising(lambda: self._bleno.startAdvertising(self._deviceName, self._advertisedUuids))
+        self._bleno.stopAdvertising(lambda: self._bleno.startAdvertising(self._deviceName, self._advertised_uuid_list))
 
-    def set_hw_version(self, version):
-        self._deviceInformationService.update_hw_version(version)
-
-    def set_fw_version(self, version):
-        self._deviceInformationService.update_fw_version(version)
-
-    def set_sw_version(self, version):
-        self._deviceInformationService.update_sw_version(version)
-
-    def onStateChange(self, state):
+    def _on_state_change(self, state):
         print('on -> stateChange: ' + state)
 
         if state == 'poweredOn':
-            self._bleno.startAdvertising(self._deviceName, self._advertisedUuids)
+            self._bleno.startAdvertising(self._deviceName, self._advertised_uuid_list)
         else:
             self._bleno.stopAdvertising()
 
-    def onAdvertisingStart(self, error):
+    def _on_advertising_start(self, error):
         print('on -> advertisingStart: {0}'.format(('error ' + str(error) if error else 'success')))
 
         if not error:
@@ -510,9 +505,9 @@ class RevvyBLE:
             def on_set_service_error(error):
                 print('setServices: {}'.format('error ' + str(error) if error else 'success'))
 
-            self._bleno.setServices(self._services, on_set_service_error)
+            self._bleno.setServices(self._named_services.values(), on_set_service_error)
 
-    def registerConnectionChangedHandler(self, callback):
+    def on_connection_changed(self, callback):
         self._bleno.on('accept', lambda x: callback(True))
         self._bleno.on('disconnect', lambda x: callback(False))
 
@@ -522,18 +517,3 @@ class RevvyBLE:
     def stop(self):
         self._bleno.stopAdvertising()
         self._bleno.disconnect()
-
-    def updateMainBattery(self, level):
-        self._batteryService.updateMainBatteryValue(level)
-
-    def updateMotorBattery(self, level):
-        self._batteryService.updateMotorBatteryValue(level)
-
-    def update_sensor(self, sensor, value):
-        self._liveMessageService.update_sensor(sensor, value)
-
-    def update_motor(self, motor, power, speed, position):
-        self._liveMessageService.update_motor(motor, power, speed, position)
-
-    def register_remote_controller_handler(self, callback):
-        self._liveMessageService.register_message_handler(callback)

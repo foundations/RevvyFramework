@@ -223,8 +223,8 @@ class RobotManager:
         self._motor_ports = MotorPortHandler(self._robot, Motors.types, self)
         self._sensor_ports = SensorPortHandler(self._robot, Sensors.types, self)
 
-        revvy.register_remote_controller_handler(self._on_controller_message_received)
-        revvy.registerConnectionChangedHandler(self._on_connection_changed)
+        revvy['live_message_service'].register_message_handler(self._on_controller_message_received)
+        revvy.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
         self._resources = {}
@@ -290,9 +290,9 @@ class RobotManager:
 
         print('MCU features: {}'.format(self._features))
 
-        self._ble.set_hw_version(hw)
-        self._ble.set_fw_version(fw)
-        self._ble.set_sw_version(sw)
+        self._ble['device_information_service'].update_hw_version(hw)
+        self._ble['device_information_service'].update_fw_version(fw)
+        self._ble['device_information_service'].update_sw_version(sw)
 
         # call reset to read port counts, types
         self._ring_led.reset()
@@ -374,10 +374,10 @@ class RobotManager:
         self.configure(None)
 
     def _update_sensor(self, sid, value):
-        self._ble.update_sensor(sid, value['raw'])
+        self._ble['live_message_service'].update_sensor(sid, value['raw'])
 
     def _update_motor(self, mid, value):
-        self._ble.update_motor(mid, value['power'], value['speed'], value['position'])
+        self._ble['live_message_service'].update_motor(mid, value['power'], value['speed'], value['position'])
 
     def _run_analog(self, script_name, script_input):
         script = self._scripts[script_name]
@@ -406,13 +406,13 @@ class RobotManager:
                 except (BrokenPipeError, IOError, OSError):
                     retry_ping = True
 
+            # set up status reader, data dispatcher
+            self._reader.reset()
+            self._data_dispatcher.reset()
+
             if config:
                 # apply new configuration
                 print("Applying new configuration")
-
-                # set up status reader, data dispatcher
-                self._reader.reset()
-                self._data_dispatcher.reset()
 
                 self._drivetrain.reset()
                 self._remote_controller_scheduler.reset()
@@ -470,7 +470,6 @@ class RobotManager:
                 self._drivetrain.configure()
                 self._motor_ports.reset()
                 self._sensor_ports.reset()
-                self._reader.reset()
                 self._remote_controller_scheduler.stop()
                 self._set_status(self.StatusNotConfigured)
             self._config = config
