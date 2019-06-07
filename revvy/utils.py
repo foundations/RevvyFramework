@@ -379,6 +379,10 @@ class RobotManager:
     def _update_motor(self, mid, value):
         self._ble['live_message_service'].update_motor(mid, value['power'], value['speed'], value['position'])
 
+    def _update_battery(self, battery):
+        self._ble['battery_service'].updateMainBattery(battery['main'])
+        self._ble['battery_service'].updateMotorBattery(battery['motor'])
+
     def _run_analog(self, script_name, script_input):
         script = self._scripts[script_name]
         script.assign('input', script_input)
@@ -409,6 +413,9 @@ class RobotManager:
             # set up status reader, data dispatcher
             self._reader.reset()
             self._data_dispatcher.reset()
+
+            self._reader.add('battery', self._robot.get_battery_status)
+            self._data_dispatcher.add('battery', self._update_battery)
 
             if config:
                 # apply new configuration
