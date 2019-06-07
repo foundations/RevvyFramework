@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-import array
 import struct
 import traceback
 
@@ -123,7 +122,7 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description.encode()
+                    'value': description
                 }),
             ]
         })
@@ -131,7 +130,7 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
     def onWriteRequest(self, data, offset, without_response, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
-        elif len(data) < self._minLength or len(data) > self._maxLength:
+        elif self._minLength > len(data) or len(data) > self._maxLength:
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         elif self._callbackFn(data):
             callback(Characteristic.RESULT_SUCCESS)
@@ -150,7 +149,7 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description.encode()
+                    'value': description
                 }),
             ]
         })
@@ -171,11 +170,12 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
         self._value = value
 
         if self._updateValueCallback:
-            self._updateValueCallback(self._value)
+            self._updateValueCallback(value)
 
 
 class SensorCharacteristic(BrainToMobileFunctionCharacteristic):
     def update(self, value):
+        # FIXME: prefix with data length is probably unnecessary
         value = [len(value)] + value
         super().update(value)
 
@@ -189,25 +189,25 @@ class LiveMessageService(BlenoPrimaryService):
         self._message_handler = lambda x: None
 
         self._sensor_characteristics = [
-                SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', 'Sensor 1'),
-                SensorCharacteristic('36e944ef-34fe-4de2-9310-394d482e20e6', 'Sensor 2'),
-                SensorCharacteristic('b3a71566-9af2-4c9d-bc4a-6f754ab6fcf0', 'Sensor 3'),
-                SensorCharacteristic('9ace575c-0b70-4ed5-96f1-979a8eadbc6b', 'Sensor 4'),
+                SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', b'Sensor 1'),
+                SensorCharacteristic('36e944ef-34fe-4de2-9310-394d482e20e6', b'Sensor 2'),
+                SensorCharacteristic('b3a71566-9af2-4c9d-bc4a-6f754ab6fcf0', b'Sensor 3'),
+                SensorCharacteristic('9ace575c-0b70-4ed5-96f1-979a8eadbc6b', b'Sensor 4'),
         ]
 
         self._motor_characteristics = [
-                MotorCharacteristic('4bdfb409-93cc-433a-83bd-7f4f8e7eaf54', 'Motor 1'),
-                MotorCharacteristic('454885b9-c9d1-4988-9893-a0437d5e6e9f', 'Motor 2'),
-                MotorCharacteristic('00fcd93b-0c3c-4940-aac1-b4c21fac3420', 'Motor 3'),
-                MotorCharacteristic('49aaeaa4-bb74-4f84-aa8f-acf46e5cf922', 'Motor 4'),
-                MotorCharacteristic('ceea8e45-5ff9-4325-be13-48cf40c0e0c3', 'Motor 5'),
-                MotorCharacteristic('8e4c474f-188e-4d2a-910a-cf66f674f569', 'Motor 6'),
+                MotorCharacteristic('4bdfb409-93cc-433a-83bd-7f4f8e7eaf54', b'Motor 1'),
+                MotorCharacteristic('454885b9-c9d1-4988-9893-a0437d5e6e9f', b'Motor 2'),
+                MotorCharacteristic('00fcd93b-0c3c-4940-aac1-b4c21fac3420', b'Motor 3'),
+                MotorCharacteristic('49aaeaa4-bb74-4f84-aa8f-acf46e5cf922', b'Motor 4'),
+                MotorCharacteristic('ceea8e45-5ff9-4325-be13-48cf40c0e0c3', b'Motor 5'),
+                MotorCharacteristic('8e4c474f-188e-4d2a-910a-cf66f674f569', b'Motor 6'),
         ]
 
         super().__init__({
             'uuid':            'd2d5558c-5b9d-11e9-8647-d663bd873d93',
             'characteristics': [
-                MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, 'simpleControl',
+                MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, b'simpleControl',
                                                     self.simple_control_callback),
                 *self._sensor_characteristics,
                 *self._motor_characteristics
@@ -341,7 +341,7 @@ class RevvyDeviceInformationService(BlenoPrimaryService):
             'characteristics': [
                 SerialNumberCharacteristic(serial),
                 ManufacturerNameCharacteristic(b'RevolutionRobotics'),
-                ModelNumberCharacteristic(b"RevvyAlpha"),
+                ModelNumberCharacteristic(b'RevvyAlpha'),
                 hw,
                 fw,
                 sw,
@@ -362,7 +362,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
             'descriptors': [
                 Descriptor({
                     'uuid':  '2901',
-                    'value': description.encode()
+                    'value': description
                 })
             ]
         })
@@ -391,9 +391,9 @@ class CustomBatteryLevelCharacteristic(Characteristic):
 
 class CustomBatteryService(BlenoPrimaryService):
     def __init__(self):
-        self._mainBattery = CustomBatteryLevelCharacteristic('2A19', 'Main battery percentage')
+        self._mainBattery = CustomBatteryLevelCharacteristic('2A19', b'Main battery percentage')
         self._motorBattery = CustomBatteryLevelCharacteristic('00002a19-0000-1000-8000-00805f9b34fa',
-                                                              'Motor battery percentage')
+                                                              b'Motor battery percentage')
 
         super().__init__({
             'uuid':            '180F',
