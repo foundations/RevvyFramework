@@ -54,6 +54,7 @@ class LongMessageCharacteristic(Characteristic):
                     value += hexdigest2bytes(status.md5)
                     value += status.length.to_bytes(4, byteorder="big")
                 callback(Characteristic.RESULT_SUCCESS, value)
+
             except (IOError, TypeError, JSONDecodeError):
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
@@ -330,12 +331,12 @@ class SystemIdCharacteristic(Characteristic):
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
-
-        try:
-            self._system_id.update(data.decode('utf-8'))
-            callback(Characteristic.RESULT_SUCCESS)
-        except UnicodeDecodeError:
-            callback(Characteristic.RESULT_UNLIKELY_ERROR)
+        else:
+            try:
+                self._system_id.update(data.decode('utf-8'))
+                callback(Characteristic.RESULT_SUCCESS)
+            except UnicodeDecodeError:
+                callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
 class RevvyDeviceInformationService(BlenoPrimaryService):
