@@ -35,15 +35,17 @@ def map_values(x, min_x, max_x, min_y, max_y):
 
 
 def getserial():
-    # Extract serial from cpuinfo file
+    """Extract serial from cpuinfo file"""
+
     cpu_serial = "0000000000000000"
+    # noinspection PyBroadException
     try:
         with open('/proc/cpuinfo', 'r') as f:
             for line in f:
-                if line[0:6] == 'Serial':
+                if line.startswith('Serial'):
                     cpu_serial = line.rstrip()[-16:]
                     break
-    except:
+    except Exception:
         cpu_serial = "ERROR000000000"
 
     return cpu_serial
@@ -54,11 +56,12 @@ def retry(fn, retries=5):
     status = False
     retry_num = 0
     while retry_num < retries and not status:
+        # noinspection PyBroadException
         try:
             status = fn()
             if status is None:
                 status = True
-        except:
+        except Exception:
             print(traceback.format_exc())
             status = False
         retry_num += 1
@@ -66,12 +69,12 @@ def retry(fn, retries=5):
     return status
 
 
-def hex2rgb(hex):
+def hex2rgb(hex_str):
     """
     >>> hex2rgb("#aabbcc")
     11189196
     """
-    stripped_hex = hex.lstrip('#')
+    stripped_hex = hex_str.lstrip('#')
     rgb = tuple(int(stripped_hex[i:i + 2], 16) for i in range(0, len(stripped_hex), 2))
 
     return rgb[0] << 16 | rgb[1] << 8 | rgb[2]

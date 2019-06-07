@@ -16,7 +16,7 @@ def hexdigest2bytes(hexdigest):
     return b"".join([int(hexdigest[i:i + 2], 16).to_bytes(1, byteorder="big") for i in range(0, len(hexdigest), 2)])
 
 
-def bytes2hexdigest(bytes):
+def bytes2hexdigest(hash_bytes):
     """
     >>> bytes2hexdigest(b'\\xaa\\xbb\\xcc')
     'aabbcc'
@@ -25,7 +25,7 @@ def bytes2hexdigest(bytes):
     >>> bytes2hexdigest(b'\\xAB\\xCD\\x0F')
     'abcd0f'
     """
-    return "".join(['{0:0>2x}'.format(byte) for byte in bytes])
+    return "".join(['{0:0>2x}'.format(byte) for byte in hash_bytes])
 
 
 LongMessageStatusInfo = collections.namedtuple('LongMessageStatusInfo', ['status', 'md5', 'length'])

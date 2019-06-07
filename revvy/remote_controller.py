@@ -22,7 +22,7 @@ class RemoteController:
 
         for i in range(len(self._buttonHandlers)):
             handler = EdgeTrigger()
-            handler.onRisingEdge(lambda idx=i: self._button_pressed(idx))
+            handler.on_rising_edge(lambda idx=i: self._button_pressed(idx))
             self._buttonHandlers[i] = handler
 
     def is_button_pressed(self, button_idx):

@@ -102,6 +102,7 @@ class TestThreadWrapper(unittest.TestCase):
     def test_exception_stops_but_does_not_crash(self):
         mock = Mock()
 
+        # noinspection PyUnusedLocal
         def _dummy_thread_fn(ctx: ThreadContext):
             raise Exception
 

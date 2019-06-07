@@ -291,10 +291,10 @@ class RevvyTransport:
                 if not header.is_same_header(response_bytes):
                     raise ValueError('Read payload: Unexpected header received')
 
-                payload = response_bytes[ResponseHeader.length:]
-                has_valid_payload = header.validate_payload(payload)
+                payload_bytes = response_bytes[ResponseHeader.length:]
+                has_valid_payload = header.validate_payload(payload_bytes)
                 if has_valid_payload:
-                    return payload
+                    return payload_bytes
 
             return False
 

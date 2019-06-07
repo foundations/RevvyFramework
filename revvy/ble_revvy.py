@@ -9,6 +9,20 @@ from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 from revvy.longmessage import hexdigest2bytes, bytes2hexdigest, MessageType, LongMessageError
 
 
+class BleService(BlenoPrimaryService):
+    def __init__(self, uuid, characteristics: dict):
+
+        self._named_characteristics = characteristics
+
+        super().__init__({
+            'uuid':            uuid,
+            'characteristics': characteristics.values()
+        })
+
+    def __getitem__(self, item):
+        return self._named_characteristics[item]
+
+
 class Observable:
     def __init__(self, value):
         self._value = value
@@ -33,6 +47,8 @@ class Observable:
 
 
 # Device communication related services
+
+
 class LongMessageCharacteristic(Characteristic):
     def __init__(self, handler):
         super().__init__({
@@ -103,7 +119,7 @@ class LongMessageCharacteristic(Characteristic):
 
 class LongMessageService(BlenoPrimaryService):
     def __init__(self, handler):
-        BlenoPrimaryService.__init__(self, {
+        super().__init__({
             'uuid':            '97148a03-5b9d-11e9-8647-d663bd873d93',
             'characteristics': [
                 LongMessageCharacteristic(handler),
@@ -248,9 +264,9 @@ class LiveMessageService(BlenoPrimaryService):
             map(expand_byte, data),
             []
         )
-
-
 # Device Information Service
+
+
 class ReadOnlyCharacteristic(Characteristic):
     def __init__(self, uuid, value):
         super().__init__({
@@ -313,7 +329,7 @@ class SystemIdCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._system_id.get().encode('utf-8'))
 
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
+    def onWriteRequest(self, data, offset, without_response, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         else:
@@ -324,36 +340,29 @@ class SystemIdCharacteristic(Characteristic):
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
-class RevvyDeviceInformationService(BlenoPrimaryService):
+class RevvyDeviceInformationService(BleService):
     def __init__(self, device_name: Observable, serial):
         hw = VersionCharacteristic('2A27')
         fw = VersionCharacteristic('2A26')
         sw = VersionCharacteristic('2A28')
+        serial = SerialNumberCharacteristic(serial)
+        manufacturer_name = ManufacturerNameCharacteristic(b'RevolutionRobotics')
+        model_number = ModelNumberCharacteristic(b'RevvyAlpha')
+        system_id = SystemIdCharacteristic(device_name)
 
-        self._named_characteristics = {
+        super().__init__('180A', {
             'hw_version': hw,
             'fw_version': fw,
             'sw_version': sw,
-        }
-
-        super().__init__({
-            'uuid':            '180A',
-            'characteristics': [
-                SerialNumberCharacteristic(serial),
-                ManufacturerNameCharacteristic(b'RevolutionRobotics'),
-                ModelNumberCharacteristic(b'RevvyAlpha'),
-                hw,
-                fw,
-                sw,
-                SystemIdCharacteristic(device_name),
-            ]})
-
-    def __getitem__(self, item):
-        return self._named_characteristics[item]
+            'serial_number': serial,
+            'manufacturer_name': manufacturer_name,
+            'model_number': model_number,
+            'system_id': system_id
+        })
 
 
-# Custom battery service that contains 2 characteristics
 class CustomBatteryLevelCharacteristic(Characteristic):
+    """Custom battery service that contains 2 characteristics"""
     def __init__(self, uuid, description):
         super().__init__({
             'uuid':        uuid,
@@ -382,32 +391,22 @@ class CustomBatteryLevelCharacteristic(Characteristic):
     def onUnsubscribe(self):
         self._updateValueCallback = None
 
-    def updateValue(self, value):
+    def update_value(self, value):
         self._value = value
 
         if self._updateValueCallback:
             self._updateValueCallback([value])
 
 
-class CustomBatteryService(BlenoPrimaryService):
+class CustomBatteryService(BleService):
     def __init__(self):
-        self._mainBattery = CustomBatteryLevelCharacteristic('2A19', b'Main battery percentage')
-        self._motorBattery = CustomBatteryLevelCharacteristic('00002a19-0000-1000-8000-00805f9b34fa',
-                                                              b'Motor battery percentage')
+        main = CustomBatteryLevelCharacteristic('2A19', b'Main battery percentage')
+        motor = CustomBatteryLevelCharacteristic('00002a19-0000-1000-8000-00805f9b34fa', b'Motor battery percentage')
 
-        super().__init__({
-            'uuid':            '180F',
-            'characteristics': [
-                self._mainBattery,
-                self._motorBattery
-            ]
+        super().__init__('180F', {
+            'main_battery': main,
+            'motor_battery': motor,
         })
-
-    def updateMainBatteryValue(self, value):
-        self._mainBattery.updateValue(value)
-
-    def updateMotorBatteryValue(self, value):
-        self._motorBattery.updateValue(value)
 
 
 class RevvyBLE:

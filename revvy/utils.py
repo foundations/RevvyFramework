@@ -380,8 +380,8 @@ class RobotManager:
         self._ble['live_message_service'].update_motor(mid, value['power'], value['speed'], value['position'])
 
     def _update_battery(self, battery):
-        self._ble['battery_service'].updateMainBattery(battery['main'])
-        self._ble['battery_service'].updateMotorBattery(battery['motor'])
+        self._ble['battery_service']['main_battery'].update_value(battery['main'])
+        self._ble['battery_service']['motor_battery'].update_value(battery['motor'])
 
     def _run_analog(self, script_name, script_input):
         script = self._scripts[script_name]
@@ -452,7 +452,7 @@ class RobotManager:
                 for analog in config.controller.analog:
                     self._remote_controller.on_analog_values(
                         analog['channels'],
-                        lambda input, scr=analog['script']: self._run_analog(scr, input)
+                        lambda in_data, scr=analog['script']: self._run_analog(scr, in_data)
                     )
 
                 for button in range(len(config.controller.buttons)):

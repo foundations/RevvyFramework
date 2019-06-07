@@ -20,8 +20,8 @@ class TestEdgeTrigger(unittest.TestCase):
         falling = Mock()
 
         trigger = EdgeTrigger()
-        trigger.onRisingEdge(rising)
-        trigger.onFallingEdge(falling)
+        trigger.on_rising_edge(rising)
+        trigger.on_falling_edge(falling)
 
         rising.assert_not_called()
         falling.assert_not_called()
@@ -49,8 +49,8 @@ class TestEdgeTrigger(unittest.TestCase):
         falling = Mock()
 
         trigger = EdgeTrigger()
-        trigger.onRisingEdge(rising)
-        trigger.onFallingEdge(falling)
+        trigger.on_rising_edge(rising)
+        trigger.on_falling_edge(falling)
 
         rising.assert_not_called()
 
@@ -85,8 +85,8 @@ class TestToggle(unittest.TestCase):
         disable = Mock()
 
         trigger = ToggleButton()
-        trigger.onEnabled(enable)
-        trigger.onDisabled(disable)
+        trigger.on_enabled(enable)
+        trigger.on_disabled(disable)
 
         enable.assert_not_called()
         disable.assert_not_called()
@@ -117,8 +117,8 @@ class TestToggle(unittest.TestCase):
         disable = Mock()
 
         trigger = ToggleButton()
-        trigger.onEnabled(enable)
-        trigger.onDisabled(disable)
+        trigger.on_enabled(enable)
+        trigger.on_disabled(disable)
 
         enable.assert_not_called()
         disable.assert_not_called()

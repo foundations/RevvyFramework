@@ -7,6 +7,7 @@ class TimeWrapper:
     def __init__(self, ctx: ThreadContext):
         self._ctx = ctx
 
+    # noinspection PyMethodMayBeStatic
     def time(self):
         return time.time()
 

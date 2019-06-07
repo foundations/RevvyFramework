@@ -36,7 +36,7 @@ def toggle_ring_led(args):
             args['robot']._ring_led.set_scenario(RingLed.Off)
 
 
-def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
+def start_revvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     # prepare environment
     directory = os.path.dirname(os.path.realpath(__file__))
     data_dir = os.path.join(directory, '..', '..', 'data')
@@ -75,9 +75,9 @@ def startRevvy(interface: RevvyTransportInterface, config: RobotConfig = None):
             robot._scripts["test_kit"].start()
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             print('New configuration: {}'.format(message_data))
-            config = RobotConfig.from_string(message_data)
-            if config is not None:
-                # robot.configure(config)
+            parsed_config = RobotConfig.from_string(message_data)
+            if parsed_config is not None:
+                # robot.configure(parsed_config)
                 pass
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             robot.request_update()
@@ -223,13 +223,13 @@ def main():
     default_config.background_scripts.append('button_sound_test')
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
-        return startRevvy(robot_interface, default_config)
+        return start_revvy(robot_interface, default_config)
 
 
 if __name__ == "__main__":
-    directory = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(directory)
-    if check_manifest(os.path.join(directory, 'manifest.json')):
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(current_directory)
+    if check_manifest(os.path.join(current_directory, 'manifest.json')):
         sys.exit(main())
     else:
         sys.exit(2)

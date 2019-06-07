@@ -16,9 +16,9 @@ def check_manifest(manifest_file):
 
     for file in hashes:
         expected = hashes[file]
-        hash = file_hash(file)
+        hash_value = file_hash(file)
 
-        if hash != expected:
+        if hash_value != expected:
             print('Integrity check failed for {}'.format(file))
             return False
 
