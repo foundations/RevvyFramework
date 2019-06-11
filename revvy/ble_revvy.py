@@ -16,10 +16,10 @@ class BleService(BlenoPrimaryService):
 
         super().__init__({
             'uuid':            uuid,
-            'characteristics': characteristics.values()
+            'characteristics': list(characteristics.values())
         })
 
-    def __getitem__(self, item):
+    def characteristic(self, item):
         return self._named_characteristics[item]
 
 
@@ -205,19 +205,19 @@ class LiveMessageService(BlenoPrimaryService):
         self._message_handler = lambda x: None
 
         self._sensor_characteristics = [
-                SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', b'Sensor 1'),
-                SensorCharacteristic('36e944ef-34fe-4de2-9310-394d482e20e6', b'Sensor 2'),
-                SensorCharacteristic('b3a71566-9af2-4c9d-bc4a-6f754ab6fcf0', b'Sensor 3'),
-                SensorCharacteristic('9ace575c-0b70-4ed5-96f1-979a8eadbc6b', b'Sensor 4'),
+            SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', b'Sensor 1'),
+            SensorCharacteristic('36e944ef-34fe-4de2-9310-394d482e20e6', b'Sensor 2'),
+            SensorCharacteristic('b3a71566-9af2-4c9d-bc4a-6f754ab6fcf0', b'Sensor 3'),
+            SensorCharacteristic('9ace575c-0b70-4ed5-96f1-979a8eadbc6b', b'Sensor 4'),
         ]
 
         self._motor_characteristics = [
-                MotorCharacteristic('4bdfb409-93cc-433a-83bd-7f4f8e7eaf54', b'Motor 1'),
-                MotorCharacteristic('454885b9-c9d1-4988-9893-a0437d5e6e9f', b'Motor 2'),
-                MotorCharacteristic('00fcd93b-0c3c-4940-aac1-b4c21fac3420', b'Motor 3'),
-                MotorCharacteristic('49aaeaa4-bb74-4f84-aa8f-acf46e5cf922', b'Motor 4'),
-                MotorCharacteristic('ceea8e45-5ff9-4325-be13-48cf40c0e0c3', b'Motor 5'),
-                MotorCharacteristic('8e4c474f-188e-4d2a-910a-cf66f674f569', b'Motor 6'),
+            MotorCharacteristic('4bdfb409-93cc-433a-83bd-7f4f8e7eaf54', b'Motor 1'),
+            MotorCharacteristic('454885b9-c9d1-4988-9893-a0437d5e6e9f', b'Motor 2'),
+            MotorCharacteristic('00fcd93b-0c3c-4940-aac1-b4c21fac3420', b'Motor 3'),
+            MotorCharacteristic('49aaeaa4-bb74-4f84-aa8f-acf46e5cf922', b'Motor 4'),
+            MotorCharacteristic('ceea8e45-5ff9-4325-be13-48cf40c0e0c3', b'Motor 5'),
+            MotorCharacteristic('8e4c474f-188e-4d2a-910a-cf66f674f569', b'Motor 6'),
         ]
 
         super().__init__({
@@ -461,7 +461,7 @@ class RevvyBLE:
             def on_set_service_error(error):
                 print('setServices: {}'.format('error ' + str(error) if error else 'success'))
 
-            self._bleno.setServices(self._named_services.values(), on_set_service_error)
+            self._bleno.setServices(list(self._named_services.values()), on_set_service_error)
 
     def on_connection_changed(self, callback):
         self._bleno.on('accept', lambda x: callback(True))

@@ -40,6 +40,10 @@ class PingCommand(Command):
     pass
 
 
+class RebootBootloaderCommand(Command):
+    pass
+
+
 class ReadStringCommand(Command):
     def on_success(self, payload):
         return "".join(map(chr, payload))
@@ -233,6 +237,8 @@ class RevvyControl:
     command_get_battery_status = 0x03
     command_set_master_status = 0x04
     command_set_bluetooth_status = 0x05
+    command_get_operation_mode = 0x06
+    command_reboot_bootloader = 0x0B
 
     command_get_motor_port_amount = 0x10
     command_get_motor_port_types = 0x11
@@ -264,6 +270,8 @@ class RevvyControl:
             0x03: ReadBatteryStatusCommand(),
             0x04: SetMasterStatusCommand(),
             0x05: SetBluetoothStatusCommand(),
+
+            0x0B: RebootBootloaderCommand(),
 
             0x10: MotorPort_GetPortAmountCommand(),
             0x11: MotorPort_GetPortTypesCommand(),
@@ -311,6 +319,9 @@ class RevvyControl:
 
     def get_battery_status(self):
         return self.send(self.command_get_battery_status)
+
+    def reboot_bootloader(self):
+        return self.send(self.command_reboot_bootloader)
 
     # motor commands
 

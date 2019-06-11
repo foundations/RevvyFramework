@@ -10,7 +10,7 @@ class TestRobotConfig(unittest.TestCase):
 
     def test_valid_config_needs_robotConfig_and_blocklies_keys(self):
         with self.subTest("Blockly only"):
-            config = RobotConfig.from_string('{blocklies: []}')
+            config = RobotConfig.from_string('{"blocklies": []}')
             self.assertIsNone(config)
 
         with self.subTest("Robot Config only"):

@@ -290,9 +290,9 @@ class RobotManager:
 
         print('MCU features: {}'.format(self._features))
 
-        self._ble['device_information_service']['hw_version'].update(hw)
-        self._ble['device_information_service']['fw_version'].update(fw)
-        self._ble['device_information_service']['sw_version'].update(sw)
+        self._ble['device_information_service'].characteristic('hw_version').update(hw)
+        self._ble['device_information_service'].characteristic('fw_version').update(fw)
+        self._ble['device_information_service'].characteristic('sw_version').update(sw)
 
         # call reset to read port counts, types
         self._ring_led.reset()
@@ -380,8 +380,8 @@ class RobotManager:
         self._ble['live_message_service'].update_motor(mid, value['power'], value['speed'], value['position'])
 
     def _update_battery(self, battery):
-        self._ble['battery_service']['main_battery'].update_value(battery['main'])
-        self._ble['battery_service']['motor_battery'].update_value(battery['motor'])
+        self._ble['battery_service'].characteristic('main_battery').update_value(battery['main'])
+        self._ble['battery_service'].characteristic('motor_battery').update_value(battery['motor'])
 
     def _run_analog(self, script_name, script_input):
         script = self._scripts[script_name]

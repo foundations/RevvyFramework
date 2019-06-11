@@ -97,6 +97,7 @@ def start_revvy(interface: RevvyTransportInterface, config: RobotConfig = None):
         # manual exit
         ret_val = 0
     except Exception:
+        print(traceback.format_exc())
         ret_val = 1
     finally:
         print('stopping')
