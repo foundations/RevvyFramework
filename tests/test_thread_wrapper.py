@@ -132,3 +132,20 @@ class TestThreadWrapper(unittest.TestCase):
         tw.exit()
         end_time = time.time()
         self.assertLess(end_time - start_time, 2)
+
+    def test_stopped_thread_can_be_started(self):
+        mock = Mock()
+
+        def _thread_fn(ctx: ThreadContext):
+            while not ctx.stop_requested:
+                mock()
+                ctx.sleep(10)
+
+        tw = ThreadWrapper(_thread_fn)
+        tw.stop()
+        self.assertEqual(0, mock.call_count)
+
+        tw.start()
+        time.sleep(0.1)
+        tw.exit()
+        self.assertEqual(1, mock.call_count)

@@ -10,6 +10,7 @@ class ThreadWrapper:
     """
 
     def __init__(self, func, name="WorkerThread"):
+        print("ThreadWrapper: create {}".format(name))
         self._exiting = False
         self._name = name
         self._func = func
@@ -47,13 +48,18 @@ class ThreadWrapper:
     def start(self):
         if self._exiting:
             raise AssertionError("Can't restart thread")
+
+        if self.stopping:
+            return
+
         print("{}: starting".format(self._name))
         self._control.set()
 
     def stop(self):
         print("{}: stopping".format(self._name))
-        self._stop_event.set()
-        self._stop_requested_callback()
+        if self._control.is_set():
+            self._stop_event.set()
+            self._stop_requested_callback()
 
     def exit(self):
         self._exiting = True

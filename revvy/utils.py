@@ -194,6 +194,7 @@ class RobotManager:
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
     def __init__(self, interface: RevvyTransportInterface, revvy, sound, default_config=None, feature_map=None):
+        print("RobotManager: __init__()")
         self._robot = RevvyControl(RevvyTransport(interface))
         self._ble = revvy
         self._is_connected = False
@@ -223,7 +224,7 @@ class RobotManager:
         self._motor_ports = MotorPortHandler(self._robot, Motors.types, self)
         self._sensor_ports = SensorPortHandler(self._robot, Sensors.types, self)
 
-        revvy['live_message_service'].register_message_handler(self._on_controller_message_received)
+        revvy['live_message_service'].register_message_handler(self._remote_controller_scheduler.data_ready)
         revvy.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
@@ -256,10 +257,8 @@ class RobotManager:
     def request_update(self):
         self._update_requested = True
 
-    def _on_controller_message_received(self, message):
-        self._remote_controller_scheduler.data_ready(message)
-
     def start(self):
+        print("RobotManager: start()")
         if self._status != self.StatusStartingUp:
             return
 
@@ -359,6 +358,7 @@ class RobotManager:
                     time.sleep(diff)
 
     def _on_connection_changed(self, is_connected):
+        print('Phone connected' if is_connected else 'Phone disconnected')
         self._is_connected = is_connected
         self._robot.set_bluetooth_connection_status(is_connected)
         if not is_connected:
@@ -389,6 +389,7 @@ class RobotManager:
         script.start()
 
     def configure(self, config):
+        print('RobotManager: configure()')
         if self._status != self.StatusStopped:
             self.run_in_background(lambda: self._configure(config))
 
