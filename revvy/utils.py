@@ -411,6 +411,8 @@ class RobotManager:
                 except (BrokenPipeError, IOError, OSError):
                     retry_ping = True
 
+            self._robot.set_bluetooth_connection_status(self._is_connected)
+
             # set up status reader, data dispatcher
             self._reader.reset()
             self._data_dispatcher.reset()
