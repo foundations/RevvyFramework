@@ -2,6 +2,7 @@ import json
 import traceback
 from json import JSONDecodeError
 
+from revvy.scripting.builtin_scripts import drive_joystick, drive_2sticks
 
 motor_types = [
     # left             right
@@ -12,6 +13,11 @@ motor_types = [
 motor_sides = ["left", "right"]
 
 sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch"]
+
+builtin_scripts = {
+    'drive_2sticks': drive_2sticks,
+    'drive_joystick': drive_joystick
+}
 
 
 class PortConfig:
