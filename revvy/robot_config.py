@@ -49,25 +49,41 @@ class RobotConfig:
             json_config = json.loads(config_string)
 
             robot_config = json_config['robotConfig']
-            scripts = json_config['blocklies']
 
             config = RobotConfig()
 
-            for script in scripts:
-                for assignment in script['assignments']:
-                    # todo analog channel scripts
-                    btn_id = assignment['btnId']
+            i = 0
+            for script in json_config['blocklies']:
+                if 'builtinScriptName' in script:
+                    runnable = builtin_scripts[script['builtinScriptName']]
+                else:
+                    runnable = script['pythonCode']
 
-                    if btn_id == -1:
-                        # background script
-                        script_name = 'script_background_{}'.format(len(config.background_scripts))
-                        config.background_scripts.append(script_name)
-                    else:
-                        script_name = 'script_btn_{}'.format(btn_id)
-                        config.controller.buttons[btn_id] = script_name
+                if 'analog' in script['assignments']:
+                    for analog_assignment in script['assignments']['analog']:
+                        script_name = 'user_script_{}'.format(i)
+                        priority = analog_assignment['priority']
+                        config.scripts[script_name] = {'script':   runnable,
+                                                       'priority': priority}
+                        config.controller.analog.append({
+                            'channels': analog_assignment['channels'],
+                            'script': script_name})
+                        i += 1
 
-                    priority = assignment['priority'] if 'priority' in assignment else 0
-                    config.scripts[script_name] = {'script': script['pythonCode'], 'priority': priority}
+                if 'buttons' in script['assignments']:
+                    for button_assignment in script['assignments']['buttons']:
+                        script_name = 'user_script_{}'.format(i)
+                        priority = button_assignment['priority']
+                        config.scripts[script_name] = {'script': runnable, 'priority': priority}
+                        config.controller.buttons[button_assignment['id']] = script_name
+                        i += 1
+
+                if 'background' in script['assignments']:
+                    script_name = 'user_script_{}'.format(i)
+                    priority = script['assignments']['background']
+                    config.scripts[script_name] = {'script': runnable, 'priority': priority}
+                    config.background_scripts.append(script_name)
+                    i += 1
 
             if 'motors' in robot_config:
                 i = 1

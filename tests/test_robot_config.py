@@ -21,27 +21,106 @@ class TestRobotConfig(unittest.TestCase):
             config = RobotConfig.from_string('{"robotConfig": [], "blocklies": []}')
             self.assertIsNotNone(config)
 
-    def test_blocklies_are_added_to_scripts(self):
+    def test_scripts_can_be_assigned_to_multiple_buttons(self):
         json = '''
         {
             "robotConfig": [],
             "blocklies": [
-                {"pythonCode": "some code", "assignments": [{"layoutId": 0, "btnId": 0, "priority": 2}]},
-                {"pythonCode": "other code", "assignments": [{"layoutId": 0, "btnId": 1}]}
+                {
+                    "pythonCode": "some code",
+                    "assignments": {
+                        "buttons": [
+                            {"id": 0, "priority": 2},
+                            {"id": 2, "priority": 0}
+                        ]
+                    }
+                }
             ]
         }'''
         config = RobotConfig.from_string(json)
-        self.assertIn('script_btn_0', config.scripts)
-        self.assertIn('script_btn_1', config.scripts)
-        self.assertNotIn('script_btn_2', config.scripts)
 
-        self.assertEqual('script_btn_0', config.controller.buttons[0])
-        self.assertEqual('script_btn_1', config.controller.buttons[1])
-        self.assertIsNone(config.controller.buttons[2])
+        self.assertEqual('user_script_0', config.controller.buttons[0])
+        self.assertEqual('user_script_1', config.controller.buttons[2])
 
-        self.assertEqual('some code', config.scripts['script_btn_0']['script'])
-        self.assertEqual(2, config.scripts['script_btn_0']['priority'])
-        self.assertEqual(0, config.scripts['script_btn_1']['priority'])
+        self.assertEqual('some code', config.scripts['user_script_0']['script'])
+        self.assertEqual('some code', config.scripts['user_script_1']['script'])
+
+        self.assertEqual(2, config.scripts['user_script_0']['priority'])
+        self.assertEqual(0, config.scripts['user_script_1']['priority'])
+
+    def test_scripts_can_be_assigned_to_multiple_analog_channels(self):
+        json = '''
+        {
+            "robotConfig": [],
+            "blocklies": [
+                {
+                    "pythonCode": "some code",
+                    "assignments": {
+                        "analog": [
+                            {"channels": [0, 1], "priority": 1}
+                        ]
+                    }
+                }
+            ]
+        }'''
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual(1, len(config.controller.analog))
+
+        self.assertEqual('user_script_0', config.controller.analog[0]['script'])
+        self.assertListEqual([0, 1], config.controller.analog[0]['channels'])
+        self.assertEqual('some code', config.scripts['user_script_0']['script'])
+        self.assertEqual(1, config.scripts['user_script_0']['priority'])
+
+    def test_scripts_can_be_configured_to_run_in_background(self):
+        json = '''
+        {
+            "robotConfig": [],
+            "blocklies": [
+                {
+                    "pythonCode": "some code",
+                    "assignments": {
+                        "background": 3
+                    }
+                }
+            ]
+        }'''
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual(1, len(config.background_scripts))
+
+        self.assertEqual('user_script_0', config.background_scripts[0])
+        self.assertEqual('some code', config.scripts['user_script_0']['script'])
+        self.assertEqual(3, config.scripts['user_script_0']['priority'])
+
+    def test_scripts_can_be_assigned_to_every_type_at_once(self):
+        json = '''
+        {
+            "robotConfig": [],
+            "blocklies": [
+                {
+                    "pythonCode": "some code",
+                    "assignments": {
+                        "buttons": [{"id": 1, "priority": 0}],
+                        "analog": [{"channels": [0, 1], "priority": 1}],
+                        "background": 3
+                    }
+                }
+            ]
+        }'''
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual(1, len(config.background_scripts))
+
+        self.assertEqual('user_script_0', config.controller.analog[0]['script'])
+        self.assertEqual('user_script_1', config.controller.buttons[1])
+        self.assertEqual('user_script_2', config.background_scripts[0])
+        self.assertEqual('some code', config.scripts['user_script_0']['script'])
+        self.assertEqual('some code', config.scripts['user_script_1']['script'])
+        self.assertEqual('some code', config.scripts['user_script_2']['script'])
+        self.assertEqual(0, config.scripts['user_script_1']['priority'])
+        self.assertEqual(1, config.scripts['user_script_0']['priority'])
+        self.assertEqual(3, config.scripts['user_script_2']['priority'])
 
     def test_motor_title_is_parsed_as_list_of_motors(self):
         json = '''
