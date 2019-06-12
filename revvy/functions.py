@@ -73,6 +73,10 @@ def hex2rgb(hex_str):
     """
     >>> hex2rgb("#aabbcc")
     11189196
+    >>> hex2rgb("#000000")
+    0
+    >>> hex2rgb("#0000FF")
+    255
     """
     stripped_hex = hex_str.lstrip('#')
     rgb = tuple(int(stripped_hex[i:i + 2], 16) for i in range(0, len(stripped_hex), 2))

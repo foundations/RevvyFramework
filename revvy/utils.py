@@ -139,20 +139,14 @@ class RingLed:
         self._interface = interface
         self._ring_led_count = 0
         self._current_scenario = self.Off
-        self._user_led_feature_supported = False
 
     @property
     def count(self):
         return self._ring_led_count
 
     def reset(self):
-        try:
-            self.set_scenario(RingLed.Off)
-            self._ring_led_count = self._interface.ring_led_get_led_amount()
-            self._user_led_feature_supported = True
-        except UnknownCommandError:
-            print('RingLed: user led feature is not supported in current firmware')
-            self._user_led_feature_supported = False
+        self.set_scenario(RingLed.Off)
+        self._ring_led_count = self._interface.ring_led_get_led_amount()
 
     def set_scenario(self, scenario):
         self._current_scenario = scenario
@@ -166,18 +160,13 @@ class RingLed:
         """
         :param frame: array of 12 RGB values
         """
-        if not self._user_led_feature_supported:
-            return
-
         if len(frame) != self._ring_led_count:
             raise ValueError("Number of colors ({}) does not match LEDs ({})", len(frame), self._ring_led_count)
 
+        print("Sending user LEDs: {}".format(repr(frame)))
         self._interface.ring_led_set_user_frame(frame)
 
     def display_user_frame(self, frame):
-        if not self._user_led_feature_supported:
-            return
-
         self.upload_user_frame(frame)
         self.set_scenario(self.UserFrame)
 

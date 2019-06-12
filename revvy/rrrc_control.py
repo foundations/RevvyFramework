@@ -1,3 +1,4 @@
+import struct
 from functools import reduce
 from revvy.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
@@ -199,21 +200,34 @@ class RingLed_SetRingScenarioCommand(Command):
     pass
 
 
+def rgb_to_rgb565_bytes(rgb):
+    """
+    Convert 24bit color to 16bit
+
+    >>> rgb_to_rgb565_bytes(0)
+    0
+    >>> rgb_to_rgb565_bytes(0x800000)
+    32768
+    >>> rgb_to_rgb565_bytes(0x080408)
+    2081
+    >>> rgb_to_rgb565_bytes(0x808080)
+    33808
+    >>> rgb_to_rgb565_bytes(0xFFFFFF)
+    65535
+    """
+    r = (rgb & 0x00F80000) >> 8
+    g = (rgb & 0x0000FC00) >> 5
+    b = (rgb & 0x000000F8) >> 3
+
+    return r | g | b
+
+
 class RingLed_SetUserFrameCommand(Command):
     def get_payload_bytes(self, payload):
-
-        def rgb_to_rgb565_bytes(rgb):
-            r = (rgb & 0x00F80000) >> 19
-            g = (rgb & 0x0000FC00) >> 10
-            b = (rgb & 0x000000F8) >> 3
-
-            rgb565 = [
-                (r << 3) | ((g & 0x38) >> 3),
-                ((g & 0x07) << 3) | b]
-            return rgb565
-
-        byte_pairs = map(rgb_to_rgb565_bytes, payload[0])
-        return reduce(lambda x, y: x + y, byte_pairs, [])
+        rgb565_values = list(map(rgb_to_rgb565_bytes, payload[0]))
+        led_bytes = list(struct.pack("<"+"H"*len(rgb565_values), *rgb565_values))
+        print("Sending user LED bytes: {}".format(repr(led_bytes)))
+        return led_bytes
 
 
 class DriveTrain_SetMotorsCommand(Command):
