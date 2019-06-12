@@ -242,7 +242,6 @@ class DriveTrain_ControlCommand(SendByteListCommand):
 
 
 class RevvyControl:
-    mcu_address = 0x2D
 
     command_ping = 0x00
     command_get_hardware_version = 0x01

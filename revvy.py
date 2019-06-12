@@ -59,8 +59,8 @@ def start_revvy(config: RobotConfig = None):
 
     ble = RevvyBLE(device_name, serial, long_message_handler)
 
-    with RevvyTransportI2C(RevvyControl.mcu_address) as transport:
-        robot_control = RevvyControl(transport.bind(RevvyControl.mcu_address))
+    with RevvyTransportI2C() as transport:
+        robot_control = RevvyControl(transport.bind(0x2D))
 
         robot = RobotManager(robot_control, ble, sound, config, mcu_features)
 
