@@ -1,11 +1,19 @@
-from smbus2 import SMBus, i2c_msg
-from revvy.rrrc_transport import RevvyTransportInterface
+from smbus2 import i2c_msg, SMBus
+from revvy.rrrc_transport import RevvyTransportInterface, RevvyTransport
 
 
-class RevvyTransportI2CImpl(RevvyTransportInterface):
-    def __init__(self, address):
+class RevvyTransportI2CImpl:
+    def __init__(self, bus):
+        self._bus = bus
+
+    def bind(self, address):
+        return RevvyTransport(RevvyTransportI2CDevice(address, self._bus))
+
+
+class RevvyTransportI2CDevice(RevvyTransportInterface):
+    def __init__(self, address, bus):
         self._address = address
-        self._bus = SMBus(1)
+        self._bus = bus
 
     def read(self, length):
         read_msg = i2c_msg.read(self._address, length)
@@ -25,17 +33,14 @@ class RevvyTransportI2CImpl(RevvyTransportInterface):
         self._bus.i2c_rdwr(write_msg, read_msg)
         return list(read_msg)
 
-    def close(self):
-        self._bus.close()
-
 
 class RevvyTransportI2C:
     def __init__(self, address):
         self._address = address
 
     def __enter__(self):
-        self._transport = RevvyTransportI2CImpl(self._address)
-        return self._transport
+        self._bus = SMBus(1)
+        return RevvyTransportI2CImpl(self._bus)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._transport.close()
+        self._bus.close()

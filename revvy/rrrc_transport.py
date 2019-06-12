@@ -90,7 +90,6 @@ class RevvyTransportInterface:
     def read(self, length): raise NotImplementedError()
     def write(self, data): raise NotImplementedError()
     def write_and_read(self, data, read_length): raise NotImplementedError()
-    def close(self): raise NotImplementedError()
 
 
 class CommandHeader:

@@ -36,7 +36,7 @@ def toggle_ring_led(args):
             args['robot']._ring_led.set_scenario(RingLed.Off)
 
 
-def start_revvy(interface: RevvyTransportInterface, config: RobotConfig = None):
+def start_revvy(config: RobotConfig = None):
     # prepare environment
     directory = os.path.dirname(os.path.realpath(__file__))
     data_dir = os.path.join(directory, '..', '..', 'data')
@@ -49,7 +49,7 @@ def start_revvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
     sound = Sound(setup_sound, play_sound, {
         'startup': os.path.join(data_dir, 'assets', 'startup.mp3'),
-        'cheer': os.path.join(data_dir, 'assets', 'startup.mp3'),
+        'cheer':   os.path.join(data_dir, 'assets', 'startup.mp3'),
     })
     sound.play_tune('startup')
 
@@ -59,52 +59,55 @@ def start_revvy(interface: RevvyTransportInterface, config: RobotConfig = None):
 
     ble = RevvyBLE(device_name, serial, long_message_handler)
 
-    robot = RobotManager(interface, ble, sound, config, mcu_features)
+    with RevvyTransportI2C(RevvyControl.mcu_address) as transport:
+        robot_control = RevvyControl(transport.bind(RevvyControl.mcu_address))
 
-    def on_device_name_changed(new_name):
-        print('Device name changed to {}'.format(new_name))
-        dnp.update_device_name(new_name)
+        robot = RobotManager(robot_control, ble, sound, config, mcu_features)
 
-    def on_message_updated(storage, message_type):
-        print('Received message: {}'.format(message_type))
-        message_data = storage.get_long_message(message_type).decode()
+        def on_device_name_changed(new_name):
+            print('Device name changed to {}'.format(new_name))
+            dnp.update_device_name(new_name)
 
-        if message_type == LongMessageType.TEST_KIT:
-            print('Running test script: {}'.format(message_data))
-            robot._scripts.add_script("test_kit", message_data, 0)
-            robot._scripts["test_kit"].start()
-        elif message_type == LongMessageType.CONFIGURATION_DATA:
-            print('New configuration: {}'.format(message_data))
-            parsed_config = RobotConfig.from_string(message_data)
-            if parsed_config is not None:
-                # robot.configure(parsed_config)
-                pass
-        elif message_type == LongMessageType.FRAMEWORK_DATA:
-            robot.request_update()
+        def on_message_updated(storage, message_type):
+            print('Received message: {}'.format(message_type))
+            message_data = storage.get_long_message(message_type).decode()
 
-    device_name.subscribe(on_device_name_changed)
-    long_message_handler.on_message_updated(on_message_updated)
+            if message_type == LongMessageType.TEST_KIT:
+                print('Running test script: {}'.format(message_data))
+                robot._scripts.add_script("test_kit", message_data, 0)
+                robot._scripts["test_kit"].start()
+            elif message_type == LongMessageType.CONFIGURATION_DATA:
+                print('New configuration: {}'.format(message_data))
+                parsed_config = RobotConfig.from_string(message_data)
+                if parsed_config is not None:
+                    # robot.configure(parsed_config)
+                    pass
+            elif message_type == LongMessageType.FRAMEWORK_DATA:
+                robot.request_update()
 
-    # noinspection PyBroadException
-    try:
-        robot.start()
-        print("Press Ctrl-C to exit")
-        while not robot.update_requested:
-            time.sleep(1)
-        # exit due to update request
-        ret_val = 3
-    except KeyboardInterrupt:
-        # manual exit
-        ret_val = 0
-    except Exception:
-        print(traceback.format_exc())
-        ret_val = 1
-    finally:
-        print('stopping')
-        robot.stop()
+        device_name.subscribe(on_device_name_changed)
+        long_message_handler.on_message_updated(on_message_updated)
 
-    print('terminated.')
-    return ret_val
+        # noinspection PyBroadException
+        try:
+            robot.start()
+            print("Press Ctrl-C to exit")
+            while not robot.update_requested:
+                time.sleep(1)
+            # exit due to update request
+            ret_val = 3
+        except KeyboardInterrupt:
+            # manual exit
+            ret_val = 0
+        except Exception:
+            print(traceback.format_exc())
+            ret_val = 1
+        finally:
+            print('stopping')
+            robot.stop()
+
+        print('terminated.')
+        return ret_val
 
 
 motor_test = '''
@@ -205,8 +208,7 @@ def main():
     default_config.scripts['button_light_test'] = {'script': button_light_test, 'priority': 0}
     default_config.scripts['ultrasound_light_test'] = {'script': ultrasound_light_test, 'priority': 0}
 
-    with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
-        return start_revvy(robot_interface, default_config)
+    return start_revvy(default_config)
 
 
 if __name__ == "__main__":

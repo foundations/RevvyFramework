@@ -182,9 +182,9 @@ class RobotManager:
     status_led_controlled = 2
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, interface: RevvyTransportInterface, revvy, sound, default_config=None, feature_map=None):
+    def __init__(self, robot: RevvyControl, revvy, sound, default_config=None, feature_map=None):
         print("RobotManager: __init__()")
-        self._robot = RevvyControl(RevvyTransport(interface))
+        self._robot = robot
         self._ble = revvy
         self._is_connected = False
         self._default_configuration = default_config

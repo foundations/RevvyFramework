@@ -1,5 +1,4 @@
 import struct
-from functools import reduce
 from revvy.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
 
@@ -285,6 +284,7 @@ class RevvyControl:
             0x04: SetMasterStatusCommand(),
             0x05: SetBluetoothStatusCommand(),
 
+            0x06: ReadUint8Command(),
             0x0B: RebootBootloaderCommand(),
 
             0x10: MotorPort_GetPortAmountCommand(),
