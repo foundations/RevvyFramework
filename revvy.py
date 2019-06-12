@@ -107,93 +107,76 @@ def start_revvy(interface: RevvyTransportInterface, config: RobotConfig = None):
     return ret_val
 
 
-sound_test = '''
-while True:
-    robot.play_tune('cheer')
-'''
-
-
-motor_test_spin = '''
-robot.motors[1].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[2].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[3].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[4].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[5].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[6].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-'''
-
-
-motor_test_move_sec = '''
-while True:
-    robot.motors[1].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
-    robot.motors[2].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
-    robot.motors[3].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
-    robot.motors[4].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
-    robot.motors[5].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
-    robot.motors[6].move(direction=Motor.DIR_CCW, amount=1, unit_amount=Motor.UNIT_SEC, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
-'''
-
-
-motor_test_move_deg = '''
-while True:
-    robot.motors[1].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[2].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[3].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[4].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[5].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[6].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-'''
-
-
-motor_test_move_rot = '''
-while True:
-    robot.motors[1].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[2].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[3].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[4].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[5].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-    robot.motors[6].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_ROT, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-'''
-
-
-motor_test_stop = '''
-robot.motors[1].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[2].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[3].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[4].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[5].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[6].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-time.sleep(3)
-
-robot.stop_all_motors(Motor.ACTION_RELEASE)
-time.sleep(3)
-
-robot.motors[1].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[2].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[3].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[4].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[5].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-robot.motors[6].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-time.sleep(3)
-
-robot.stop_all_motors(Motor.ACTION_STOP_AND_HOLD)
-'''
-
-
 motor_test = '''
-while True:
-    robot.drive(direction=Motor.DIRECTION_RIGHT, rotation=1, unit_rotation=Motor.UNIT_SEC, speed=20, unit_speed=Motor.UNIT_SPEED_PWR)
-    time.sleep(1)
-    robot.drive(direction=Motor.DIRECTION_LEFT, rotation=1, unit_rotation=Motor.UNIT_SEC, speed=20, unit_speed=Motor.UNIT_SPEED_PWR)
-    time.sleep(1)
-'''
+robot.motors[{MOTOR}].move(direction=Motor.DIRECTION_CW, rotation=180, unit_rotation=Motor.UNIT_DEG, speed=20, unit_speed=Motor.UNIT_SPEED_PWR)
+time.sleep(1)
+robot.motors[{MOTOR}].move(direction=Motor.DIRECTION_CCW, rotation=180, unit_rotation=Motor.UNIT_DEG, speed=20, unit_speed=Motor.UNIT_SPEED_PWR)
+time.sleep(0.2)
+robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
+'''.replace('{MOTOR}', '1')
 
 
-button_sound_test = '''
-while True:
-    if robot.sensors[2].read() == 1:
-        robot.play_tune('cheer')
-'''
+drivetrain_test = '''
+robot.motors[{MOTOR}].spin(direction=Motor.DIR_CW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+time.sleep(3)
+robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
+time.sleep(0.2)
+robot.motors[{MOTOR}].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
+time.sleep(3)
+robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
+time.sleep(0.2)
+'''.replace('{MOTOR}', '1')
+
+
+button_light_test = '''
+test_ok = False
+prev_sec = 12
+robot.led.set(list(range(1, 13)), "#FF0000")
+
+start = time.time()
+while time.time() - start < 12:
+    seconds = 12 - int(round(time.time() - start, 0))
+
+    if seconds != prev_sec:
+        robot.led.set(list(range(1, seconds+1)), "#FF0000")
+        robot.led.set(list(range(seconds+1, 13)), "#000000")
+        prev_sec = seconds
+
+    if robot.sensors[{SENSOR}].read() == 1:
+        test_ok = True
+        break
+
+if test_ok:
+    # draw smiley face
+    robot.led.set(list(range(1, 13)), "#000000")
+    robot.led.set([1, 2, 3, 4, 5, 8, 10], "#00FF00")
+    time.sleep(3)
+    robot.led.set(list(range(1, 13)), "#000000")
+'''.replace('{SENSOR}', '2')
+
+
+ultrasound_light_test = '''
+test_ok = False
+prev_sec = 12
+robot.led.set(list(range(1, 13)), "#FF0000")
+prev_dist = 48
+
+start = time.time()
+while time.time() - start < 12:
+    seconds = 12 - int(round(time.time() - start, 0))
+
+    dist = robot.sensors[{SENSOR}].read()
+    if dist < 48:
+        nleds = int(round((48 - dist)/4))
+        robot.led.set(list(range(1, nleds+1)), "#0000FF")
+        robot.led.set(list(range(nleds+1, 13)), "#000000")
+        prev_sec = 12
+    elif seconds != prev_sec:
+        dist = 48
+        robot.led.set(list(range(1, seconds+1)), "#FF0000")
+        robot.led.set(list(range(seconds+1, 13)), "#000000")
+        prev_sec = seconds
+'''.replace('{SENSOR}', '1')
 
 
 def main():
@@ -212,16 +195,15 @@ def main():
     default_config.sensors[2] = "BumperSwitch"
     default_config.controller.analog.append({'channels': [0, 1], 'script': 'drivetrain_joystick'})
     default_config.controller.buttons[0] = 'toggle_ring_led'
-    default_config.controller.buttons[1] = 'sound_test'
+    default_config.controller.buttons[1] = 'button_light_test'
 
     default_config.scripts['drivetrain_joystick'] = {'script': drive_joystick, 'priority': 0}
     default_config.scripts['drivetrain_2sticks'] = {'script': drive_2sticks, 'priority': 0}
     default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
     default_config.scripts['motor_test'] = {'script': motor_test, 'priority': 0}
-    default_config.scripts['sound_test'] = {'script': sound_test, 'priority': 0}
-    default_config.scripts['button_sound_test'] = {'script': button_sound_test, 'priority': 0}
-
-    default_config.background_scripts.append('button_sound_test')
+    default_config.scripts['drivetrain_test'] = {'script': drivetrain_test, 'priority': 0}
+    default_config.scripts['button_light_test'] = {'script': button_light_test, 'priority': 0}
+    default_config.scripts['ultrasound_light_test'] = {'script': ultrasound_light_test, 'priority': 0}
 
     with RevvyTransportI2C(RevvyControl.mcu_address) as robot_interface:
         return start_revvy(robot_interface, default_config)
