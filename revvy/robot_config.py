@@ -63,26 +63,26 @@ class RobotConfig:
                     priority = assignment['priority'] if 'priority' in assignment else 0
                     config.scripts[script_name] = {'script': script['pythonCode'], 'priority': priority}
 
-            for partial_config in robot_config:
-                if partial_config['title'] == 'Motors':
-                    i = 1
-                    for motor in partial_config['data']:
-                        motor_type = motor_types[motor['type']][motor['direction']]
-                        config.motors[i] = motor_type
-                        config.motors.names[motor['name']] = i
+            if 'motors' in robot_config:
+                i = 1
+                for motor in robot_config['motors']:
+                    motor_type = motor_types[motor['type']][motor['direction']]
+                    config.motors[i] = motor_type
+                    config.motors.names[motor['name']] = i
 
-                        if motor['type'] == 2:  # drivetrain
-                            config.drivetrain[motor_sides[motor['side']]].append(i)
+                    if motor['type'] == 2:  # drivetrain
+                        config.drivetrain[motor_sides[motor['side']]].append(i)
 
-                        i += 1
-                elif partial_config['title'] == 'Sensors':
-                    i = 1
-                    for sensor in partial_config['data']:
-                        sensor_type = sensor_types[sensor['type']]
-                        config.sensors[i] = sensor_type
-                        config.sensors.names[sensor['name']] = i
+                    i += 1
 
-                        i += 1
+            if 'sensors' in robot_config:
+                i = 1
+                for sensor in robot_config['sensors']:
+                    sensor_type = sensor_types[sensor['type']]
+                    config.sensors[i] = sensor_type
+                    config.sensors.names[sensor['name']] = i
+
+                    i += 1
 
             return config
         except (JSONDecodeError, KeyError):

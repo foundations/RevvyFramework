@@ -46,49 +46,46 @@ class TestRobotConfig(unittest.TestCase):
     def test_motor_title_is_parsed_as_list_of_motors(self):
         json = '''
         {
-            "robotConfig": [
-                {
-                    "title": "Motors",
-                    "data": [
-                        {
-                            "name": "M1",
-                            "type": 0,
-                            "direction": 0,
-                            "side": 0
-                        },
-                        {
-                            "name": "M2",
-                            "type": 2,
-                            "direction": 0,
-                            "side": 0
-                        },
-                        {
-                            "name": "M3",
-                            "type": 2,
-                            "direction": 0,
-                            "side": 0
-                        },
-                        {
-                            "name": "M4",
-                            "type": 1,
-                            "direction": 1,
-                            "side": 0
-                        },
-                        {
-                            "name": "M5",
-                            "type": 2,
-                            "direction": 0,
-                            "side": 1
-                        },
-                        {
-                            "name": "M6",
-                            "type": 2,
-                            "direction": 0,
-                            "side": 1
-                        }
-                    ]
-                }
-            ],
+            "robotConfig": {
+                "motors": [
+                    {
+                        "name": "M1",
+                        "type": 0,
+                        "direction": 0,
+                        "side": 0
+                    },
+                    {
+                        "name": "M2",
+                        "type": 2,
+                        "direction": 0,
+                        "side": 0
+                    },
+                    {
+                        "name": "M3",
+                        "type": 2,
+                        "direction": 0,
+                        "side": 0
+                    },
+                    {
+                        "name": "M4",
+                        "type": 1,
+                        "direction": 1,
+                        "side": 0
+                    },
+                    {
+                        "name": "M5",
+                        "type": 2,
+                        "direction": 0,
+                        "side": 1
+                    },
+                    {
+                        "name": "M6",
+                        "type": 2,
+                        "direction": 0,
+                        "side": 1
+                    }
+                ]
+            },
             "blocklies": []
         }'''
 
@@ -114,29 +111,26 @@ class TestRobotConfig(unittest.TestCase):
     def test_sensor_title_is_parsed_as_list_of_sensors(self):
         json = '''
         {
-            "robotConfig": [
-                {
-                    "title": "Sensors",
-                    "data": [
-                        {
-                            "name": "S1",
-                            "type": 1
-                        },
-                        {
-                            "name": "S2",
-                            "type": 2
-                        },
-                        {
-                            "name": "S3",
-                            "type": 0
-                        },
-                        {
-                            "name": "S4",
-                            "type": 0
-                        }
-                    ]
-                }
-            ],
+            "robotConfig": {
+                "sensors": [
+                    {
+                        "name": "S1",
+                        "type": 1
+                    },
+                    {
+                        "name": "S2",
+                        "type": 2
+                    },
+                    {
+                        "name": "S3",
+                        "type": 0
+                    },
+                    {
+                        "name": "S4",
+                        "type": 0
+                    }
+                ]
+            },
             "blocklies": []
         }'''
 
