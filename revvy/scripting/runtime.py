@@ -18,55 +18,47 @@ class TimeWrapper:
 class ScriptHandle:
     def __init__(self, script, name, global_variables: dict):
         self._globals = dict(global_variables)
-        self._thread = None
-        self._thread_name = name
+        self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
+        self._thread_ctx = None
 
         if callable(script):
             self._runnable = script
         else:
             self._runnable = lambda x: exec(script, x)
 
-    def _get_thread_object(self):
-        if self._thread is None:
-            print('Create thread: {}'.format(self._thread_name))
-            self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(self._thread_name))
-
-        return self._thread
-
     @property
     def is_stop_requested(self):
-        if self._thread is None:
-            return False
-
         return self._thread.stopping
 
     def on_stopped(self, callback):
-        self._get_thread_object().on_stopped(callback)
+        self._thread.on_stopped(callback)
 
     def assign(self, name, value):
         self._globals[name] = value
 
     def _run(self, ctx):
-        self._runnable({
-            **self._globals,
-            'ctx': ctx,
-            'time': TimeWrapper(ctx)
-        })
+        try:
+            self._thread_ctx = ctx
+            self._runnable({
+                **self._globals,
+                'ctx': ctx,
+                'time': TimeWrapper(ctx)
+            })
+        finally:
+            self._thread_ctx = None
 
     def sleep(self, s):
-        if self._thread is not None:
-            self._thread.sleep(s)
+        if self._thread_ctx is not None:
+            self._thread_ctx.sleep(s)
 
     def start(self):
-        self._get_thread_object().start()
+        self._thread.start()
 
     def stop(self):
-        if self._thread is not None:
-            self._thread.stop()
+        self._thread.stop()
 
     def cleanup(self):
-        if self._thread is not None:
-            self._thread.exit()
+        self._thread.exit()
 
 
 class ScriptManager:
