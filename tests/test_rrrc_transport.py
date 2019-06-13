@@ -112,3 +112,31 @@ class TestRevvyTransport(unittest.TestCase):
         self.assertEqual(5, mock_interface._reads[0][1])
         self.assertEqual(7, mock_interface._reads[1][1])
         self.assertListEqual([0x0a, 0x0b], response.payload)
+
+    def test_pending_is_retried_with_get_result(self):
+        mock_interface = MockInterface([
+            [ResponseHeader.Status_Pending, 0, 0xff, 0xff, 115],
+            [ResponseHeader.Status_Pending, 0, 0xff, 0xff, 115],
+            [ResponseHeader.Status_Pending, 0, 0xff, 0xff, 115],
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121],             # respond with header first
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121, 0x0a, 0x0b]  # respond with success
+        ])
+        rt = RevvyTransport(mock_interface)
+        response = rt.send_command(10)  # some ping-type command
+        self.assertEqual(True, response.success)
+        self.assertEqual(4, len(mock_interface._writes))
+
+        self.assertEqual(0, mock_interface._writes[0][0])
+        self.assertEqual(Command.OpStart, mock_interface._writes[0][1][0])
+
+        self.assertEqual(2, mock_interface._writes[1][0])
+        self.assertEqual(Command.OpGetResult, mock_interface._writes[1][1][0])
+
+        self.assertEqual(4, mock_interface._writes[2][0])
+        self.assertEqual(Command.OpGetResult, mock_interface._writes[2][1][0])
+
+        self.assertEqual(6, mock_interface._writes[3][0])
+        self.assertEqual(Command.OpGetResult, mock_interface._writes[3][1][0])
+
+        self.assertEqual(5, len(mock_interface._reads))
+        self.assertListEqual([0x0a, 0x0b], response.payload)
