@@ -1,6 +1,6 @@
 import unittest
 
-from revvy.rrrc_transport import Command, crc7, crc16
+from revvy.rrrc_transport import Command, crc7, crc16, RevvyTransport, RevvyTransportInterface, ResponseHeader
 
 
 class TestCommand(unittest.TestCase):
@@ -46,3 +46,69 @@ class TestCommand(unittest.TestCase):
 
         self.assertNotEqual(checksum_if_payload_ffff, ch.get_bytes()[5])
         self.assertNotEqual(expected_checksum, ch.get_bytes()[5])
+
+
+class MockInterface(RevvyTransportInterface):
+
+    def __init__(self, read_responses):
+        self._responses = read_responses
+        self._writes = []
+        self._reads = []
+        self._counter = 0
+
+    def read(self, length):
+        idx = len(self._reads)
+        self._reads.append((self._counter, length))
+        self._counter += 1
+        return self._responses[idx][0:length]
+
+    def write(self, data):
+        self._writes.append((self._counter, data))
+        self._counter += 1
+
+
+class TestRevvyTransport(unittest.TestCase):
+    def test_only_one_write_if_immediate_successful_response(self):
+        mock_interface = MockInterface([
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117]  # immediately respond with success
+        ])
+        rt = RevvyTransport(mock_interface)
+        response = rt.send_command(10, [8, 9])  # some ping-type command
+        self.assertEqual(2, mock_interface._counter)  # write, read header, no data
+        self.assertEqual(1, len(mock_interface._writes))
+        self.assertEqual(1, len(mock_interface._reads))
+        self.assertEqual(0, mock_interface._writes[0][0])  # write happened first
+        self.assertEqual(1, mock_interface._reads[0][0])  # read happened second
+        self.assertListEqual(Command.start(10, [8, 9]).get_bytes(), mock_interface._writes[0][1])
+        self.assertEqual(True, response.success)
+        self.assertEqual(0, len(response.payload))
+
+    def test_retry_reading_after_busy_response(self):
+        mock_interface = MockInterface([
+            [ResponseHeader.Status_Busy, 0, 0xFF, 0xFF, 118],
+            [ResponseHeader.Status_Busy, 0, 0xFF, 0xFF, 118],
+            [ResponseHeader.Status_Busy, 0, 0xFF, 0xFF, 118],
+            [ResponseHeader.Status_Busy, 0, 0xFF, 0xFF, 118],
+            [ResponseHeader.Status_Busy, 0, 0xFF, 0xFF, 118],
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117]  # finally respond with success
+        ])
+        rt = RevvyTransport(mock_interface)
+        response = rt.send_command(10)  # some ping-type command
+        self.assertEqual(1, len(mock_interface._writes))
+        self.assertEqual(6, len(mock_interface._reads))
+        self.assertEqual(0, mock_interface._writes[0][0])  # write happened first
+        self.assertEqual(True, response.success)
+        self.assertEqual(0, len(response.payload))
+
+    def test_data_header_is_read_before_full_response(self):
+        mock_interface = MockInterface([
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121],  # respond with header first
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121, 0x0a, 0x0b]  # respond with success
+        ])
+        rt = RevvyTransport(mock_interface)
+        response = rt.send_command(10)  # some ping-type command
+        self.assertEqual(True, response.success)
+        self.assertEqual(2, len(mock_interface._reads))
+        self.assertEqual(5, mock_interface._reads[0][1])
+        self.assertEqual(7, mock_interface._reads[1][1])
+        self.assertListEqual([0x0a, 0x0b], response.payload)
