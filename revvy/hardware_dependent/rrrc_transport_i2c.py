@@ -24,15 +24,6 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
         write_msg = i2c_msg.write(self._address, data)
         self._bus.i2c_rdwr(write_msg)
 
-    def write_and_read(self, data, read_length):
-        """
-        Don't use this function as it generates a repeated start
-        """
-        write_msg = i2c_msg.write(self._address, data)
-        read_msg = i2c_msg.read(self._address, read_length)
-        self._bus.i2c_rdwr(write_msg, read_msg)
-        return list(read_msg)
-
 
 class RevvyTransportI2C:
     def __enter__(self):
