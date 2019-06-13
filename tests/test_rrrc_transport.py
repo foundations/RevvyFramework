@@ -176,3 +176,26 @@ class TestRevvyTransport(unittest.TestCase):
 
         self.assertEqual(5, len(mock_interface._reads))
         self.assertListEqual([0x0a, 0x0b], response.payload)
+
+    def test_multiple_header_errors_raises_error(self):
+        mock_interface = MockInterface([
+            [ResponseHeader.Status_Ok, 2, 0x5f, 0x43, 121],  # respond with invalid header
+            [ResponseHeader.Status_Ok, 2, 0x5f, 0x43, 121],  # respond with invalid header
+            [ResponseHeader.Status_Ok, 2, 0x5f, 0x43, 121],  # respond with invalid header
+            [ResponseHeader.Status_Ok, 2, 0x5f, 0x43, 121],  # respond with invalid header
+            [ResponseHeader.Status_Ok, 2, 0x5f, 0x43, 121],  # respond with invalid header
+        ])
+        rt = RevvyTransport(mock_interface)
+        self.assertRaises(BrokenPipeError, lambda: rt.send_command(10))
+
+    def test_multiple_payload_errors_raises_error(self):
+        mock_interface = MockInterface([
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121],  # respond with header first
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121, 0x0a, 0x0c],  # respond with success, but invalid payload
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121, 0x0a, 0x0c],  # respond with success, but invalid payload
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121, 0x0a, 0x0c],  # respond with success, but invalid payload
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121, 0x0a, 0x0c],  # respond with success, but invalid payload
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121, 0x0a, 0x0c],  # respond with success, but invalid payload
+        ])
+        rt = RevvyTransport(mock_interface)
+        self.assertRaises(BrokenPipeError, lambda: rt.send_command(10))
