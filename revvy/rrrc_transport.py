@@ -92,7 +92,7 @@ class RevvyTransportInterface:
     def write_and_read(self, data, read_length): raise NotImplementedError()
 
 
-class CommandHeader:
+class Command:
     OpStart = 0
     OpRestart = 1
     OpGetResult = 2
@@ -112,7 +112,7 @@ class CommandHeader:
         header += bytes(payload_checksum.to_bytes(2, byteorder='little'))
         header.append(crc7(header, 0xFF))
 
-        return header
+        return header + self._payload
 
     @classmethod
     def start(cls, command, payload=None):
@@ -125,40 +125,6 @@ class CommandHeader:
     @classmethod
     def cancel(cls, command):
         return cls(cls.OpCancel, command)
-
-
-class Command:
-    def get_bytes(self): raise NotImplementedError()
-
-
-class CommandStart(Command):
-    def __init__(self, command, payload=None):
-        self._command = command
-        self._header = CommandHeader.start(command, payload)
-        self._payload = payload if payload else []
-
-    def get_bytes(self):
-        return self._header.get_bytes() + self._payload
-
-    @property
-    def command(self):
-        return self._command
-
-
-class CommandGetResult(Command):
-    def __init__(self, command):
-        self._header = CommandHeader.get_result(command)
-
-    def get_bytes(self):
-        return self._header.get_bytes()
-
-
-class CommandCancel(Command):
-    def __init__(self, command):
-        self._header = CommandHeader.cancel(command)
-
-    def get_bytes(self):
-        return self._header.get_bytes()
 
 
 class ResponseHeader:
@@ -252,11 +218,11 @@ class RevvyTransport:
             # once a command gets through and a valid response is read, this loop will exit
             while True:
                 # send command and read back status
-                header = self._send_command(CommandStart(command, payload))
+                header = self._send_command(Command.start(command, payload))
 
                 # wait for command execution to finish
                 while header.status == ResponseHeader.Status_Pending:
-                    header = self._send_command(CommandGetResult(command))
+                    header = self._send_command(Command.get_result(command))
 
                 # check result
                 # return a result even in case of an error, except when we know we have to resend
