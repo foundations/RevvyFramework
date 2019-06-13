@@ -25,7 +25,7 @@ class TestRobotConfig(unittest.TestCase):
         json = '''
         {
             "robotConfig": [],
-            "blocklies": [
+            "blocklyList": [
                 {
                     "pythonCode": "some code",
                     "assignments": {
@@ -52,7 +52,7 @@ class TestRobotConfig(unittest.TestCase):
         json = '''
         {
             "robotConfig": [],
-            "blocklies": [
+            "blocklyList": [
                 {
                     "pythonCode": "some code",
                     "assignments": {
@@ -76,7 +76,7 @@ class TestRobotConfig(unittest.TestCase):
         json = '''
         {
             "robotConfig": [],
-            "blocklies": [
+            "blocklyList": [
                 {
                     "pythonCode": "some code",
                     "assignments": {
@@ -97,7 +97,7 @@ class TestRobotConfig(unittest.TestCase):
         json = '''
         {
             "robotConfig": [],
-            "blocklies": [
+            "blocklyList": [
                 {
                     "pythonCode": "some code",
                     "assignments": {
@@ -165,7 +165,7 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 ]
             },
-            "blocklies": []
+            "blocklyList": []
         }'''
 
         config = RobotConfig.from_string(json)
@@ -210,7 +210,7 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 ]
             },
-            "blocklies": []
+            "blocklyList": []
         }'''
 
         config = RobotConfig.from_string(json)

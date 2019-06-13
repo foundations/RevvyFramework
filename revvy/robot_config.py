@@ -53,7 +53,7 @@ class RobotConfig:
             config = RobotConfig()
 
             i = 0
-            for script in json_config['blocklies']:
+            for script in json_config['blocklyList']:
                 if 'builtinScriptName' in script:
                     runnable = builtin_scripts[script['builtinScriptName']]
                 else:

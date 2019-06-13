@@ -122,10 +122,10 @@ configs = {
     }
 }
 robot.motors[{MOTOR}].configure(configs["{MOTOR_SIDE}"]["{MOTOR_DIR}"])
-robot.motors[{MOTOR}].move(direction=Motor.DIRECTION_CW, rotation=180, unit_rotation=Motor.UNIT_DEG, speed=20, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.motors[{MOTOR}].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
 time.sleep(1)
-robot.motors[{MOTOR}].move(direction=Motor.DIRECTION_CCW, rotation=180, unit_rotation=Motor.UNIT_DEG, speed=20, unit_speed=Motor.UNIT_SPEED_PWR)
-time.sleep(0.2)
+robot.motors[{MOTOR}].move(direction=Motor.DIR_CCW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
+time.sleep(1)
 robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
 robot.motors[{MOTOR}].configure("NotConfigured")
 '''.replace('{MOTOR}', '1').replace('{MOTOR_SIDE}', 'left').replace('{MOTOR_DIR}', 'cw')
@@ -156,7 +156,7 @@ robot.motors[{MOTOR}].configure("NotConfigured")
 
 
 button_light_test = '''
-robot.sensor[{SENSOR}].configure("BumperSwitch")
+robot.sensors[{SENSOR}].configure("BumperSwitch")
 test_ok = False
 prev_sec = 12
 robot.led.set(list(range(1, 13)), "#FF0000")
@@ -179,14 +179,14 @@ if test_ok:
     robot.led.set(list(range(1, 13)), "#000000")
     robot.led.set([1, 2, 3, 4, 5, 8, 10], "#00FF00")
     time.sleep(3)
-    robot.led.set(list(range(1, 13)), "#000000")
-    
-robot.sensor[{SENSOR}].configure("NotConfigured")
+
+robot.led.set(list(range(1, 13)), "#000000")
+robot.sensors[{SENSOR}].configure("NotConfigured")
 '''.replace('{SENSOR}', '2')
 
 
 ultrasound_light_test = '''
-robot.sensor[{SENSOR}].configure("HC_SR04")
+robot.sensors[{SENSOR}].configure("HC_SR04")
 test_ok = False
 prev_sec = 12
 robot.led.set(list(range(1, 13)), "#FF0000")
@@ -208,27 +208,20 @@ while time.time() - start < 12:
         robot.led.set(list(range(seconds+1, 13)), "#000000")
         prev_sec = seconds
         
-robot.sensor[{SENSOR}].configure("NotConfigured")
+robot.sensors[{SENSOR}].configure("NotConfigured")
+robot.led.set(list(range(1, 13)), "#000000")
 '''.replace('{SENSOR}', '1')
 
 
 def main():
     default_config = RobotConfig()
-    default_config.motors[1] = "RevvyMotor"
-    default_config.motors[2] = "RevvyMotor"
-    default_config.motors[3] = "RevvyMotor"
-    default_config.motors[4] = "RevvyMotor"
-    default_config.motors[5] = "RevvyMotor"
-    default_config.motors[6] = "RevvyMotor"
 
-    default_config.drivetrain['left'] = [2, 3]
-    default_config.drivetrain['right'] = [5, 6]
-
-    default_config.sensors[1] = "HC_SR04"
-    default_config.sensors[2] = "BumperSwitch"
     default_config.controller.analog.append({'channels': [0, 1], 'script': 'drivetrain_joystick'})
     default_config.controller.buttons[0] = 'toggle_ring_led'
     default_config.controller.buttons[1] = 'button_light_test'
+    default_config.controller.buttons[2] = 'ultrasound_light_test'
+    default_config.controller.buttons[3] = 'drivetrain_test'
+    default_config.controller.buttons[4] = 'motor_test'
 
     default_config.scripts['drivetrain_joystick'] = {'script': drive_joystick, 'priority': 0}
     default_config.scripts['drivetrain_2sticks'] = {'script': drive_2sticks, 'priority': 0}
@@ -238,8 +231,7 @@ def main():
     default_config.scripts['button_light_test'] = {'script': button_light_test, 'priority': 0}
     default_config.scripts['ultrasound_light_test'] = {'script': ultrasound_light_test, 'priority': 0}
 
-    # return start_revvy(default_config)
-    return start_revvy(None)
+    return start_revvy(default_config)
 
 
 if __name__ == "__main__":

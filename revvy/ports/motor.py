@@ -170,7 +170,7 @@ class DcMotorController(BaseMotorController):
     def get_status(self):
         data = self._interface.get_motor_position(self._port_idx)
         if len(data) != 9:
-            print('Received {} bytes of data instead of 9'.format(len(data)))
+            print('Motor {}: Received {} bytes of data instead of 9'.format(self._handler.id, len(data)))
 
         (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
 
