@@ -18,7 +18,7 @@ class TestRobotConfig(unittest.TestCase):
             self.assertIsNone(config)
 
         with self.subTest("Both"):
-            config = RobotConfig.from_string('{"robotConfig": [], "blocklies": []}')
+            config = RobotConfig.from_string('{"robotConfig": [], "blocklyList": []}')
             self.assertIsNotNone(config)
 
     def test_scripts_can_be_assigned_to_multiple_buttons(self):
