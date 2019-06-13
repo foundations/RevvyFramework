@@ -5,8 +5,8 @@ from mock import Mock
 from revvy.scripting.resource import Resource
 
 
-priority_high = 1
-priority_low = 0
+priority_high = 0
+priority_low = 1
 
 
 class TestResource(unittest.TestCase):
