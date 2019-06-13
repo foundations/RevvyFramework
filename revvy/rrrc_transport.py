@@ -1,3 +1,4 @@
+import time
 from threading import Lock
 
 from revvy.functions import retry
@@ -209,14 +210,17 @@ class Response:
 
 
 class RevvyTransport:
+
     def __init__(self, transport: RevvyTransportInterface):
+        self.timeout = 5  # [seconds] how long the slave is allowed to respond with "busy"
         self._transport = transport
         self._mutex = Lock()
 
     def send_command(self, command, payload=None) -> Response:
+        """Send a command and get the result."""
         with self._mutex:
             # once a command gets through and a valid response is read, this loop will exit
-            while True:
+            while True:  # assume that integrity error is random and not caused by implementation differences
                 # send command and read back status
                 header = self._send_command(Command.start(command, payload))
 
@@ -272,11 +276,12 @@ class RevvyTransport:
 
     def _send_command(self, command: Command):
         """
-        Send a command, wait for a proper response and returns with the header
+        Send a command, wait for a proper response and return the response header
         """
-        # TODO: for safety, a timeout should be added later
         self._transport.write(command.get_bytes())
-        while True:
+        start = time.time()
+        while self.timeout == 0 or time.time() - start < self.timeout:
             response = self._read_response_header()
             if response.status != ResponseHeader.Status_Busy:
                 return response
+        raise TimeoutError
