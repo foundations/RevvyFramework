@@ -130,7 +130,7 @@ class ResponseHeader:
         self._header_checksum = data[4]
 
     def validate_payload(self, payload):
-        return self._payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
+        return self._payload_checksum == binascii.crc_hqx(bytes(payload), 0xFFFF)
 
     def is_same_header(self, header):
         return len(header) >= self.length \
