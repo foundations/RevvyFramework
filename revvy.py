@@ -67,7 +67,6 @@ def start_revvy(directory, config: RobotConfig = None):
         'uh_oh': os.path.join(package_data_dir, 'assets', 'uh-oh.mp3'),
         'yee_haw': os.path.join(package_data_dir, 'assets', 'yee-haw.mp3'),
     })
-    sound.play_tune('robot2')
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
@@ -117,6 +116,7 @@ def start_revvy(directory, config: RobotConfig = None):
 
         # noinspection PyBroadException
         try:
+            sound.play_tune('robot2')
             robot.start()
             print("Press Ctrl-C to exit")
             while not robot.update_requested:
