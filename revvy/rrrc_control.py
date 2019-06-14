@@ -224,7 +224,7 @@ def rgb_to_rgb565_bytes(rgb):
 class RingLed_SetUserFrameCommand(Command):
     def get_payload_bytes(self, payload):
         rgb565_values = list(map(rgb_to_rgb565_bytes, payload[0]))
-        led_bytes = list(struct.pack("<"+"H"*len(rgb565_values), *rgb565_values))
+        led_bytes = list(struct.pack("<" + "H" * len(rgb565_values), *rgb565_values))
         print("Sending user LED bytes: {}".format(repr(led_bytes)))
         return led_bytes
 
@@ -241,6 +241,27 @@ class DriveTrain_ControlCommand(SendByteListCommand):
     pass
 
 
+class ReadApplicationCrcCommand(Command):
+    def on_success(self, payload):
+        return struct.unpack("<L", payload)
+
+
+class InitializeUpdateCommand(Command):
+    def get_payload_bytes(self, payload):
+        if len(payload) != 2:
+            raise ValueError
+
+        return list(struct.pack("<LL", payload[0], payload[1]))
+
+
+class SendFirmwareCommand(Command):
+    pass
+
+
+class FinalizeUpdateCommand(Command):
+    pass
+
+
 class BootloaderControl:
     command_read_operation_mode = 0x06
     command_read_firmware_checksum = 0x07
@@ -252,6 +273,10 @@ class BootloaderControl:
         self._transport = transport
         self._commands = {
             0x06: ReadUint8Command(),
+            0x07: ReadApplicationCrcCommand(),
+            0x08: InitializeUpdateCommand(),
+            0x09: SendFirmwareCommand(),
+            0x0A: FinalizeUpdateCommand()
         }
 
     def _send(self, command, *args):
@@ -261,6 +286,15 @@ class BootloaderControl:
 
     def read_operation_mode(self):
         return self._send(self.command_read_operation_mode)
+
+    def send_init_update(self, checksum, length):
+        return self._send(self.command_initialize_update, checksum, length)
+
+    def send_firmware(self, chunk):
+        return self._send(self.command_send_firmware, chunk)
+
+    def finalize_update(self):
+        return self._send(self.command_finalize_update)
 
 
 class RevvyControl:
