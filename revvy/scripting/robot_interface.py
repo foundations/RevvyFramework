@@ -1,3 +1,5 @@
+import time
+
 from revvy.functions import hex2rgb
 from revvy.ports.motor import MotorPortInstance, MotorPortHandler
 from revvy.ports.sensor import SensorPortInstance, SensorPortHandler
@@ -344,6 +346,7 @@ class SoundWrapper(Wrapper):
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
     def __init__(self, script, robot, priority=0):
+        self._start_time = robot.start_time
         motor_wrappers = list(MotorPortWrapper(self, port, robot.resources, priority) for port in robot._motor_ports)
         sensor_wrappers = list(SensorPortWrapper(self, port, robot.resources, priority) for port in robot._sensor_ports)
         self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap, robot.config.motors.names)
@@ -390,6 +393,9 @@ class RobotInterface:
         self._sound.play_tune(name)
 
     def play_note(self): pass  # TODO
+
+    def time(self):
+        return time.time() - self._start_time
 
     # property alias
     led_ring = led

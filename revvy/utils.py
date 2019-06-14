@@ -184,6 +184,7 @@ class RobotManager:
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
     def __init__(self, robot: RevvyControl, revvy, sound, default_config=None, feature_map=None):
         print("RobotManager: __init__()")
+        self._start_time = time.time()
         self._robot = robot
         self._ble = revvy
         self._is_connected = False
@@ -222,6 +223,10 @@ class RobotManager:
 
         self._update_requested = False
         self._status = self.StatusStartingUp
+
+    @property
+    def start_time(self):
+        return self._start_time
 
     @property
     def features(self):
