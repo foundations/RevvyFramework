@@ -1,5 +1,5 @@
 # start using 'python -m tools.create_package' from the root directory
-
+import json
 import tarfile
 import os
 import shutil
@@ -52,5 +52,13 @@ if __name__ == "__main__":
     print('Remove downloaded packages')
     shutil.rmtree('install/packages')
 
+    filehash = file_hash(package_path)
+    filesize = os.stat(package_path).st_size
+
+    meta_file = package_path + '.meta'
+
+    with open(meta_file, "w") as mf:
+        json.dump({'length': filesize, 'md5': filehash}, mf)
+
     print('Package created: {}'.format(package_path))
-    print('Package checksum: {}'.format(file_hash(package_path)))
+    print('Package checksum: {}'.format(filehash))
