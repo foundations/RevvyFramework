@@ -9,6 +9,7 @@ import os
 
 from revvy.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
+from revvy.firmware_updater import McuUpdater
 from revvy.functions import getserial
 from revvy.hardware_dependent.sound import play_sound, setup_sound
 from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
@@ -61,6 +62,15 @@ def start_revvy(config: RobotConfig = None):
 
     with RevvyTransportI2C() as transport:
         robot_control = RevvyControl(transport.bind(0x2D))
+        bootloader_control = BootloaderControl(transport.bind(0x2B))
+
+        updater = McuUpdater(robot_control, bootloader_control)
+
+        def fw_loader():
+            return []
+
+        expected_version = Version("0.1-r0")
+        updater.ensure_firmware_up_to_date(expected_version, fw_loader)
 
         robot = RobotManager(robot_control, ble, sound, config, mcu_features)
 
@@ -130,7 +140,6 @@ robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
 robot.motors[{MOTOR}].configure("NotConfigured")
 '''.replace('{MOTOR}', '1').replace('{MOTOR_SIDE}', 'left').replace('{MOTOR_DIR}', 'cw')
 
-
 drivetrain_test = '''
 configs = {
     'left': {
@@ -153,7 +162,6 @@ robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
 time.sleep(0.2)
 robot.motors[{MOTOR}].configure("NotConfigured")
 '''.replace('{MOTOR}', '1').replace('{MOTOR_SIDE}', 'left').replace('{MOTOR_DIR}', 'cw')
-
 
 button_light_test = '''
 robot.sensors[{SENSOR}].configure("BumperSwitch")
@@ -183,7 +191,6 @@ if test_ok:
 robot.led.set(list(range(1, 13)), "#000000")
 robot.sensors[{SENSOR}].configure("NotConfigured")
 '''.replace('{SENSOR}', '2')
-
 
 ultrasound_light_test = '''
 robot.sensors[{SENSOR}].configure("HC_SR04")

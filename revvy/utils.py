@@ -261,9 +261,6 @@ class RobotManager:
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
 
-        # start reader thread (do it here to prevent unwanted reset)
-        self._status_update_thread.start()
-
         # read versions
         hw = self._robot.get_hardware_version()
         fw = self._robot.get_firmware_version()
@@ -281,6 +278,9 @@ class RobotManager:
         self._ble['device_information_service'].characteristic('hw_version').update(hw)
         self._ble['device_information_service'].characteristic('fw_version').update(fw)
         self._ble['device_information_service'].characteristic('sw_version').update(sw)
+
+        # start reader thread
+        self._status_update_thread.start()
 
         # call reset to read port counts, types
         self._ring_led.reset()

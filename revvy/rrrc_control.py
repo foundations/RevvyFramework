@@ -241,15 +241,36 @@ class DriveTrain_ControlCommand(SendByteListCommand):
     pass
 
 
-class RevvyControl:
+class BootloaderControl:
+    command_read_operation_mode = 0x06
+    command_read_firmware_checksum = 0x07
+    command_initialize_update = 0x08
+    command_send_firmware = 0x09
+    command_finalize_update = 0x0A
 
+    def __init__(self, transport: RevvyTransport):
+        self._transport = transport
+        self._commands = {
+            0x06: ReadUint8Command(),
+        }
+
+    def _send(self, command, *args):
+        command_handler = self._commands[command]
+        response = self._transport.send_command(command, command_handler.get_payload_bytes(list(args)))
+        return command_handler.process(response)
+
+    def read_operation_mode(self):
+        return self._send(self.command_read_operation_mode)
+
+
+class RevvyControl:
     command_ping = 0x00
     command_get_hardware_version = 0x01
     command_get_firmware_version = 0x02
     command_get_battery_status = 0x03
     command_set_master_status = 0x04
     command_set_bluetooth_status = 0x05
-    command_get_operation_mode = 0x06
+    command_read_operation_mode = 0x06
     command_reboot_bootloader = 0x0B
 
     command_get_motor_port_amount = 0x10
@@ -308,7 +329,7 @@ class RevvyControl:
             0x33: RingLed_SetUserFrameCommand(),
         }
 
-    def send(self, command, *args):
+    def _send(self, command, *args):
         command_handler = self._commands[command]
         response = self._transport.send_command(command, command_handler.get_payload_bytes(list(args)))
         return command_handler.process(response)
@@ -316,80 +337,83 @@ class RevvyControl:
     # general commands
 
     def ping(self):
-        return self.send(self.command_ping)
+        return self._send(self.command_ping)
 
     def set_master_status(self, status):
-        return self.send(self.command_set_master_status, status)
+        return self._send(self.command_set_master_status, status)
 
     def set_bluetooth_connection_status(self, status):
-        self.send(self.command_set_bluetooth_status, status)
+        self._send(self.command_set_bluetooth_status, status)
 
     def get_hardware_version(self):
-        return self.send(self.command_get_hardware_version)
+        return self._send(self.command_get_hardware_version)
 
     def get_firmware_version(self):
-        return self.send(self.command_get_firmware_version)
+        return self._send(self.command_get_firmware_version)
 
     def get_battery_status(self):
-        return self.send(self.command_get_battery_status)
+        return self._send(self.command_get_battery_status)
+
+    def read_operation_mode(self):
+        return self._send(self.command_read_operation_mode)
 
     def reboot_bootloader(self):
-        return self.send(self.command_reboot_bootloader)
+        return self._send(self.command_reboot_bootloader)
 
     # motor commands
 
     def get_motor_port_amount(self):
-        return self.send(self.command_get_motor_port_amount)
+        return self._send(self.command_get_motor_port_amount)
 
     def get_motor_port_types(self):
-        return self.send(self.command_get_motor_port_types)
+        return self._send(self.command_get_motor_port_types)
 
     def set_motor_port_type(self, port_idx, type_idx):
-        return self.send(self.command_set_motor_port_type, port_idx, type_idx)
+        return self._send(self.command_set_motor_port_type, port_idx, type_idx)
 
     def set_motor_port_config(self, port_idx, config):
-        return self.send(self.command_set_motor_port_config, port_idx, config)
+        return self._send(self.command_set_motor_port_config, port_idx, config)
 
     def set_motor_port_control_value(self, port_idx, value):
-        return self.send(self.command_set_motor_port_control_value, port_idx, value)
+        return self._send(self.command_set_motor_port_control_value, port_idx, value)
 
     def get_motor_position(self, port_idx):
-        return self.send(self.command_get_motor_position, port_idx)
+        return self._send(self.command_get_motor_position, port_idx)
 
     def set_drivetrain_motors(self, drivetrain_type, motors):
-        return self.send(self.command_set_drivatrain_motors, drivetrain_type, motors)
+        return self._send(self.command_set_drivatrain_motors, drivetrain_type, motors)
 
     def set_drivetrain_control(self, control):
-        return self.send(self.command_set_drivetrain_control, control)
+        return self._send(self.command_set_drivetrain_control, control)
 
     # sensor commands
 
     def get_sensor_port_amount(self):
-        return self.send(self.command_get_sensor_port_amount)
+        return self._send(self.command_get_sensor_port_amount)
 
     def get_sensor_port_types(self):
-        return self.send(self.command_get_sensor_port_types)
+        return self._send(self.command_get_sensor_port_types)
 
     def set_sensor_port_type(self, port_idx, type_idx):
-        return self.send(self.command_set_sensor_port_type, port_idx, type_idx)
+        return self._send(self.command_set_sensor_port_type, port_idx, type_idx)
 
     def set_sensor_port_config(self, port_idx, config):
-        return self.send(self.command_set_sensor_port_config, port_idx, config)
+        return self._send(self.command_set_sensor_port_config, port_idx, config)
 
     def get_sensor_port_value(self, port_idx, parameters=None):
         parameters = parameters if parameters else []
-        return self.send(self.command_get_sensor_port_value, port_idx, parameters)
+        return self._send(self.command_get_sensor_port_value, port_idx, parameters)
 
     # ring led commands
 
     def ring_led_get_scenario_types(self):
-        return self.send(self.command_get_ring_led_scenario_types)
+        return self._send(self.command_get_ring_led_scenario_types)
 
     def ring_led_set_scenario(self, scenario):
-        return self.send(self.command_set_ring_led_scenario, scenario)
+        return self._send(self.command_set_ring_led_scenario, scenario)
 
     def ring_led_set_user_frame(self, frame):
-        return self.send(self.command_set_ring_led_user_frame, frame)
+        return self._send(self.command_set_ring_led_user_frame, frame)
 
     def ring_led_get_led_amount(self):
-        return self.send(self.command_ring_led_get_led_amount)
+        return self._send(self.command_ring_led_get_led_amount)
