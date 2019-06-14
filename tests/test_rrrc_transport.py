@@ -29,7 +29,7 @@ class TestCommand(unittest.TestCase):
     def test_empty_payload_header_is_ffff(self):
         ch = Command.start(5)
 
-        self.assertListEqual([0xFF, 0xFF], ch.get_bytes()[3:5])
+        self.assertEqual(bytes([0xFF, 0xFF]), ch.get_bytes()[3:5])
 
     def test_header_checksum_is_calculated_using_crc7(self):
         ch = Command.start(5)
@@ -80,7 +80,7 @@ class TestRevvyTransport(unittest.TestCase):
         self.assertEqual(1, len(mock_interface._reads))
         self.assertEqual(0, mock_interface._writes[0][0])  # write happened first
         self.assertEqual(1, mock_interface._reads[0][0])  # read happened second
-        self.assertListEqual(Command.start(10, [8, 9]).get_bytes(), mock_interface._writes[0][1])
+        self.assertEqual(Command.start(10, [8, 9]).get_bytes(), mock_interface._writes[0][1])
         self.assertEqual(True, response.success)
         self.assertEqual(0, len(response.payload))
 
