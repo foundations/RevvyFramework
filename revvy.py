@@ -14,7 +14,6 @@ from revvy.functions import getserial
 from revvy.hardware_dependent.sound import play_sound, setup_sound
 from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.scripting.builtin_scripts import drive_2sticks, drive_joystick
 from revvy.sound import Sound
 from revvy.utils import *
 from revvy.rrrc_transport import *
@@ -37,9 +36,8 @@ def toggle_ring_led(args):
             args['robot']._ring_led.set_scenario(RingLed.Off)
 
 
-def start_revvy(config: RobotConfig = None):
+def start_revvy(directory, config: RobotConfig = None):
     # prepare environment
-    directory = os.path.dirname(os.path.realpath(__file__))
     data_dir = os.path.join(directory, '..', '..', 'data')
     package_data_dir = os.path.join(directory, 'data')
 
@@ -239,31 +237,10 @@ robot.led.set(list(range(1, 13)), "#000000")
 '''.replace('{SENSOR}', '1')
 
 
-def main():
-    default_config = RobotConfig()
-
-    default_config.controller.analog.append({'channels': [0, 1], 'script': 'drivetrain_joystick'})
-    default_config.controller.buttons[0] = 'toggle_ring_led'
-    default_config.controller.buttons[1] = 'button_light_test'
-    default_config.controller.buttons[2] = 'ultrasound_light_test'
-    default_config.controller.buttons[3] = 'drivetrain_test'
-    default_config.controller.buttons[4] = 'motor_test'
-
-    default_config.scripts['drivetrain_joystick'] = {'script': drive_joystick, 'priority': 0}
-    default_config.scripts['drivetrain_2sticks'] = {'script': drive_2sticks, 'priority': 0}
-    default_config.scripts['toggle_ring_led'] = {'script': toggle_ring_led, 'priority': 0}
-    default_config.scripts['motor_test'] = {'script': motor_test, 'priority': 0}
-    default_config.scripts['drivetrain_test'] = {'script': drivetrain_test, 'priority': 0}
-    default_config.scripts['button_light_test'] = {'script': button_light_test, 'priority': 0}
-    default_config.scripts['ultrasound_light_test'] = {'script': ultrasound_light_test, 'priority': 0}
-
-    return start_revvy(default_config)
-
-
 if __name__ == "__main__":
     current_directory = os.path.dirname(os.path.realpath(__file__))
     os.chdir(current_directory)
     if check_manifest(os.path.join(current_directory, 'manifest.json')):
-        sys.exit(main())
+        sys.exit(start_revvy(current_directory, None))
     else:
         sys.exit(2)
