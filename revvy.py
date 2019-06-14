@@ -52,10 +52,24 @@ def start_revvy(config: RobotConfig = None):
     ble_storage = FileStorage(os.path.join(data_dir, 'ble'))
 
     sound = Sound(setup_sound, play_sound, {
-        'startup': os.path.join(package_data_dir, 'assets', 'startup.mp3'),
-        'cheer':   os.path.join(package_data_dir, 'assets', 'startup.mp3'),
+        'alarm_clock': os.path.join(package_data_dir, 'assets', 'alarm_clock.mp3'),
+        'bell': os.path.join(package_data_dir, 'assets', 'bell.mp3'),
+        'buzzer': os.path.join(package_data_dir, 'assets', 'buzzer.mp3'),
+        'car_horn': os.path.join(package_data_dir, 'assets', 'car-horn.mp3'),
+        'cat': os.path.join(package_data_dir, 'assets', 'cat.mp3'),
+        'dog': os.path.join(package_data_dir, 'assets', 'dog.mp3'),
+        'duck': os.path.join(package_data_dir, 'assets', 'duck.mp3'),
+        'engine_revving': os.path.join(package_data_dir, 'assets', 'engine-revving.mp3'),
+        'lion': os.path.join(package_data_dir, 'assets', 'lion.mp3'),
+        'oh_no': os.path.join(package_data_dir, 'assets', 'oh-no.mp3'),
+        'robot': os.path.join(package_data_dir, 'assets', 'robot.mp3'),
+        'robot2': os.path.join(package_data_dir, 'assets', 'robot2.mp3'),
+        'siren': os.path.join(package_data_dir, 'assets', 'siren.mp3'),
+        'ta_da': os.path.join(package_data_dir, 'assets', 'tada.mp3'),
+        'uh_oh': os.path.join(package_data_dir, 'assets', 'uh-oh.mp3'),
+        'yee_haw': os.path.join(package_data_dir, 'assets', 'yee-haw.mp3'),
     })
-    sound.play_tune('startup')
+    sound.play_tune('robot2')
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
