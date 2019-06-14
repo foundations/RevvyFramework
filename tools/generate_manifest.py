@@ -36,5 +36,11 @@ def gen_manifest(sources, output):
 
 
 if __name__ == "__main__":
-    manifest_source = ['data/', 'install/', 'revvy/', 'revvy.py']
+    manifest_source = [
+        'data/',
+        'install/requirements.txt',
+        'install/packages/',
+        'revvy/',
+        'revvy.py'
+    ]
     gen_manifest(manifest_source, 'manifest.json')
