@@ -1,6 +1,7 @@
+import binascii
 import unittest
 
-from revvy.rrrc_transport import Command, crc7, crc16, RevvyTransport, RevvyTransportInterface, ResponseHeader
+from revvy.rrrc_transport import Command, crc7, RevvyTransport, RevvyTransportInterface, ResponseHeader
 
 
 class TestCommand(unittest.TestCase):
@@ -39,7 +40,7 @@ class TestCommand(unittest.TestCase):
     def test_header_checksum_includes_payload(self):
         ch = Command.start(5, [1, 2, 3])
 
-        payload_checksum = bytes(crc16([1, 2, 3], 0xFFFF).to_bytes(2, byteorder='little'))
+        payload_checksum = bytes(binascii.crc_hqx(bytes([1, 2, 3]), 0xFFFF).to_bytes(2, byteorder='little'))
 
         checksum_if_payload_ffff = crc7([Command.OpStart, 5, 0, 0xFF, 0xFF], 0xFF)
         expected_checksum = crc7([Command.OpStart, 5, 0, *payload_checksum], 0xFF)
