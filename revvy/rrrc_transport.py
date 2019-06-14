@@ -59,7 +59,7 @@ class Command:
     def __init__(self, op, command, payload=None):
         self._op = op
         self._command = command
-        self._payload = bytes(payload if payload else [])
+        self._payload = bytes(payload if payload is not None else [])
 
         if len(self._payload) > 255:
             raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(len(self._payload)))

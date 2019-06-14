@@ -52,7 +52,10 @@ class McuUpdater:
             if not need_to_update:
                 return
 
+            print("Upgrading firmware: {} -> {}".format(fw, expected_version))
+
             try:
+                print("Rebooting to bootloader")
                 self._robot.reboot_bootloader()
             except OSError:
                 # TODO make sure this is the right exception
@@ -62,33 +65,43 @@ class McuUpdater:
             mode = self._read_operation_mode()
 
         if mode == op_mode_bootloader:
+            print("Loading binary to memory")
             fw_successfully_loaded = False
             # noinspection PyBroadException
             try:
                 data = fw_loader()
                 fw_successfully_loaded = True
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
 
             if fw_successfully_loaded:
                 # noinspection PyUnboundLocalVariable
                 checksum = binascii.crc32(data)
                 length = len(data)
+                print("Image info: size: {} checksum: {}".format(length, checksum))
+
                 # init update
-                self._bootloader.send_init_update(checksum, length)
+                print("Initializing update")
+                self._bootloader.send_init_update(length, checksum)
 
                 # split data into chunks
                 chunks = split(data, chunk_size=255)
+
                 # send data
+                print('Sending data')
+                start = time.time()
                 for chunk in chunks:
                     self._bootloader.send_firmware(chunk)
+                print('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
 
             # finalize - or reboot if fw_loader raised an error
+            print("Finalizing update")
             # noinspection PyBroadException
             try:
+                # todo handle failed update
                 self._bootloader.finalize_update()
                 # at this point, the bootloader shall start the application
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
         else:
             raise ValueError('Unexpected operating mode: {}'.format(mode))

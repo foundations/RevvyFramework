@@ -254,7 +254,7 @@ class InitializeUpdateCommand(Command):
         return list(struct.pack("<LL", payload[0], payload[1]))
 
 
-class SendFirmwareCommand(Command):
+class SendFirmwareCommand(SendByteListCommand):
     pass
 
 
