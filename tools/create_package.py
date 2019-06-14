@@ -11,9 +11,6 @@ from tools.generate_manifest import gen_manifest
 
 
 def create_package(sources, output):
-    print('Downloading requirements')
-    os.popen('pip3 download -r install/requirements.txt -d install/packages').read()
-
     print('Creating framework package: {}'.format(output))
     prefix = path.join(path.dirname(path.realpath(path.join(__file__, '..'))), '')
 
@@ -27,16 +24,26 @@ def create_package(sources, output):
 
 
 if __name__ == "__main__":
-    mf_sources = ['revvy/', 'tools/', 'revvy.py']
-    gen_manifest(mf_sources, 'manifest.json')
+    print('Downloading requirements')
+    os.popen('pip3 download -r install/requirements.txt -d install/packages').read()
+
+    manifest_source = [
+        'data/',
+        'install/requirements.txt',
+        'install/packages/',
+        'revvy/',
+        'revvy.py'
+    ]
+    gen_manifest(manifest_source, 'manifest.json')
 
     package_sources = [
         'revvy/',
         'install/requirements.txt',
         'install/packages/',
+        'data/',
         'revvy.py',
         '__init__.py',
-        'tools',
+        'tools/',
         'manifest.json'
     ]
     package_path = 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION)

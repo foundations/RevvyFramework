@@ -18,7 +18,7 @@ class IntegrityError(StorageError):
 
 class StorageInterface:
     def read_metadata(self, filename): raise NotImplementedError
-    def write(self, filename, data, md5=None): raise NotImplementedError
+    def write(self, filename, data, metadata=None, md5=None): raise NotImplementedError
     def read(self, filename): raise NotImplementedError
 
 
@@ -34,13 +34,21 @@ class MemoryStorage(StorageInterface):
         if name not in self._entries:
             raise StorageElementNotFoundError
 
-        return {'md5': self._entries[name][0], 'length': len(self._entries[name][1])}
+        file_entry = self._entries[name]
+        return {
+            **file_entry[2],
+            'md5':    file_entry[0],
+            'length': len(file_entry[1])
+        }
 
-    def write(self, name, data, md5=None):
+    def write(self, name, data, metadata=None, md5=None):
         if md5 is None:
             md5 = _hash(data)
 
-        self._entries[name] = (md5, data)
+        if metadata is None:
+            metadata = {}
+
+        self._entries[name] = (md5, data, metadata)
 
     def read(self, name):
         metadata = self.read_metadata(name)
@@ -90,15 +98,17 @@ class FileStorage(StorageInterface):
         except IOError:
             raise StorageElementNotFoundError
 
-    def write(self, filename, data, md5=None):
+    def write(self, filename, data, metadata=None, md5=None):
         if md5 is None:
             md5 = _hash(data)
 
+        if metadata is None:
+            metadata = {}
+
+        metadata["md5"] = md5
+        metadata["length"] = len(data)
+
         with open(self._storage_file(filename), "wb") as data_file, open(self._meta_file(filename), "w") as meta_file:
-            metadata = {
-                "md5":    md5,
-                "length": len(data)
-            }
             data_file.write(data)
             json.dump(metadata, meta_file)
 

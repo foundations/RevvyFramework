@@ -91,7 +91,7 @@ class LongMessageStorage:
         print("LongMessageStorage:set_long_message")
         LongMessageType.validate(long_message_type)
         storage = self._get_storage(long_message_type)
-        storage.write(long_message_type, data, md5)
+        storage.write(long_message_type, data, md5=md5)
 
     def get_long_message(self, long_message_type):
         print("LongMessageStorage:get_long_message")

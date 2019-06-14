@@ -22,7 +22,7 @@ class TestMemoryStorage(unittest.TestCase):
     def test_md5_is_calculated_if_not_provided(self):
         storage = MemoryStorage()
 
-        storage.write('foo', b'data', 'some_md5')
+        storage.write('foo', b'data', md5='some_md5')
         self.assertEqual('some_md5', storage.read_metadata('foo')['md5'])
 
     def test_stored_data_can_be_read(self):
@@ -34,7 +34,7 @@ class TestMemoryStorage(unittest.TestCase):
     def test_stored_data_integrity_is_checked_on_read(self):
         storage = MemoryStorage()
 
-        storage.write('foo', b'data', 'foobar')
+        storage.write('foo', b'data', md5='foobar')
         self.assertRaises(IntegrityError, lambda: storage.read('foo'))
 
 
@@ -69,7 +69,7 @@ class TestFileStorage(unittest.TestCase):
         storage = FileStorage('.')
         mock.reset_mock()
 
-        storage.write('file', b'data', 'md5')
+        storage.write('file', b'data', md5='md5')
 
         self.assertEqual(2, mock.call_count)
 

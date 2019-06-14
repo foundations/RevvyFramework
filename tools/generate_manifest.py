@@ -14,10 +14,11 @@ def gen_manifest(sources, output):
     prefix = path.join(path.dirname(path.realpath(path.join(__file__, '..'))), '')
 
     hashes = {}
+    extensions = ['.py', '.mp3', '.data', '.meta', '.txt', '.tar.gz']
 
     for source in sources:
         for file in find_files(source):
-            if file.startswith(prefix) and file.endswith('.py'):
+            if file.startswith(prefix) and any(file.endswith(ext) for ext in extensions):
                 filename = file[len(prefix):].replace(path.sep, '/')
                 checksum = file_hash(file)
                 print('Add file to manifest: {} (checksum: {})'.format(filename, checksum))
@@ -35,5 +36,5 @@ def gen_manifest(sources, output):
 
 
 if __name__ == "__main__":
-    manifest_source = ['revvy/', 'revvy.py']
+    manifest_source = ['data/', 'install/', 'revvy/', 'revvy.py']
     gen_manifest(manifest_source, 'manifest.json')

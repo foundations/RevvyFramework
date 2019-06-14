@@ -47,7 +47,7 @@ class McuUpdater:
         if mode == op_mode_application:
             # do we need to update?
             fw = Version(self._robot.get_firmware_version())
-            need_to_update = fw != expected_version
+            need_to_update = fw != expected_version  # allow downgrade as well
 
             if not need_to_update:
                 return
@@ -62,19 +62,28 @@ class McuUpdater:
             mode = self._read_operation_mode()
 
         if mode == op_mode_bootloader:
-            data = fw_loader()
-            checksum = binascii.crc32(data)
-            length = len(data)
-            # init update
-            self._bootloader.send_init_update(checksum, length)
+            fw_successfully_loaded = False
+            # noinspection PyBroadException
+            try:
+                data = fw_loader()
+                fw_successfully_loaded = True
+            except Exception:
+                pass
 
-            # split data into chunks
-            chunks = split(data, chunk_size=255)
-            # send data
-            for chunk in chunks:
-                self._bootloader.send_firmware(chunk)
+            if fw_successfully_loaded:
+                # noinspection PyUnboundLocalVariable
+                checksum = binascii.crc32(data)
+                length = len(data)
+                # init update
+                self._bootloader.send_init_update(checksum, length)
 
-            # finalize
+                # split data into chunks
+                chunks = split(data, chunk_size=255)
+                # send data
+                for chunk in chunks:
+                    self._bootloader.send_firmware(chunk)
+
+            # finalize - or reboot if fw_loader raised an error
             # noinspection PyBroadException
             try:
                 self._bootloader.finalize_update()

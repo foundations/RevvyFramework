@@ -8,7 +8,7 @@
 import os
 
 from revvy.ble_revvy import Observable, RevvyBLE
-from revvy.file_storage import FileStorage, MemoryStorage
+from revvy.file_storage import FileStorage, MemoryStorage, StorageElementNotFoundError
 from revvy.firmware_updater import McuUpdater
 from revvy.functions import getserial
 from revvy.hardware_dependent.sound import play_sound, setup_sound
@@ -41,16 +41,19 @@ def start_revvy(config: RobotConfig = None):
     # prepare environment
     directory = os.path.dirname(os.path.realpath(__file__))
     data_dir = os.path.join(directory, '..', '..', 'data')
+    package_data_dir = os.path.join(directory, 'data')
+
     serial = getserial()
 
     print('Revvy run from {} ({})'.format(directory, __file__))
 
+    package_storage = FileStorage(package_data_dir)
     device_storage = FileStorage(os.path.join(data_dir, 'device'))
     ble_storage = FileStorage(os.path.join(data_dir, 'ble'))
 
     sound = Sound(setup_sound, play_sound, {
-        'startup': os.path.join(data_dir, 'assets', 'startup.mp3'),
-        'cheer':   os.path.join(data_dir, 'assets', 'startup.mp3'),
+        'startup': os.path.join(package_data_dir, 'assets', 'startup.mp3'),
+        'cheer':   os.path.join(package_data_dir, 'assets', 'startup.mp3'),
     })
     sound.play_tune('startup')
 
@@ -66,11 +69,13 @@ def start_revvy(config: RobotConfig = None):
 
         updater = McuUpdater(robot_control, bootloader_control)
 
-        def fw_loader():
-            return []
+        try:
+            fw_metadata = package_storage.read_metadata('firmware')
 
-        expected_version = Version("0.1-r0")
-        updater.ensure_firmware_up_to_date(expected_version, fw_loader)
+            expected_version = Version(fw_metadata['version'])
+            updater.ensure_firmware_up_to_date(expected_version, lambda: package_storage.read('firmware'))
+        except StorageElementNotFoundError:
+            pass
 
         robot = RobotManager(robot_control, ble, sound, config, mcu_features)
 
