@@ -37,6 +37,7 @@ class McuUpdater:
                 try:
                     mode = self._bootloader.read_operation_mode()
                 except OSError:
+                    print("Failed to read operation mode. Retrying")
                     retry = True
                     time.sleep(0.5)
         return mode
