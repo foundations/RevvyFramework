@@ -106,8 +106,7 @@ def start_revvy(directory, config: RobotConfig = None):
                 print('New configuration: {}'.format(message_data))
                 parsed_config = RobotConfig.from_string(message_data)
                 if parsed_config is not None:
-                    # robot.configure(parsed_config)
-                    pass
+                    robot.configure(parsed_config)
             elif message_type == LongMessageType.FRAMEWORK_DATA:
                 robot.request_update()
 
