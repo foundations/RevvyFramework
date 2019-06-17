@@ -236,6 +236,21 @@ robot.led.set(list(range(1, 13)), "#000000")
 '''.replace('{SENSOR}', '1')
 
 
+lift_test = '''
+configs = {
+    'cw': 'RevvyMotor',
+    'ccw': 'RevvyMotor_CCW'
+}
+robot.motors[{MOTOR}].configure(configs["{MOTOR_DIR}"])
+robot.motors[{MOTOR}].move(direction=Motor.DIR_CW, amount=130, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
+time.sleep(3)
+robot.motors[{MOTOR}].move(direction=Motor.DIR_CCW, amount=130, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
+time.sleep(1)
+robot.motors[{MOTOR}].stop(action=Motor.ACTION_STOP_AND_HOLD)
+robot.motors[{MOTOR}].configure("NotConfigured")
+'''.replace('{MOTOR}', '6').replace('{MOTOR_DIR}', 'ccw')
+
+
 if __name__ == "__main__":
     current_directory = os.path.dirname(os.path.realpath(__file__))
     os.chdir(current_directory)
