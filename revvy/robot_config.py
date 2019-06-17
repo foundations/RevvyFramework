@@ -88,21 +88,27 @@ class RobotConfig:
             if 'motors' in robot_config:
                 i = 1
                 for motor in robot_config['motors']:
-                    motor_type = motor_types[motor['type']][motor['direction']]
-                    config.motors[i] = motor_type
-                    config.motors.names[motor['name']] = i
+                    if not motor:
+                        motor_type = "NotConfigured"
+                    else:
+                        motor_type = motor_types[motor['type']][motor['direction']]
+                        config.motors.names[motor['name']] = i
 
-                    if motor['type'] == 2:  # drivetrain
-                        config.drivetrain[motor_sides[motor['side']]].append(i)
+                        if motor['type'] == 2:  # drivetrain
+                            config.drivetrain[motor_sides[motor['side']]].append(i)
+                    config.motors[i] = motor_type
 
                     i += 1
 
             if 'sensors' in robot_config:
                 i = 1
                 for sensor in robot_config['sensors']:
-                    sensor_type = sensor_types[sensor['type']]
+                    if not sensor:
+                        sensor_type = "NotConfigured"
+                    else:
+                        sensor_type = sensor_types[sensor['type']]
+                        config.sensors.names[sensor['name']] = i
                     config.sensors[i] = sensor_type
-                    config.sensors.names[sensor['name']] = i
 
                     i += 1
 

@@ -122,7 +122,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(1, config.scripts['user_script_0']['priority'])
         self.assertEqual(3, config.scripts['user_script_2']['priority'])
 
-    def test_motor_title_is_parsed_as_list_of_motors(self):
+    def test_motors_are_parsed_as_list_of_motors(self):
         json = '''
         {
             "robotConfig": {
@@ -187,7 +187,79 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(5, config.motors.names["M5"])
         self.assertEqual(6, config.motors.names["M6"])
 
-    def test_sensor_title_is_parsed_as_list_of_sensors(self):
+    def test_motor_side_is_ignored_for_normal_motors(self):
+        json = '''
+        {
+            "robotConfig": {
+                "motors": [
+                    {
+                        "name": "M1",
+                        "type": 1,
+                        "direction": 0,
+                        "side": 0
+                    },
+                    {
+                        "name": "M2",
+                        "type": 1,
+                        "direction": 1,
+                        "side": 0
+                    },
+                    {
+                        "name": "M3",
+                        "type": 1,
+                        "direction": 0,
+                        "side": 1
+                    },
+                    {
+                        "name": "M4",
+                        "type": 1,
+                        "direction": 1,
+                        "side": 1
+                    }
+                ]
+            },
+            "blocklyList": []
+        }'''
+
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual("RevvyMotor_CCW", config.motors[1])
+        self.assertEqual("RevvyMotor", config.motors[2])
+        self.assertEqual("RevvyMotor_CCW", config.motors[3])
+        self.assertEqual("RevvyMotor", config.motors[4])
+
+    def test_empty_or_null_motors_are_not_configured(self):
+        json = '''
+        {
+            "robotConfig": {
+                "motors": [
+                    {
+                        "name": "M1",
+                        "type": 1,
+                        "direction": 0,
+                        "side": 0
+                    },
+                    {},
+                    null,
+                    {
+                        "name": "M4",
+                        "type": 1,
+                        "direction": 1,
+                        "side": 1
+                    }
+                ]
+            },
+            "blocklyList": []
+        }'''
+
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual("RevvyMotor_CCW", config.motors[1])
+        self.assertEqual("NotConfigured", config.motors[2])
+        self.assertEqual("NotConfigured", config.motors[3])
+        self.assertEqual("RevvyMotor", config.motors[4])
+
+    def test_sensors_are_parsed_as_list_of_sensors(self):
         json = '''
         {
             "robotConfig": {
@@ -224,3 +296,30 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(2, config.sensors.names["S2"])
         self.assertEqual(3, config.sensors.names["S3"])
         self.assertEqual(4, config.sensors.names["S4"])
+
+    def test_empty_or_null_sensors_are_not_configured(self):
+        json = '''
+        {
+            "robotConfig": {
+                "sensors": [
+                    {
+                        "name": "S1",
+                        "type": 1
+                    },
+                    {},
+                    null,
+                    {
+                        "name": "S4",
+                        "type": 2
+                    }
+                ]
+            },
+            "blocklyList": []
+        }'''
+
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual("HC_SR04", config.sensors[1])
+        self.assertEqual("NotConfigured", config.sensors[2])
+        self.assertEqual("NotConfigured", config.sensors[3])
+        self.assertEqual("BumperSwitch", config.sensors[4])
