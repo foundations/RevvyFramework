@@ -143,3 +143,58 @@ while not ctx.stop_requested:
         sm.reset()
 
         self.assertEqual(2, stopped_mock.call_count)
+
+    def test_script_can_stop_itself(self):
+        robot_mock = create_robot_mock()
+
+        mock = Mock()
+
+        sm = ScriptManager(robot_mock)
+        sm.add_script('test', '''
+while not ctx.stop_requested:
+    mock()
+    Control.terminate()
+    mock()
+''')
+        sm.assign('mock', mock)
+
+        # first call, make sure the script runs
+        sm['test'].start()
+        time.sleep(0.1)
+
+        self.assertEqual(1, mock.call_count)
+        sm.reset()
+
+    def test_script_can_stop_other_scripts(self):
+        robot_mock = create_robot_mock()
+
+        mock1 = Mock()
+        mock2 = Mock()
+
+        sm = ScriptManager(robot_mock)
+        sm.add_script('test1', '''
+mock()
+time.sleep(0.1)
+while not ctx.stop_requested:
+    Control.terminate_all()
+''')
+        sm.add_script('test2', '''
+mock()
+while not ctx.stop_requested:
+    time.sleep(0.1)
+''')
+        sm['test1'].assign('mock', mock1)
+        sm['test2'].assign('mock', mock2)
+
+        # first call, make sure the script runs
+        sm['test1'].start()
+        sm['test2'].start()
+        time.sleep(0.2)
+
+        # scripts started?
+        self.assertEqual(1, mock1.call_count)
+        self.assertEqual(1, mock2.call_count)
+        self.assertFalse(sm['test1'].is_running)
+        self.assertFalse(sm['test2'].is_running)
+
+        sm.reset()

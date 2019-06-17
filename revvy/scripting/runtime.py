@@ -16,7 +16,8 @@ class TimeWrapper:
 
 
 class ScriptHandle:
-    def __init__(self, script, name, global_variables: dict):
+    def __init__(self, owner, script, name, global_variables: dict):
+        self._owner = owner
         self._globals = dict(global_variables)
         self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
         self._thread_ctx = None
@@ -30,6 +31,10 @@ class ScriptHandle:
     def is_stop_requested(self):
         return self._thread.stopping
 
+    @property
+    def is_running(self):
+        return self._thread.is_running
+
     def on_stopped(self, callback):
         self._thread.on_stopped(callback)
 
@@ -38,9 +43,14 @@ class ScriptHandle:
 
     def _run(self, ctx):
         try:
+            # script control interface
+            ctx.terminate = self._terminate
+            ctx.terminate_all = self._owner.stop_all_scripts
+
             self._thread_ctx = ctx
             self._runnable({
                 **self._globals,
+                'Control': ctx,
                 'ctx': ctx,
                 'time': TimeWrapper(ctx)
             })
@@ -59,6 +69,10 @@ class ScriptHandle:
 
     def cleanup(self):
         self._thread.exit()
+
+    def _terminate(self):
+        self.stop()
+        raise InterruptedError
 
 
 class ScriptManager:
@@ -84,9 +98,13 @@ class ScriptManager:
             self._scripts[name].cleanup()
 
         print('New script: {}'.format(name))
-        script = ScriptHandle(script, name, self._globals)
+        script = ScriptHandle(self, script, name, self._globals)
         script.assign('robot', RobotInterface(script, self._robot, priority))
         self._scripts[name] = script
 
     def __getitem__(self, name):
         return self._scripts[name]
+
+    def stop_all_scripts(self):
+        for script in self._scripts:
+            self._scripts[script].stop()

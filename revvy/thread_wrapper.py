@@ -45,6 +45,10 @@ class ThreadWrapper:
             return False
         return self._ctx.stop_requested
 
+    @property
+    def is_running(self):
+        return self._ctx is not None
+
     def start(self):
         if self._exiting:
             raise AssertionError("Can't restart thread")
