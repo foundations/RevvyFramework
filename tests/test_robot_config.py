@@ -21,6 +21,10 @@ class TestRobotConfig(unittest.TestCase):
             config = RobotConfig.from_string('{"robotConfig": [], "blocklyList": []}')
             self.assertIsNotNone(config)
 
+        with self.subTest("Both, lowercase"):
+            config = RobotConfig.from_string('{"robotconfig": [], "blocklylist": []}')
+            self.assertIsNotNone(config)
+
     def test_scripts_can_be_assigned_to_multiple_buttons(self):
         json = '''
         {
@@ -92,6 +96,63 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual('user_script_0', config.background_scripts[0])
         self.assertEqual('some code', config.scripts['user_script_0']['script'])
         self.assertEqual(3, config.scripts['user_script_0']['priority'])
+
+    def test_lower_case_pythoncode_is_accepted(self):
+        json = '''
+        {
+            "robotConfig": [],
+            "blocklyList": [
+                {
+                    "pythoncode": "some code",
+                    "assignments": {
+                        "background": 3
+                    }
+                }
+            ]
+        }'''
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual(1, len(config.background_scripts))
+
+        self.assertEqual('user_script_0', config.background_scripts[0])
+        self.assertEqual('some code', config.scripts['user_script_0']['script'])
+        self.assertEqual(3, config.scripts['user_script_0']['priority'])
+
+    def test_builtin_scripts_can_be_referenced(self):
+        json = '''
+        {
+            "robotConfig": [],
+            "blocklyList": [
+                {
+                    "builtinScriptName": "drive_2sticks",
+                    "assignments": {
+                        "analog": [{"channels": [0, 1], "priority": 2}]
+                    }
+                }
+            ]
+        }'''
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual('user_script_0', config.controller.analog[0]['script'])
+        self.assertTrue(callable(config.scripts['user_script_0']['script']))
+
+    def test_lower_case_script_name_is_accepted(self):
+        json = '''
+        {
+            "robotConfig": [],
+            "blocklyList": [
+                {
+                    "builtinscriptname": "drive_2sticks",
+                    "assignments": {
+                        "analog": [{"channels": [0, 1], "priority": 2}]
+                    }
+                }
+            ]
+        }'''
+        config = RobotConfig.from_string(json)
+
+        self.assertEqual('user_script_0', config.controller.analog[0]['script'])
+        self.assertTrue(callable(config.scripts['user_script_0']['script']))
 
     def test_scripts_can_be_assigned_to_every_type_at_once(self):
         json = '''

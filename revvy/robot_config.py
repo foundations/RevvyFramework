@@ -42,25 +42,35 @@ class RemoteControlConfig:
         self.buttons = [None] * 32
 
 
+def dict_get_first(dictionary, keys):
+    for key in keys:
+        if key in dictionary:
+            return dictionary[key]
+    raise KeyError
+
+
 class RobotConfig:
     @staticmethod
     def from_string(config_string):
         try:
             json_config = json.loads(config_string)
 
-            robot_config = json_config['robotConfig']
-
             config = RobotConfig()
 
-            i = 0
-            for script in json_config['blocklyList']:
-                if 'builtinScriptName' in script:
-                    runnable = builtin_scripts[script['builtinScriptName']]
-                else:
-                    runnable = script['pythonCode']
+            robot_config = dict_get_first(json_config, ['robotConfig', 'robotconfig'])
+            blockly_list = dict_get_first(json_config, ['blocklyList', 'blocklylist'])
 
-                if 'analog' in script['assignments']:
-                    for analog_assignment in script['assignments']['analog']:
+            i = 0
+            for script in blockly_list:
+                try:
+                    script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
+                    runnable = builtin_scripts[script_name]
+                except KeyError:
+                    runnable = dict_get_first(script, ['pythonCode', 'pythoncode'])
+
+                assignments = script['assignments']
+                if 'analog' in assignments:
+                    for analog_assignment in assignments['analog']:
                         script_name = 'user_script_{}'.format(i)
                         priority = analog_assignment['priority']
                         config.scripts[script_name] = {'script':   runnable,
@@ -70,17 +80,17 @@ class RobotConfig:
                             'script': script_name})
                         i += 1
 
-                if 'buttons' in script['assignments']:
-                    for button_assignment in script['assignments']['buttons']:
+                if 'buttons' in assignments:
+                    for button_assignment in assignments['buttons']:
                         script_name = 'user_script_{}'.format(i)
                         priority = button_assignment['priority']
                         config.scripts[script_name] = {'script': runnable, 'priority': priority}
                         config.controller.buttons[button_assignment['id']] = script_name
                         i += 1
 
-                if 'background' in script['assignments']:
+                if 'background' in assignments:
                     script_name = 'user_script_{}'.format(i)
-                    priority = script['assignments']['background']
+                    priority = assignments['background']
                     config.scripts[script_name] = {'script': runnable, 'priority': priority}
                     config.background_scripts.append(script_name)
                     i += 1
