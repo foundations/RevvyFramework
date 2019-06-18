@@ -13,13 +13,13 @@ class BootloaderControl:
 class RevvyControl:
     def __init__(self, transport: RevvyTransport):
         self.ping = PingCommand(transport)
+
         self.set_master_status = SetMasterStatusCommand(transport)
         self.read_operation_mode = ReadOperationModeCommand(transport)
         self.set_bluetooth_connection_status = SetBluetoothStatusCommand(transport)
         self.get_hardware_version = ReadHardwareVersionCommand(transport)
         self.get_firmware_version = ReadFirmwareVersionCommand(transport)
         self.get_battery_status = ReadBatteryStatusCommand(transport)
-        self.read_operation_mode = ReadOperationModeCommand(transport)
         self.reboot_bootloader = RebootToBootloaderCommand(transport)
 
         self.get_motor_port_amount = ReadMotorPortAmountCommand(transport)
