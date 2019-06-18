@@ -241,7 +241,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertListEqual([2, 3], config.drivetrain['left'])
         self.assertListEqual([5, 6], config.drivetrain['right'])
 
-        self.assertEqual(1, config.motors.names["M1"])
+        self.assertNotIn("M1", config.motors.names)  # not configured port does not have name
         self.assertEqual(2, config.motors.names["M2"])
         self.assertEqual(3, config.motors.names["M3"])
         self.assertEqual(4, config.motors.names["M4"])
@@ -355,8 +355,9 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(1, config.sensors.names["S1"])
         self.assertEqual(2, config.sensors.names["S2"])
-        self.assertEqual(3, config.sensors.names["S3"])
-        self.assertEqual(4, config.sensors.names["S4"])
+        # not configured ports does not have names
+        self.assertNotIn("S3", config.sensors.names)
+        self.assertNotIn("S4", config.sensors.names)
 
     def test_empty_or_null_sensors_are_not_configured(self):
         json = '''
