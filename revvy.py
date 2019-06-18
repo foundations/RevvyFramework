@@ -17,6 +17,7 @@ from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.sound import Sound
 from revvy.utils import *
 from revvy.mcu.rrrc_transport import *
+from revvy.mcu.rrrc_control import *
 from revvy.robot_config import *
 import sys
 

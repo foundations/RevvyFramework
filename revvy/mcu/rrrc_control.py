@@ -4,9 +4,12 @@ from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
 class McuCommand:  # TODO rename to Command once the old Command goes away
     """A generic command towards the MCU"""
-    def __init__(self, transport, command_byte):
+    def __init__(self, transport):
         self._transport = transport
-        self._command_byte = command_byte
+        self._command_byte = self.command_id
+
+    @property
+    def command_id(self): raise NotImplementedError
 
     def _process(self, response: Response):
         if response.header.status == ResponseHeader.Status_Ok:
@@ -24,35 +27,17 @@ class McuCommand:  # TODO rename to Command once the old Command goes away
         response = self._transport.send_command(self._command_byte, payload)
         return self._process(response)
 
-    def __call__(self, *args): raise NotImplementedError
+    def __call__(self, *args):
+        if args:
+            raise NotImplementedError
 
-    def parse_response(self, payload): raise NotImplementedError
-
-
-class ReadPortTypesCommand(McuCommand):
-    def parse_response(self, payload):
-        return parse_string_list(payload)
-
-    def __call__(self):
         return self.send()
 
+    def parse_response(self, payload):
+        if payload:
+            raise NotImplementedError
 
-def parse_string_list(data):
-    """
-    >>> parse_string_list(b'\x01\x06foobar')
-    {'foobar': 1}
-    """
-    val = {}
-    idx = 0
-    while idx < len(data):
-        key = data[idx]
-        idx += 1
-        sz = data[idx]
-        idx += 1
-        name = "".join(map(chr, data[idx:(idx + sz)]))
-        idx += sz
-        val[name] = key
-    return val
+        return None
 
 
 class UnknownCommandError(Exception):
@@ -236,28 +221,6 @@ class RingLed_GetLedAmountCommand(ReadUint8Command):
 
 class RingLed_SetRingScenarioCommand(Command):
     pass
-
-
-def rgb_to_rgb565_bytes(rgb):
-    """
-    Convert 24bit color to 16bit
-
-    >>> rgb_to_rgb565_bytes(0)
-    0
-    >>> rgb_to_rgb565_bytes(0x800000)
-    32768
-    >>> rgb_to_rgb565_bytes(0x080408)
-    2081
-    >>> rgb_to_rgb565_bytes(0x808080)
-    33808
-    >>> rgb_to_rgb565_bytes(0xFFFFFF)
-    65535
-    """
-    r = (rgb & 0x00F80000) >> 8
-    g = (rgb & 0x0000FC00) >> 5
-    b = (rgb & 0x000000F8) >> 3
-
-    return r | g | b
 
 
 class RingLed_SetUserFrameCommand(Command):
