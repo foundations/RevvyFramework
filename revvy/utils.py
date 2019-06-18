@@ -111,10 +111,10 @@ class DifferentialDrivetrain:
     def is_moving(self):
         return any(motor.is_moving for motor in self._motors)
 
-    def set_speeds(self, left, right, power_limit=None):
+    def set_speeds(self, left, right, power_limit=0):
         self._owner._robot.set_drivetrain_speed(left, right, power_limit)
 
-    def move(self, left, right, left_speed=None, right_speed=None, power_limit=None):
+    def move(self, left, right, left_speed=0, right_speed=0, power_limit=0):
         self._owner._robot.set_drivetrain_position(left, right, left_speed, right_speed, power_limit)
 
 
@@ -275,6 +275,7 @@ class RobotManager:
 
         # start reader thread
         self._status_update_thread.start()
+        self._robot.set_bluetooth_connection_status(False)
 
         # call reset to read port counts, types
         self._ring_led.reset()
