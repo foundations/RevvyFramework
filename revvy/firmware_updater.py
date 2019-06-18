@@ -42,6 +42,42 @@ class McuUpdater:
                     time.sleep(0.5)
         return mode
 
+    def request_bootloader_mode(self):
+        try:
+            print("Rebooting to bootloader")
+            self._robot.reboot_bootloader()
+        except OSError:
+            # TODO make sure this is the right exception
+            pass  # ignore, this error is expected because MCU reboots before sending response
+
+    def update_firmware(self, data):
+        # noinspection PyUnboundLocalVariable
+        checksum = binascii.crc32(data)
+        length = len(data)
+        print("Image info: size: {} checksum: {}".format(length, checksum))
+
+        # init update
+        print("Initializing update")
+        self._bootloader.send_init_update(length, checksum)
+
+        # split data into chunks
+        chunks = split(data, chunk_size=255)
+
+        # send data
+        print('Sending data')
+        start = time.time()
+        for chunk in chunks:
+            self._bootloader.send_firmware(chunk)
+        print('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
+
+        # noinspection PyBroadException
+        try:
+            # todo handle failed update
+            self._bootloader.finalize_update()
+            # at this point, the bootloader shall start the application
+        except Exception as e:
+            print(e)
+
     def ensure_firmware_up_to_date(self, expected_version: Version, fw_loader):
         mode = self._read_operation_mode()
 
@@ -54,55 +90,29 @@ class McuUpdater:
                 return
 
             print("Upgrading firmware: {} -> {}".format(fw, expected_version))
-
-            try:
-                print("Rebooting to bootloader")
-                self._robot.reboot_bootloader()
-            except OSError:
-                # TODO make sure this is the right exception
-                pass  # ignore, this error is expected because MCU reboots before sending response
+            self.request_bootloader_mode()
 
             # if we need to update, reboot to bootloader
             mode = self._read_operation_mode()
 
         if mode == op_mode_bootloader:
             print("Loading binary to memory")
-            fw_successfully_loaded = False
+
             # noinspection PyBroadException
             try:
                 data = fw_loader()
-                fw_successfully_loaded = True
             except Exception as e:
                 print(e)
 
-            if fw_successfully_loaded:
-                # noinspection PyUnboundLocalVariable
-                checksum = binascii.crc32(data)
-                length = len(data)
-                print("Image info: size: {} checksum: {}".format(length, checksum))
+                # send finalize to reboot to unmodified application
+                # noinspection PyBroadException
+                try:
+                    self._bootloader.finalize_update()
+                    # at this point, the bootloader shall start the application
+                except Exception as e:
+                    print(e)
+                return
 
-                # init update
-                print("Initializing update")
-                self._bootloader.send_init_update(length, checksum)
-
-                # split data into chunks
-                chunks = split(data, chunk_size=255)
-
-                # send data
-                print('Sending data')
-                start = time.time()
-                for chunk in chunks:
-                    self._bootloader.send_firmware(chunk)
-                print('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
-
-            # finalize - or reboot if fw_loader raised an error
-            print("Finalizing update")
-            # noinspection PyBroadException
-            try:
-                # todo handle failed update
-                self._bootloader.finalize_update()
-                # at this point, the bootloader shall start the application
-            except Exception as e:
-                print(e)
+            self.update_firmware(data)
         else:
             raise ValueError('Unexpected operating mode: {}'.format(mode))
