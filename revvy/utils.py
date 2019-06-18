@@ -105,27 +105,17 @@ class DifferentialDrivetrain:
         for motor in self._right_motors:
             motors[motor.idx] = DifferentialDrivetrain.RIGHT
 
-        self._owner._robot.set_drivetrain_motors(0, motors)
+        self._owner._robot.set_drivetrain_motors(motors)
 
     @property
     def is_moving(self):
         return any(motor.is_moving for motor in self._motors)
 
     def set_speeds(self, left, right, power_limit=None):
-        if power_limit is None:
-            power_limit = 0
-        speed_cmd = list(struct.pack('<bffb', self.CONTROL_GO_SPD, left, right, power_limit))
-        self._owner._robot.set_drivetrain_control(speed_cmd)
+        self._owner._robot.set_drivetrain_speed(left, right, power_limit)
 
     def move(self, left, right, left_speed=None, right_speed=None, power_limit=None):
-        if left_speed is None:
-            left_speed = 0
-        if right_speed is None:
-            right_speed = 0
-        if power_limit is None:
-            power_limit = 0
-        pos_cmd = list(struct.pack('<bllffb', self.CONTROL_GO_POS, left, right, left_speed, right_speed, power_limit))
-        self._owner._robot.set_drivetrain_control(pos_cmd)
+        self._owner._robot.set_drivetrain_position(left, right, left_speed, right_speed, power_limit)
 
 
 class RingLed:

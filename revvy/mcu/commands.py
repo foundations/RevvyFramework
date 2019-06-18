@@ -1,15 +1,56 @@
 import struct
 from abc import ABC
+from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
-from revvy.mcu.rrrc_control import McuCommand
+
+class UnknownCommandError(Exception):
+    pass
 
 
-class PingCommand(McuCommand):
+class Command:
+    """A generic command towards the MCU"""
+    def __init__(self, transport: RevvyTransport):
+        self._transport = transport
+        self._command_byte = self.command_id
+
+    @property
+    def command_id(self): raise NotImplementedError
+
+    def _process(self, response: Response):
+        if response.header.status == ResponseHeader.Status_Ok:
+            return self.parse_response(response.payload)
+        elif response.header.status == ResponseHeader.Status_Error_UnknownCommand:
+            raise UnknownCommandError
+        else:
+            raise ValueError(
+                'Command status: {} payload: {}'.format(response.header.status, repr(response.payload)))
+
+    def send(self, payload=None):
+        """Send the command with the given payload and process the response"""
+        if payload is None:
+            payload = []
+        response = self._transport.send_command(self._command_byte, payload)
+        return self._process(response)
+
+    def __call__(self, *args):
+        if args:
+            raise NotImplementedError
+
+        return self.send()
+
+    def parse_response(self, payload):
+        if payload:
+            raise NotImplementedError
+
+        return None
+
+
+class PingCommand(Command):
     @property
     def command_id(self): return 0x00
 
 
-class ReadVersionCommand(McuCommand, ABC):
+class ReadVersionCommand(Command, ABC):
     def parse_response(self, payload):
         return parse_string(payload)
 
@@ -24,7 +65,7 @@ class ReadFirmwareVersionCommand(ReadVersionCommand):
     def command_id(self): return 0x02
 
 
-class ReadBatteryStatusCommand(McuCommand):
+class ReadBatteryStatusCommand(Command):
     @property
     def command_id(self): return 0x03
 
@@ -37,7 +78,7 @@ class ReadBatteryStatusCommand(McuCommand):
         }
 
 
-class SetMasterStatusCommand(McuCommand):
+class SetMasterStatusCommand(Command):
     @property
     def command_id(self): return 0x04
 
@@ -46,7 +87,7 @@ class SetMasterStatusCommand(McuCommand):
         self.send([status])
 
 
-class SetBluetoothStatusCommand(McuCommand):
+class SetBluetoothStatusCommand(Command):
     @property
     def command_id(self): return 0x05
 
@@ -55,7 +96,7 @@ class SetBluetoothStatusCommand(McuCommand):
         self.send([status])
 
 
-class ReadOperationModeCommand(McuCommand):
+class ReadOperationModeCommand(Command):
     @property
     def command_id(self): return 0x06
 
@@ -65,12 +106,12 @@ class ReadOperationModeCommand(McuCommand):
         return int(payload[0])
 
 
-class RebootToBootloaderCommand(McuCommand):
+class RebootToBootloaderCommand(Command):
     @property
     def command_id(self): return 0x0B
 
 
-class ReadPortTypesCommand(McuCommand, ABC):
+class ReadPortTypesCommand(Command, ABC):
     def parse_response(self, payload):
         return parse_string_list(payload)
 
@@ -85,7 +126,7 @@ class ReadSensorPortTypesCommand(ReadPortTypesCommand):
     def command_id(self): return 0x21
 
 
-class ReadRingLedScenarioTypesCommand(McuCommand):
+class ReadRingLedScenarioTypesCommand(Command):
     @property
     def command_id(self): return 0x30
 
@@ -93,7 +134,7 @@ class ReadRingLedScenarioTypesCommand(McuCommand):
         return parse_string_list(payload)
 
 
-class ReadPortAmountCommand(McuCommand, ABC):
+class ReadPortAmountCommand(Command, ABC):
     def parse_response(self, payload):
         assert len(payload) == 1
         return int(payload[0])
@@ -109,7 +150,7 @@ class ReadSensorPortAmountCommand(ReadPortAmountCommand):
     def command_id(self): return 0x20
 
 
-class SetPortTypeCommand(McuCommand, ABC):
+class SetPortTypeCommand(Command, ABC):
     def __call__(self, port, port_type_idx):
         self.send([port, port_type_idx])
 
@@ -124,7 +165,7 @@ class SetSensorPortTypeCommand(SetPortTypeCommand):
     def command_id(self): return 0x22
 
 
-class SetRingLedScenarioCommand(McuCommand):
+class SetRingLedScenarioCommand(Command):
     @property
     def command_id(self): return 0x31
 
@@ -132,7 +173,7 @@ class SetRingLedScenarioCommand(McuCommand):
         self.send([scenario_idx])
 
 
-class GetRingLedAmountCommand(McuCommand):
+class GetRingLedAmountCommand(Command):
     @property
     def command_id(self): return 0x32
 
@@ -141,7 +182,7 @@ class GetRingLedAmountCommand(McuCommand):
         return int(payload[0])
 
 
-class SendRingLedUserFrameCommand(McuCommand):
+class SendRingLedUserFrameCommand(Command):
     @property
     def command_id(self): return 0x33
 
@@ -151,7 +192,7 @@ class SendRingLedUserFrameCommand(McuCommand):
         self.send(led_bytes)
 
 
-class SetDifferentialDriveTrainMotorsCommand(McuCommand):
+class SetDifferentialDriveTrainMotorsCommand(Command):
     @property
     def command_id(self): return 0x1A
 
@@ -159,7 +200,7 @@ class SetDifferentialDriveTrainMotorsCommand(McuCommand):
         self.send([0] + motors)
 
 
-class RequestDifferentialDriveTrainSpeedCommand(McuCommand):
+class RequestDifferentialDriveTrainSpeedCommand(Command):
     @property
     def command_id(self): return 0x1B
 
@@ -168,7 +209,7 @@ class RequestDifferentialDriveTrainSpeedCommand(McuCommand):
         self.send(speed_cmd)
 
 
-class RequestDifferentialDriveTrainPositionCommand(McuCommand):
+class RequestDifferentialDriveTrainPositionCommand(Command):
     @property
     def command_id(self): return 0x1B
 
@@ -177,7 +218,7 @@ class RequestDifferentialDriveTrainPositionCommand(McuCommand):
         self.send(pos_cmd)
 
 
-class SetPortConfigCommand(McuCommand, ABC):
+class SetPortConfigCommand(Command, ABC):
     def __call__(self, port_idx, config):
         self.send([port_idx] + config)
 
@@ -192,7 +233,7 @@ class SetSensorPortConfigCommand(SetPortConfigCommand):
     def command_id(self): return 0x23
 
 
-class SetMotorPortControlCommand(McuCommand):
+class SetMotorPortControlCommand(Command):
     @property
     def command_id(self): return 0x14
 
@@ -200,7 +241,7 @@ class SetMotorPortControlCommand(McuCommand):
         self.send([port_idx] + control)
 
 
-class ReadPortStatusCommand(McuCommand, ABC):
+class ReadPortStatusCommand(Command, ABC):
     def __call__(self, port_idx):
         self.send([port_idx])
 
@@ -220,7 +261,7 @@ class ReadSensorPortStatusCommand(ReadPortStatusCommand):
 
 
 # Bootloader-specific commands:
-class InitializeUpdateCommand(McuCommand):
+class InitializeUpdateCommand(Command):
     @property
     def command_id(self): return 0x08
 
@@ -228,7 +269,7 @@ class InitializeUpdateCommand(McuCommand):
         self.send(list(struct.pack("<LL", crc, length)))
 
 
-class SendFirmwareCommand(McuCommand):
+class SendFirmwareCommand(Command):
     @property
     def command_id(self): return 0x09
 
@@ -236,7 +277,7 @@ class SendFirmwareCommand(McuCommand):
         self.send(data)
 
 
-class FinalizeUpdateCommand(McuCommand):
+class FinalizeUpdateCommand(Command):
     @property
     def command_id(self): return 0x0A
 
