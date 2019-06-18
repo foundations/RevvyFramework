@@ -46,7 +46,9 @@ if __name__ == "__main__":
         'tools/',
         'manifest.json'
     ]
-    package_path = 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION)
+    # package_path = 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION)
+    package_path = 'install/framework.data'
+    meta_file = 'install/framework.meta'
     create_package(package_sources, package_path)
 
     print('Remove downloaded packages')
@@ -54,8 +56,6 @@ if __name__ == "__main__":
 
     filehash = file_hash(package_path)
     filesize = os.stat(package_path).st_size
-
-    meta_file = package_path + '.meta'
 
     with open(meta_file, "w") as mf:
         json.dump({'length': filesize, 'md5': filehash}, mf)
