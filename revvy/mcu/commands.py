@@ -4,37 +4,6 @@ from abc import ABC
 from revvy.mcu.rrrc_control import McuCommand
 
 
-# [x] command_ping = 0x00
-# [x] command_get_hardware_version = 0x01
-# [x] command_get_firmware_version = 0x02
-# [x] command_get_battery_status = 0x03
-# [x] command_set_master_status = 0x04
-# [x] command_set_bluetooth_status = 0x05
-# [x] command_read_operation_mode = 0x06
-# [x] command_reboot_bootloader = 0x0B
-#
-# [x] command_get_motor_port_amount = 0x10
-# [x] command_get_motor_port_types = 0x11
-# [x] command_set_motor_port_type = 0x12
-# [x] command_set_motor_port_config = 0x13
-# [x] command_set_motor_port_control_value = 0x14
-# [x] command_get_motor_position = 0x15
-#
-# [x] command_set_drivatrain_motors = 0x1A
-# [x] command_set_drivetrain_control = 0x1B
-#
-# [x] command_get_sensor_port_amount = 0x20
-# [x] command_get_sensor_port_types = 0x21
-# [x] command_set_sensor_port_type = 0x22
-# [x] command_set_sensor_port_config = 0x23
-# [x] command_get_sensor_port_value = 0x24
-#
-# [x] command_get_ring_led_scenario_types = 0x30
-# [x] command_set_ring_led_scenario = 0x31
-# [x] command_ring_led_get_led_amount = 0x32
-# [x] command_set_ring_led_user_frame = 0x33
-
-
 class PingCommand(McuCommand):
     @property
     def command_id(self): return 0x00
@@ -248,6 +217,28 @@ class ReadMotorPortStatusCommand(ReadPortStatusCommand):
 class ReadSensorPortStatusCommand(ReadPortStatusCommand):
     @property
     def command_id(self): return 0x24
+
+
+# Bootloader-specific commands:
+class InitializeUpdateCommand(McuCommand):
+    @property
+    def command_id(self): return 0x08
+
+    def __call__(self, crc, length):
+        self.send(list(struct.pack("<LL", crc, length)))
+
+
+class SendFirmwareCommand(McuCommand):
+    @property
+    def command_id(self): return 0x09
+
+    def __call__(self, data):
+        self.send(data)
+
+
+class FinalizeUpdateCommand(McuCommand):
+    @property
+    def command_id(self): return 0x0A
 
 
 def parse_string(data):
