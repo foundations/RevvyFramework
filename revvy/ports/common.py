@@ -1,4 +1,4 @@
-from revvy.rrrc_control import RevvyControl
+from revvy.mcu.rrrc_control import RevvyControl
 
 
 class PortHandler:

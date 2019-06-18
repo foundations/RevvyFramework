@@ -1,5 +1,5 @@
 from smbus2 import i2c_msg, SMBus
-from revvy.rrrc_transport import RevvyTransportInterface, RevvyTransport
+from revvy.mcu.rrrc_transport import RevvyTransportInterface, RevvyTransport
 
 
 class RevvyTransportI2CImpl:

@@ -1,7 +1,7 @@
 import binascii
 import unittest
 
-from revvy.rrrc_transport import Command, crc7, RevvyTransport, RevvyTransportInterface, ResponseHeader
+from revvy.mcu.rrrc_transport import Command, crc7, RevvyTransport, RevvyTransportInterface, ResponseHeader
 
 
 class TestCommand(unittest.TestCase):

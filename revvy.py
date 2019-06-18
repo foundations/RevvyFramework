@@ -7,16 +7,16 @@
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
 import os
 
-from revvy.ble_revvy import Observable, RevvyBLE
+from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage, StorageElementNotFoundError
 from revvy.firmware_updater import McuUpdater
 from revvy.functions import getserial
 from revvy.hardware_dependent.sound import play_sound, setup_sound
-from revvy.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
+from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.sound import Sound
 from revvy.utils import *
-from revvy.rrrc_transport import *
+from revvy.mcu.rrrc_transport import *
 from revvy.robot_config import *
 import sys
 

@@ -10,8 +10,7 @@ from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import *
 import time
 
-from revvy.rrrc_transport import *
-from revvy.rrrc_control import *
+from revvy.mcu.rrrc_transport import *
 from revvy.ports.motor import *
 from revvy.ports.sensor import *
 from revvy.fw_version import *

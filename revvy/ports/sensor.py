@@ -1,5 +1,5 @@
 from revvy.ports.common import PortHandler, PortInstance
-from revvy.rrrc_control import RevvyControl
+from revvy.mcu.rrrc_control import RevvyControl
 
 
 class SensorPortHandler(PortHandler):

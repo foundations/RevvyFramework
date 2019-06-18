@@ -2,7 +2,7 @@ import binascii
 import time
 
 from revvy.configuration.version import Version
-from revvy.rrrc_control import BootloaderControl, RevvyControl
+from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
 
 op_mode_application = 0xAA
 op_mode_bootloader = 0xBB

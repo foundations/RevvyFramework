@@ -2,7 +2,7 @@ import unittest
 
 from mock import Mock, patch
 
-from revvy.longmessage import LongMessageHandler, LongMessageError, LongMessageType, LongMessageStatusInfo, \
+from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageError, LongMessageType, LongMessageStatusInfo, \
     LongMessageStatus
 
 

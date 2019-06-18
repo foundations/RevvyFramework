@@ -1,8 +1,47 @@
 import struct
-from revvy.rrrc_transport import RevvyTransport, Response, ResponseHeader
+from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
+
+
+class McuCommand:  # TODO rename to Command once the old Command goes away
+    """A generic command towards the MCU"""
+    def __init__(self, transport, command_byte):
+        self._transport = transport
+        self._command_byte = command_byte
+
+    def _process(self, response: Response):
+        if response.header.status == ResponseHeader.Status_Ok:
+            return self.parse_response(response.payload)
+        elif response.header.status == ResponseHeader.Status_Error_UnknownCommand:
+            raise UnknownCommandError
+        else:
+            raise ValueError(
+                'Command status: {} payload: {}'.format(response.header.status, repr(response.payload)))
+
+    def send(self, payload=None):
+        """Send the command with the given payload and process the response"""
+        if payload is None:
+            payload = []
+        response = self._transport.send_command(self._command_byte, payload)
+        return self._process(response)
+
+    def __call__(self, *args): raise NotImplementedError
+
+    def parse_response(self, payload): raise NotImplementedError
+
+
+class ReadPortTypesCommand(McuCommand):
+    def parse_response(self, payload):
+        return parse_string_list(payload)
+
+    def __call__(self):
+        return self.send()
 
 
 def parse_string_list(data):
+    """
+    >>> parse_string_list(b'\x01\x06foobar')
+    {'foobar': 1}
+    """
     val = {}
     idx = 0
     while idx < len(data):
@@ -262,7 +301,15 @@ class FinalizeUpdateCommand(Command):
     pass
 
 
-class BootloaderControl:
+class Control:
+    def __init__(self, transport: RevvyTransport):
+        self._transport = transport
+
+    def send(self, command: McuCommand):
+        pass
+
+
+class BootloaderControl(Control):
     command_read_operation_mode = 0x06
     command_read_firmware_checksum = 0x07
     command_initialize_update = 0x08
@@ -270,7 +317,7 @@ class BootloaderControl:
     command_finalize_update = 0x0A
 
     def __init__(self, transport: RevvyTransport):
-        self._transport = transport
+        super().__init__(transport)
         self._commands = {
             0x06: ReadUint8Command(),
             0x07: ReadApplicationCrcCommand(),
@@ -297,7 +344,7 @@ class BootloaderControl:
         return self._send(self.command_finalize_update)
 
 
-class RevvyControl:
+class RevvyControl(Control):
     command_ping = 0x00
     command_get_hardware_version = 0x01
     command_get_firmware_version = 0x02
@@ -329,7 +376,7 @@ class RevvyControl:
     command_set_ring_led_user_frame = 0x33
 
     def __init__(self, transport: RevvyTransport):
-        self._transport = transport
+        super().__init__(transport)
         self._commands = {
             0x00: PingCommand(),
             0x01: GetHardwareVersionCommand(),
