@@ -245,8 +245,10 @@ def parse_string(data):
     """
     >>> parse_string(b'foobar')
     'foobar'
+    >>> parse_string([ord('f'), ord('o'), ord('o'), ord('b'), ord('a'), ord('r')])
+    'foobar'
     """
-    return data.decode("utf-8")
+    return bytes(data).decode("utf-8")
 
 
 def parse_string_list(data):
