@@ -384,3 +384,24 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual("NotConfigured", config.sensors[2])
         self.assertEqual("NotConfigured", config.sensors[3])
         self.assertEqual("BumperSwitch", config.sensors[4])
+
+    def test_type0_objects_dont_require_additional_keys(self):
+        json = '''
+        {
+            "robotConfig": {
+                "motors": [
+                    {
+                        "type": 0
+                    }
+                ],
+                "sensors": [
+                    {
+                        "type": 0
+                    }
+                ]
+            },
+            "blocklyList": []
+        }'''
+
+        config = RobotConfig.from_string(json)
+        self.assertIsNotNone(config)

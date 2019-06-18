@@ -98,7 +98,7 @@ class RobotConfig:
             if 'motors' in robot_config:
                 i = 1
                 for motor in robot_config['motors']:
-                    if not motor:
+                    if not motor or motor['type'] == 0:
                         motor_type = "NotConfigured"
                     else:
                         motor_type = motor_types[motor['type']][motor['direction']]
@@ -113,7 +113,7 @@ class RobotConfig:
             if 'sensors' in robot_config:
                 i = 1
                 for sensor in robot_config['sensors']:
-                    if not sensor:
+                    if not sensor or sensor['type'] == 0:
                         sensor_type = "NotConfigured"
                     else:
                         sensor_type = sensor_types[sensor['type']]
