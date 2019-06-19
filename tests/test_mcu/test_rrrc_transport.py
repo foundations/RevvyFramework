@@ -81,7 +81,7 @@ class TestRevvyTransport(unittest.TestCase):
         self.assertEqual(0, mock_interface._writes[0][0])  # write happened first
         self.assertEqual(1, mock_interface._reads[0][0])  # read happened second
         self.assertEqual(Command.start(10, [8, 9]).get_bytes(), mock_interface._writes[0][1])
-        self.assertEqual(True, response.success)
+        self.assertEqual(ResponseHeader.Status_Ok, response.status)
         self.assertEqual(0, len(response.payload))
 
     def test_retry_reading_after_busy_response(self):
@@ -98,7 +98,7 @@ class TestRevvyTransport(unittest.TestCase):
         self.assertEqual(1, len(mock_interface._writes))
         self.assertEqual(6, len(mock_interface._reads))
         self.assertEqual(0, mock_interface._writes[0][0])  # write happened first
-        self.assertEqual(True, response.success)
+        self.assertEqual(ResponseHeader.Status_Ok, response.status)
         self.assertEqual(0, len(response.payload))
 
     def test_data_header_is_read_before_full_response(self):
@@ -108,7 +108,7 @@ class TestRevvyTransport(unittest.TestCase):
         ])
         rt = RevvyTransport(mock_interface)
         response = rt.send_command(10)  # some ping-type command
-        self.assertEqual(True, response.success)
+        self.assertEqual(ResponseHeader.Status_Ok, response.status)
         self.assertEqual(2, len(mock_interface._reads))
         self.assertEqual(5, mock_interface._reads[0][1])
         self.assertEqual(7, mock_interface._reads[1][1])
@@ -123,7 +123,7 @@ class TestRevvyTransport(unittest.TestCase):
         rt = RevvyTransport(mock_interface)
         response = rt.send_command(10)  # some ping-type command
         self.assertEqual(3, len(mock_interface._reads))
-        self.assertEqual(True, response.success)
+        self.assertEqual(ResponseHeader.Status_Ok, response.status)
         self.assertListEqual([0x0a, 0x0b], response.payload)
 
     def test_data_read_is_repeated_if_header_integrity_check_fails(self):
@@ -135,7 +135,7 @@ class TestRevvyTransport(unittest.TestCase):
         rt = RevvyTransport(mock_interface)
         response = rt.send_command(10)  # some ping-type command
         self.assertEqual(3, len(mock_interface._reads))
-        self.assertEqual(True, response.success)
+        self.assertEqual(ResponseHeader.Status_Ok, response.status)
         self.assertListEqual([0x0a, 0x0b], response.payload)
 
     def test_data_read_is_repeated_if_payload_integrity_check_fails(self):
@@ -147,7 +147,7 @@ class TestRevvyTransport(unittest.TestCase):
         rt = RevvyTransport(mock_interface)
         response = rt.send_command(10)  # some ping-type command
         self.assertEqual(3, len(mock_interface._reads))
-        self.assertEqual(True, response.success)
+        self.assertEqual(ResponseHeader.Status_Ok, response.status)
         self.assertListEqual([0x0a, 0x0b], response.payload)
 
     def test_pending_is_retried_with_get_result(self):
@@ -160,7 +160,7 @@ class TestRevvyTransport(unittest.TestCase):
         ])
         rt = RevvyTransport(mock_interface)
         response = rt.send_command(10)  # some ping-type command
-        self.assertEqual(True, response.success)
+        self.assertEqual(ResponseHeader.Status_Ok, response.status)
         self.assertEqual(4, len(mock_interface._writes))
 
         self.assertEqual(0, mock_interface._writes[0][0])

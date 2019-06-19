@@ -17,13 +17,13 @@ class Command:
     def command_id(self): raise NotImplementedError
 
     def _process(self, response: Response):
-        if response.header.status == ResponseHeader.Status_Ok:
+        if response.status == ResponseHeader.Status_Ok:
             return self.parse_response(response.payload)
-        elif response.header.status == ResponseHeader.Status_Error_UnknownCommand:
+        elif response.status == ResponseHeader.Status_Error_UnknownCommand:
             raise UnknownCommandError
         else:
             raise ValueError(
-                'Command status: {} payload: {}'.format(response.header.status, repr(response.payload)))
+                'Command status: {} payload: {}'.format(response.status, repr(response.payload)))
 
     def send(self, payload=None):
         """Send the command with the given payload and process the response"""

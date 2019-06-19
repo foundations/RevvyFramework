@@ -149,17 +149,13 @@ class ResponseHeader:
 
 
 class Response:
-    def __init__(self, header: ResponseHeader, payload):
-        self._header = header
+    def __init__(self, status, payload):
+        self._status = status
         self._payload = payload
 
     @property
-    def success(self):
-        return self._header.status == ResponseHeader.Status_Ok
-
-    @property
-    def header(self):
-        return self._header
+    def status(self):
+        return self._status
 
     @property
     def payload(self):
@@ -189,8 +185,7 @@ class RevvyTransport:
                 # return a result even in case of an error, except when we know we have to resend
                 if header.status != ResponseHeader.Status_Error_CommandIntegrityError:
                     response_payload = self._read_payload(header)
-                    response = Response(header, response_payload)
-                    return response
+                    return Response(header.status, response_payload)
 
     def _read_response_header(self, retries=5):
 
