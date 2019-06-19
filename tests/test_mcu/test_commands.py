@@ -113,3 +113,29 @@ class TestCommandTypes(unittest.TestCase):
         self.assertEqual(1, result['chargerStatus'])  # TODO make this not an int?
         self.assertEqual(30, result['main'])
         self.assertEqual(50, result['motor'])
+
+    def test_set_master_status_payload_is_one_byte(self):
+        mock_transport = MockTransport([
+            Response(ResponseHeader.Status_Ok, []),
+            Response(ResponseHeader.Status_Ok, [1]),
+        ])
+        set_status = SetMasterStatusCommand(mock_transport)
+
+        self.assertIsNone(set_status(3))
+        self.assertEqual([3], mock_transport.commands[0][1])
+
+        # unexpected payload byte
+        self.assertRaises(NotImplementedError, lambda: set_status(3))
+
+    def test_set_bluetooth_status_payload_is_one_byte(self):
+        mock_transport = MockTransport([
+            Response(ResponseHeader.Status_Ok, []),
+            Response(ResponseHeader.Status_Ok, [1]),
+        ])
+        set_status = SetBluetoothStatusCommand(mock_transport)
+
+        self.assertIsNone(set_status(3))
+        self.assertEqual([3], mock_transport.commands[0][1])
+
+        # unexpected payload byte
+        self.assertRaises(NotImplementedError, lambda: set_status(3))
