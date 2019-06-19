@@ -20,7 +20,6 @@ class TestParseStringList(unittest.TestCase):
 
 class TestControlCommands(unittest.TestCase):
     def test_revvy_command_instances(self):
-
         # noinspection PyTypeChecker
         control = RevvyControl(None)
 
@@ -56,8 +55,43 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(SetRingLedScenarioCommand, type(control.ring_led_set_scenario))
         self.assertIs(SendRingLedUserFrameCommand, type(control.ring_led_set_user_frame))
 
-    def test_bootloader_command_instances(self):
+    def test_revvy_command_ids(self):
+        # noinspection PyTypeChecker
+        control = RevvyControl(None)
 
+        self.assertEqual(0, control.ping.command_id)
+
+        self.assertEqual(0x04, control.set_master_status.command_id)
+        self.assertEqual(0x06, control.read_operation_mode.command_id)
+        self.assertEqual(0x05, control.set_bluetooth_connection_status.command_id)
+        self.assertEqual(0x01, control.get_hardware_version.command_id)
+        self.assertEqual(0x02, control.get_firmware_version.command_id)
+        self.assertEqual(0x03, control.get_battery_status.command_id)
+        self.assertEqual(0x0B, control.reboot_bootloader.command_id)
+
+        self.assertEqual(0x10, control.get_motor_port_amount.command_id)
+        self.assertEqual(0x11, control.get_motor_port_types.command_id)
+        self.assertEqual(0x12, control.set_motor_port_type.command_id)
+        self.assertEqual(0x13, control.set_motor_port_config.command_id)
+        self.assertEqual(0x14, control.set_motor_port_control_value.command_id)
+        self.assertEqual(0x15, control.get_motor_position.command_id)
+
+        self.assertEqual(0x1A, control.set_drivetrain_motors.command_id)
+        self.assertEqual(0x1B, control.set_drivetrain_position.command_id)
+        self.assertEqual(0x1B, control.set_drivetrain_speed.command_id)
+
+        self.assertEqual(0x20, control.get_sensor_port_amount.command_id)
+        self.assertEqual(0x21, control.get_sensor_port_types.command_id)
+        self.assertEqual(0x22, control.set_sensor_port_type.command_id)
+        self.assertEqual(0x23, control.set_sensor_port_config.command_id)
+        self.assertEqual(0x24, control.get_sensor_port_value.command_id)
+
+        self.assertEqual(0x30, control.ring_led_get_scenario_types.command_id)
+        self.assertEqual(0x32, control.ring_led_get_led_amount.command_id)
+        self.assertEqual(0x31, control.ring_led_set_scenario.command_id)
+        self.assertEqual(0x33, control.ring_led_set_user_frame.command_id)
+
+    def test_bootloader_command_instances(self):
         # noinspection PyTypeChecker
         control = BootloaderControl(None)
 
@@ -65,3 +99,13 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(InitializeUpdateCommand, type(control.send_init_update))
         self.assertIs(SendFirmwareCommand, type(control.send_firmware))
         self.assertIs(FinalizeUpdateCommand, type(control.finalize_update))
+
+    def test_bootloader_command_ids(self):
+        # noinspection PyTypeChecker
+        control = BootloaderControl(None)
+
+        self.assertEqual(0x06, control.read_operation_mode.command_id)
+        # read application crc (0x07) is not implemented
+        self.assertEqual(0x08, control.send_init_update.command_id)
+        self.assertEqual(0x09, control.send_firmware.command_id)
+        self.assertEqual(0x0A, control.finalize_update.command_id)
