@@ -441,15 +441,18 @@ class RevvyBLE:
 
     def _device_name_changed(self, name):
         self._deviceName = name
-        self._bleno.stopAdvertising(lambda: self._bleno.startAdvertising(self._deviceName, self._advertised_uuid_list))
+        self._bleno.stopAdvertising(self._start_advertising)
 
     def _on_state_change(self, state):
         print('on -> stateChange: ' + state)
 
         if state == 'poweredOn':
-            self._bleno.startAdvertising(self._deviceName, self._advertised_uuid_list)
+            self._start_advertising()
         else:
             self._bleno.stopAdvertising()
+
+    def _start_advertising(self):
+        self._bleno.startAdvertising(self._deviceName, self._advertised_uuid_list)
 
     def _on_advertising_start(self, error):
         print('on -> advertisingStart: {0}'.format(('error ' + str(error) if error else 'success')))
