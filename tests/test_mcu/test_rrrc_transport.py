@@ -200,3 +200,16 @@ class TestRevvyTransport(unittest.TestCase):
         ])
         rt = RevvyTransport(mock_interface)
         self.assertRaises(BrokenPipeError, lambda: rt.send_command(10))
+
+
+class TestResponse(unittest.TestCase):
+    def test_response_shorter_than_header_size_is_invalid(self):
+        data = [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF]  # one byte short
+
+        self.assertFalse(ResponseHeader.is_valid_header(data))
+        self.assertTrue(ResponseHeader.is_valid_header(data + [117]))
+
+    def test_response_header_with_wrong_checksum_is_invalid(self):
+        data = [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 118]
+
+        self.assertFalse(ResponseHeader.is_valid_header(data))
