@@ -381,6 +381,7 @@ class RobotManager:
         with self._config_lock:
             if not config and self._status != self.StatusStopped:
                 config = self._default_configuration
+            self._config = config
 
             self._ring_led.set_scenario(RingLed.Off)
 
@@ -466,7 +467,6 @@ class RobotManager:
                 self._sensor_ports.reset()
                 self._remote_controller_scheduler.stop()
                 self._set_status(self.StatusNotConfigured)
-            self._config = config
 
     def stop(self):
         print("Stopping robot manager")
