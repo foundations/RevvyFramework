@@ -1,7 +1,6 @@
 import unittest
 
-from revvy.mcu.commands import Command, UnknownCommandError, PingCommand, ReadHardwareVersionCommand, \
-    ReadFirmwareVersionCommand
+from revvy.mcu.commands import *
 from revvy.mcu.rrrc_transport import Response, ResponseHeader
 
 
@@ -99,3 +98,18 @@ class TestCommandTypes(unittest.TestCase):
         mock_transport = MockTransport([Response(ResponseHeader.Status_Ok, list(b'v0.1-r5'))])
         fw = ReadFirmwareVersionCommand(mock_transport)
         self.assertEqual("v0.1-r5", fw())
+
+    def test_read_battery_status_requires_3_bytes_response(self):
+        mock_transport = MockTransport([
+                Response(ResponseHeader.Status_Ok, [0, 0]),
+                Response(ResponseHeader.Status_Ok, [0, 0, 0, 0]),
+                Response(ResponseHeader.Status_Ok, [1, 30, 50]),
+             ])
+        battery = ReadBatteryStatusCommand(mock_transport)
+        self.assertRaises(AssertionError, battery)
+        self.assertRaises(AssertionError, battery)
+
+        result = battery()
+        self.assertEqual(1, result['chargerStatus'])  # TODO make this not an int?
+        self.assertEqual(30, result['main'])
+        self.assertEqual(50, result['motor'])
