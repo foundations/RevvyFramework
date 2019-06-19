@@ -25,7 +25,7 @@ class Command:
             raise ValueError(
                 'Command status: {} payload: {}'.format(response.status, repr(response.payload)))
 
-    def send(self, payload=None):
+    def _send(self, payload=None):
         """Send the command with the given payload and process the response"""
         if payload is None:
             payload = []
@@ -36,7 +36,7 @@ class Command:
         if args:
             raise NotImplementedError
 
-        return self.send()
+        return self._send()
 
     def parse_response(self, payload):
         if payload:
@@ -84,7 +84,7 @@ class SetMasterStatusCommand(Command):
 
     def __call__(self, status):
         # TODO: make this accept something meaningful
-        return self.send([status])
+        return self._send([status])
 
 
 class SetBluetoothStatusCommand(Command):
@@ -93,7 +93,7 @@ class SetBluetoothStatusCommand(Command):
 
     def __call__(self, status):
         # TODO: make this accept something meaningful
-        return self.send([status])
+        return self._send([status])
 
 
 class ReadOperationModeCommand(Command):
@@ -152,7 +152,7 @@ class ReadSensorPortAmountCommand(ReadPortAmountCommand):
 
 class SetPortTypeCommand(Command, ABC):
     def __call__(self, port, port_type_idx):
-        return self.send([port, port_type_idx])
+        return self._send([port, port_type_idx])
 
 
 class SetMotorPortTypeCommand(SetPortTypeCommand):
@@ -170,7 +170,7 @@ class SetRingLedScenarioCommand(Command):
     def command_id(self): return 0x31
 
     def __call__(self, scenario_idx):
-        return self.send([scenario_idx])
+        return self._send([scenario_idx])
 
 
 class GetRingLedAmountCommand(Command):
@@ -189,7 +189,7 @@ class SendRingLedUserFrameCommand(Command):
     def __call__(self, colors):
         rgb565_values = list(map(rgb_to_rgb565_bytes, colors))
         led_bytes = list(struct.pack("<" + "H" * len(rgb565_values), *rgb565_values))
-        return self.send(led_bytes)
+        return self._send(led_bytes)
 
 
 class SetDifferentialDriveTrainMotorsCommand(Command):
@@ -197,7 +197,7 @@ class SetDifferentialDriveTrainMotorsCommand(Command):
     def command_id(self): return 0x1A
 
     def __call__(self, motors):
-        return self.send([0] + motors)
+        return self._send([0] + motors)
 
 
 class RequestDifferentialDriveTrainSpeedCommand(Command):
@@ -206,7 +206,7 @@ class RequestDifferentialDriveTrainSpeedCommand(Command):
 
     def __call__(self, left, right, pwr_limit=0):
         speed_cmd = list(struct.pack('<bffb', 1, left, right, pwr_limit))
-        return self.send(speed_cmd)
+        return self._send(speed_cmd)
 
 
 class RequestDifferentialDriveTrainPositionCommand(Command):
@@ -215,12 +215,12 @@ class RequestDifferentialDriveTrainPositionCommand(Command):
 
     def __call__(self, left, right, left_spd_limit=0, right_spd_limit=0, pwr_limit=0):
         pos_cmd = list(struct.pack('<bllffb', 0, left, right, left_spd_limit, right_spd_limit, pwr_limit))
-        return self.send(pos_cmd)
+        return self._send(pos_cmd)
 
 
 class SetPortConfigCommand(Command, ABC):
     def __call__(self, port_idx, config):
-        return self.send([port_idx] + config)
+        return self._send([port_idx] + config)
 
 
 class SetMotorPortConfigCommand(SetPortConfigCommand):
@@ -238,12 +238,12 @@ class SetMotorPortControlCommand(Command):
     def command_id(self): return 0x14
 
     def __call__(self, port_idx, control):
-        return self.send([port_idx] + control)
+        return self._send([port_idx] + control)
 
 
 class ReadPortStatusCommand(Command, ABC):
     def __call__(self, port_idx):
-        return self.send([port_idx])
+        return self._send([port_idx])
 
     def parse_response(self, payload):
         """Return the raw response"""
@@ -266,7 +266,7 @@ class InitializeUpdateCommand(Command):
     def command_id(self): return 0x08
 
     def __call__(self, crc, length):
-        return self.send(list(struct.pack("<LL", crc, length)))
+        return self._send(list(struct.pack("<LL", crc, length)))
 
 
 class SendFirmwareCommand(Command):
@@ -274,7 +274,7 @@ class SendFirmwareCommand(Command):
     def command_id(self): return 0x09
 
     def __call__(self, data):
-        return self.send(data)
+        return self._send(data)
 
 
 class FinalizeUpdateCommand(Command):
