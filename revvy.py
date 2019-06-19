@@ -18,7 +18,6 @@ from revvy.sound import Sound
 from revvy.utils import *
 from revvy.mcu.rrrc_transport import *
 from revvy.mcu.rrrc_control import *
-from revvy.robot_config import *
 import sys
 
 from tools.check_manifest import check_manifest
@@ -97,13 +96,14 @@ def start_revvy(directory, config: RobotConfig = None):
 
         def on_message_updated(storage, message_type):
             print('Received message: {}'.format(message_type))
-            message_data = storage.get_long_message(message_type).decode()
 
             if message_type == LongMessageType.TEST_KIT:
+                message_data = storage.get_long_message(message_type).decode()
                 print('Running test script: {}'.format(message_data))
                 robot._scripts.add_script("test_kit", message_data, 0)
                 robot._scripts["test_kit"].start()
             elif message_type == LongMessageType.CONFIGURATION_DATA:
+                message_data = storage.get_long_message(message_type).decode()
                 print('New configuration: {}'.format(message_data))
                 parsed_config = RobotConfig.from_string(message_data)
                 if parsed_config is not None:
