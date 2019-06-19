@@ -1,6 +1,8 @@
 import binascii
 import unittest
 
+import mock
+
 from revvy.mcu.rrrc_transport import Command, crc7, RevvyTransport, RevvyTransportInterface, ResponseHeader
 
 
@@ -101,6 +103,34 @@ class TestRevvyTransport(unittest.TestCase):
         self.assertEqual(ResponseHeader.Status_Ok, response.status)
         self.assertEqual(0, len(response.payload))
 
+    def test_raise_error_if_header_changes_before_reading_data(self):
+        mock_interface = MockInterface([
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121],
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117, 0, 0],  # different header when reading data
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117, 0, 0],  # read is retried 5 times
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117, 0, 0],
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117, 0, 0],
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117, 0, 0]
+        ])
+        rt = RevvyTransport(mock_interface)
+        self.assertRaises(BrokenPipeError, lambda: rt.send_command(10))
+        self.assertEqual(1, len(mock_interface._writes))
+        self.assertEqual(6, len(mock_interface._reads))
+
+    def test_return_response_if_header_changes_back_while_repeatedly_reading_data(self):
+        mock_interface = MockInterface([
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121],
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117, 0, 0],  # different header when reading data
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117, 0, 0],  # read is retried 5 times or until success
+            [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 117, 0, 0],
+            [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121, 0x0a, 0x0b]
+        ])
+        rt = RevvyTransport(mock_interface)
+        response = rt.send_command(10)
+        self.assertEqual(1, len(mock_interface._writes))
+        self.assertEqual(5, len(mock_interface._reads))
+        self.assertListEqual([0x0a, 0x0b], response.payload)
+
     def test_data_header_is_read_before_full_response(self):
         mock_interface = MockInterface([
             [ResponseHeader.Status_Ok, 2, 0xaf, 0x43, 121],  # respond with header first
@@ -200,6 +230,16 @@ class TestRevvyTransport(unittest.TestCase):
         ])
         rt = RevvyTransport(mock_interface)
         self.assertRaises(BrokenPipeError, lambda: rt.send_command(10))
+
+    @mock.patch('time.time', mock.MagicMock(side_effect=[0, 1, 2, 3, 4, 5, 6]))
+    def test_busy_response_can_timeout(self):
+        mock_interface = MockInterface([
+            [ResponseHeader.Status_Busy, 0, 0xFF, 0xFF, 118]
+        ] * 10)
+        rt = RevvyTransport(mock_interface)
+        rt.timeout = 5
+        self.assertRaises(TimeoutError, lambda: rt.send_command(10))
+        self.assertLess(len(mock_interface._reads), 10)
 
 
 class TestResponse(unittest.TestCase):
