@@ -56,10 +56,10 @@ class Command:
     OpGetResult = 2
     OpCancel = 3
 
-    def __init__(self, op, command, payload=None):
+    def __init__(self, op, command, payload=bytes()):
         self._op = op
         self._command = command
-        self._payload = bytes(payload if payload is not None else [])
+        self._payload = bytes(payload)
 
         if len(self._payload) > 255:
             raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(len(self._payload)))
@@ -73,7 +73,7 @@ class Command:
         return header + self._payload
 
     @classmethod
-    def start(cls, command, payload=None):
+    def start(cls, command, payload=bytes()):
         return cls(cls.OpStart, command, payload)
 
     @classmethod
@@ -169,7 +169,7 @@ class RevvyTransport:
         self._transport = transport
         self._mutex = Lock()
 
-    def send_command(self, command, payload=None) -> Response:
+    def send_command(self, command, payload=bytes()) -> Response:
         """Send a command and get the result."""
         with self._mutex:
             # once a command gets through and a valid response is read, this loop will exit
