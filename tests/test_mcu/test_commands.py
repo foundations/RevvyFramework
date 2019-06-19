@@ -1,6 +1,7 @@
 import unittest
 
-from revvy.mcu.commands import Command, UnknownCommandError
+from revvy.mcu.commands import Command, UnknownCommandError, PingCommand, ReadHardwareVersionCommand, \
+    ReadFirmwareVersionCommand
 from revvy.mcu.rrrc_transport import Response, ResponseHeader
 
 
@@ -77,3 +78,24 @@ class TestCommand(unittest.TestCase):
         self.assertRaises(ValueError, c)
         self.assertRaises(ValueError, c)
         self.assertRaises(ValueError, c)
+
+
+# noinspection PyTypeChecker
+class TestCommandTypes(unittest.TestCase):
+    def test_ping_has_no_payload_and_return_value(self):
+        mock_transport = MockTransport([Response(ResponseHeader.Status_Ok, [])])
+        ping = PingCommand(mock_transport)
+        self.assertIsNone(ping())
+        self.assertListEqual([], mock_transport.commands[0][1])
+
+    def test_hardware_version_returns_a_string(self):
+        # TODO return Version object
+        mock_transport = MockTransport([Response(ResponseHeader.Status_Ok, list(b'v0.1-r5'))])
+        hw = ReadHardwareVersionCommand(mock_transport)
+        self.assertEqual("v0.1-r5", hw())
+
+    def test_firmware_version_returns_a_string(self):
+        # TODO return Version object
+        mock_transport = MockTransport([Response(ResponseHeader.Status_Ok, list(b'v0.1-r5'))])
+        fw = ReadFirmwareVersionCommand(mock_transport)
+        self.assertEqual("v0.1-r5", fw())
