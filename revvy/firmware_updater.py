@@ -83,7 +83,7 @@ class McuUpdater:
 
         if mode == op_mode_application:
             # do we need to update?
-            fw = Version(self._robot.get_firmware_version())
+            fw = self._robot.get_firmware_version()
             need_to_update = fw != expected_version  # allow downgrade as well
 
             if not need_to_update:
