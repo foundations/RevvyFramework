@@ -51,56 +51,21 @@ class BaseMotorController:
 
 class DcMotorController(BaseMotorController):
     """Generic driver for dc motors"""
-    def __init__(self, port: PortInstance, config):
+    def __init__(self, port: PortInstance, port_config):
         super().__init__(port)
-        self._config = config
-        self._original_config = dict(config)
-        self._config_changed = True
-        self.apply_configuration()
 
-    def set_speed_limit(self, limit):
-        prev_limit = self._config['position_controller'][4]
-        if limit != prev_limit:
-            self._config['position_controller'][3] = -limit
-            self._config['position_controller'][4] = limit
-            self._config_changed = True
+        (posMin, posMax) = port_config['position_limits']
+        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = port_config['position_controller']
+        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = port_config['speed_controller']
 
-    def get_speed_limit(self):
-        return self._config['position_controller'][4]
+        config = list(struct.pack("<ll", posMin, posMax))
+        config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
+        config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
+        config += list(struct.pack("<h", port_config['encoder_resolution']))
 
-    def set_position_limit(self, lower, upper):
-        self._config['position_limits'] = [lower, upper]
-        self._config_changed = True
+        print('Sending configuration: {}'.format(config))
 
-    def set_power_limit(self, limit):
-        if limit is None:
-            limit = self._original_config['speed_controller'][4]
-
-        prev_limit = self._config['speed_controller'][4]
-        if limit != prev_limit:
-            self._config['speed_controller'][3] = -limit
-            self._config['speed_controller'][4] = limit
-            self._config_changed = True
-
-    def get_power_limit(self):
-        return self._config['speed_controller'][4]
-
-    def apply_configuration(self):
-        if self._config_changed:
-            (posMin, posMax) = self._config['position_limits']
-            (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._config['position_controller']
-            (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._config['speed_controller']
-
-            config = list(struct.pack("<ll", posMin, posMax))
-            config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
-            config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
-            config += list(struct.pack("<h", self._config['encoder_resolution']))
-
-            print('Sending configuration: {}'.format(config))
-
-            self._interface.set_motor_port_config(self._port.id, config)
-
-        self._config_changed = False
+        self._interface.set_motor_port_config(self._port.id, config)
 
     def set_speed(self, speed, power_limit=None):
         print('Motor::set_speed')
