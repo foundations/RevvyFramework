@@ -139,3 +139,27 @@ class TestCommandTypes(unittest.TestCase):
 
         # unexpected payload byte
         self.assertRaises(NotImplementedError, lambda: set_status(3))
+
+    def test_read_motor_port_types_returns_a_dict(self):
+        mock_transport = MockTransport([
+            Response(ResponseHeader.Status_Ok, list(b'')),  # no strings
+            Response(ResponseHeader.Status_Ok, list(b'\x01\x06foobar')),  # one string
+            Response(ResponseHeader.Status_Ok, list(b'\x01\x06foobar\x03\x04hola')),  # multiple strings
+        ])
+        read_types = ReadMotorPortTypesCommand(mock_transport)
+
+        self.assertFalse(read_types())
+        self.assertDictEqual({'foobar': 1}, read_types())
+        self.assertDictEqual({'foobar': 1, 'hola': 3}, read_types())
+
+    def test_read_sensor_port_types_returns_a_dict(self):
+        mock_transport = MockTransport([
+            Response(ResponseHeader.Status_Ok, list(b'')),  # no strings
+            Response(ResponseHeader.Status_Ok, list(b'\x01\x06foobar')),  # one string
+            Response(ResponseHeader.Status_Ok, list(b'\x01\x06foobar\x03\x04hola')),  # multiple strings
+        ])
+        read_types = ReadSensorPortTypesCommand(mock_transport)
+
+        self.assertFalse(read_types())
+        self.assertDictEqual({'foobar': 1}, read_types())
+        self.assertDictEqual({'foobar': 1, 'hola': 3}, read_types())
