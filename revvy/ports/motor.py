@@ -7,7 +7,10 @@ import struct
 
 class MotorPortHandler(PortHandler):
     def __init__(self, interface: RevvyControl, configs: dict):
-        super().__init__(interface, configs)
+        super().__init__(interface, configs, {
+            'NotConfigured': lambda port, cfg: None,
+            'DcMotor': lambda port, cfg: DcMotorController(port)
+        })
 
     def _get_port_amount(self):
         return self._interface.get_motor_port_amount()
@@ -20,22 +23,13 @@ class MotorPortHandler(PortHandler):
 
     def reset(self):
         super().reset()
-        self._ports = [MotorPortInstance(i + 1, self) for i in range(self.port_count)]
-
-
-class MotorPortInstance(PortInstance):
-    def __init__(self, port_idx, owner: MotorPortHandler):
-        super().__init__(port_idx, owner, {
-            'NotConfigured': lambda cfg: None,
-            'DcMotor': lambda cfg: DcMotorController(self, port_idx, cfg)
-        })
+        self._ports = [PortInstance(i + 1, self) for i in range(self.port_count)]
 
 
 class BaseMotorController:
-    def __init__(self, handler: MotorPortInstance, port_idx):
-        self._handler = handler
-        self._interface = handler.interface
-        self._port_idx = port_idx
+    def __init__(self, port: PortInstance):
+        self._port = port
+        self._interface = port.interface
         self._configured = True
 
         self._pos = 0
@@ -60,17 +54,17 @@ class BaseMotorController:
         return not (math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80)
 
     def uninitialize(self):
-        self._handler.uninitialize()
+        self._port.uninitialize()
         self._configured = False
 
     def get_position(self):
-        return self._interface.get_motor_position(self._port_idx)
+        return self._interface.get_motor_position(self._port.id)
 
 
 class DcMotorController(BaseMotorController):
     """Generic driver for dc motors"""
-    def __init__(self, handler: MotorPortInstance, port_idx, config):
-        super().__init__(handler, port_idx)
+    def __init__(self, port: PortInstance, config):
+        super().__init__(port)
         self._config = config
         self._original_config = dict(config)
         self._config_changed = True
@@ -123,7 +117,7 @@ class DcMotorController(BaseMotorController):
 
         print('Sending configuration: {}'.format(config))
 
-        self._interface.set_motor_port_config(self._port_idx, config)
+        self._interface.set_motor_port_config(self._port.id, config)
 
     def set_speed(self, speed, power_limit=None):
         print('Motor::set_speed')
@@ -134,7 +128,7 @@ class DcMotorController(BaseMotorController):
         if power_limit is not None:
             control += list(struct.pack("<f", power_limit))
 
-        self._interface.set_motor_port_control_value(self._port_idx, [1] + control)
+        self._interface.set_motor_port_control_value(self._port.id, [1] + control)
 
     def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute'):
         print('Motor::set_position')
@@ -151,9 +145,9 @@ class DcMotorController(BaseMotorController):
             control += list(struct.pack("<bf", 0, power_limit))
 
         if pos_type == 'absolute':
-            self._interface.set_motor_port_control_value(self._port_idx, [2] + control)
+            self._interface.set_motor_port_control_value(self._port.id, [2] + control)
         elif pos_type == 'relative':
-            self._interface.set_motor_port_control_value(self._port_idx, [3] + control)
+            self._interface.set_motor_port_control_value(self._port.id, [3] + control)
         else:
             raise ValueError('Unknown position type {}'.format(pos_type))
 
@@ -162,12 +156,12 @@ class DcMotorController(BaseMotorController):
         if not self._configured:
             raise EnvironmentError("Port is not configured")
 
-        self._interface.set_motor_port_control_value(self._port_idx, [0, power])
+        self._interface.set_motor_port_control_value(self._port.id, [0, power])
 
     def get_status(self):
-        data = self._interface.get_motor_position(self._port_idx)
+        data = self._interface.get_motor_position(self._port.id)
         if len(data) != 9:
-            print('Motor {}: Received {} bytes of data instead of 9'.format(self._handler.id, len(data)))
+            print('Motor {}: Received {} bytes of data instead of 9'.format(self._port.id, len(data)))
 
         (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
 

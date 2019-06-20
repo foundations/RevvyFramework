@@ -2,10 +2,11 @@ from revvy.mcu.rrrc_control import RevvyControl
 
 
 class PortHandler:
-    def __init__(self, interface: RevvyControl, configs: dict):
+    def __init__(self, interface: RevvyControl, configs: dict, drivers: dict):
         self._interface = interface
         self._types = {"NotConfigured": 0}
         self._ports = []
+        self._drivers = drivers
         self._configurations = configs
         self._port_count = 0
 
@@ -14,10 +15,6 @@ class PortHandler:
 
     def __iter__(self):
         return self._ports.__iter__()
-
-    @property
-    def configurations(self):
-        return self._configurations
 
     @property
     def available_types(self):
@@ -46,14 +43,20 @@ class PortHandler:
     def _get_port_amount(self): raise NotImplementedError
     def _set_port_type(self, port, port_type): raise NotImplementedError
 
+    def configure_port(self, port, config_name):
+        config = self._configurations[config_name]
+        new_driver_name = config['driver']
+        print('PortInstance: Configuring port {} to {} ({})'.format(port.id, config_name, new_driver_name))
+        self._set_port_type(port.id, self.available_types[new_driver_name])
+        return self._drivers[new_driver_name](port, config['config'])
+
 
 class PortInstance:
-    def __init__(self, port_idx, owner: PortHandler, drivers):
+    def __init__(self, port_idx, owner: PortHandler):
         self._port_idx = port_idx
         self._owner = owner
-        self._handlers = drivers
         self._driver = None
-        self._config_changed_callback = lambda motor, cfg_name: None
+        self._config_changed_callback = lambda port, cfg_name: None
 
     def on_config_changed(self, callback):
         self._config_changed_callback = callback
@@ -61,21 +64,12 @@ class PortInstance:
     def _notify_config_changed(self, config_name):
         self._config_changed_callback(self, config_name)
 
-    def _configure_port(self, config_name):
-        config = self._owner.configurations[config_name]
-        new_driver_name = config['driver']
-        print('PortInstance: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
-        self._owner._set_port_type(self._port_idx, self._owner.available_types[new_driver_name])
-        handler = self._handlers[new_driver_name](config['config'])
-        return handler
-
     def configure(self, config_name):
         self._notify_config_changed("NotConfigured")  # temporarily disable reading port
-        handler = self._configure_port(config_name)
+        self._driver = self._owner.configure_port(self, config_name)
         self._notify_config_changed(config_name)
 
-        self._driver = handler
-        return handler
+        return self._driver
 
     def uninitialize(self):
         self.configure("NotConfigured")

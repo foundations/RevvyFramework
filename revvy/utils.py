@@ -299,7 +299,7 @@ class RobotManager:
 
         self.configure(None)
 
-    def _motor_config_changed(self, motor: MotorPortInstance, config_name):
+    def _motor_config_changed(self, motor: PortInstance, config_name):
         motor_name = 'motor_{}'.format(motor.id)
         if config_name != 'NotConfigured':
             self._reader.add(motor_name, motor.get_status)
@@ -308,7 +308,7 @@ class RobotManager:
             self._reader.remove(motor_name)
             self._data_dispatcher.remove(motor_name)
 
-    def _sensor_config_changed(self, sensor: SensorPortInstance, config_name):
+    def _sensor_config_changed(self, sensor: PortInstance, config_name):
         sensor_name = 'sensor_{}'.format(sensor.id)
         if config_name != 'NotConfigured':
             self._reader.add(sensor_name, sensor.read)

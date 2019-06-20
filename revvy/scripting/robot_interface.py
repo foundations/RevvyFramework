@@ -1,8 +1,7 @@
 import time
 
 from revvy.functions import hex2rgb
-from revvy.ports.motor import MotorPortInstance, MotorPortHandler
-from revvy.ports.sensor import SensorPortInstance, SensorPortHandler
+from revvy.ports.common import PortInstance
 
 
 class Wrapper:
@@ -36,7 +35,7 @@ class Wrapper:
 
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
-    def __init__(self, robot, sensor: SensorPortInstance, resources: dict, priority=0):
+    def __init__(self, robot, sensor: PortInstance, resources: dict, priority=0):
         super().__init__(robot, resources, priority)
         self._sensor = sensor
 
@@ -61,7 +60,7 @@ def rpm2dps(rpm):
 
 class MotorPortWrapper(Wrapper):
     """Wrapper class to expose motor ports to user scripts"""
-    def __init__(self, robot, motor: MotorPortInstance, resources: dict, priority=0):
+    def __init__(self, robot, motor: PortInstance, resources: dict, priority=0):
         super().__init__(robot, resources, priority)
         self._motor = motor
 
