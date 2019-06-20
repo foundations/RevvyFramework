@@ -177,7 +177,7 @@ class RobotManager:
         self._robot = robot
         self._ble = revvy
         self._is_connected = False
-        self._default_configuration = default_config
+        self._default_configuration = default_config if default_config is not None else RobotConfig()
         self._feature_map = FeatureMap(feature_map if feature_map is not None else {})
         self._features = []
         self._sound = sound
@@ -208,7 +208,7 @@ class RobotManager:
 
         self._scripts = ScriptManager(self)
         self._resources = {}
-        self._config = RobotConfig()
+        self._config = self._default_configuration
 
         self._update_requested = False
         self._status = self.StatusStartingUp
@@ -379,6 +379,11 @@ class RobotManager:
 
     def _configure(self, config):
         with self._config_lock:
+            if not config:
+                status = self.status_led_not_configured
+            else:
+                status = self.status_led_configured
+
             if not config and self._status != self.StatusStopped:
                 config = self._default_configuration
             self._config = config
@@ -449,7 +454,6 @@ class RobotManager:
                         self._remote_controller.on_button_pressed(button, self._scripts[script].start)
 
                 self._remote_controller_scheduler.start()
-                self._robot.set_master_status(self.status_led_configured)
 
                 print('Robot configured')
                 self._set_status(self.StatusConfigured)
@@ -460,13 +464,14 @@ class RobotManager:
             else:
                 print("Deinitialize robot")
                 self._remote_controller_scheduler.reset()
-                self._robot.set_master_status(self.status_led_not_configured)
                 self._drivetrain.reset()
                 self._drivetrain.configure()
                 self._motor_ports.reset()
                 self._sensor_ports.reset()
                 self._remote_controller_scheduler.stop()
                 self._set_status(self.StatusNotConfigured)
+
+            self._robot.set_master_status(status)
 
     def stop(self):
         print("Stopping robot manager")
