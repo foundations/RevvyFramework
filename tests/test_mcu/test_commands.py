@@ -1,5 +1,6 @@
 import unittest
 
+from revvy.configuration.version import FormatError
 from revvy.mcu.commands import *
 from revvy.mcu.rrrc_transport import Response, ResponseHeader
 
@@ -88,16 +89,22 @@ class TestCommandTypes(unittest.TestCase):
         self.assertListEqual([], mock_transport.commands[0][1])
 
     def test_hardware_version_returns_a_string(self):
-        # TODO return Version object
-        mock_transport = MockTransport([Response(ResponseHeader.Status_Ok, list(b'v0.1-r5'))])
+        mock_transport = MockTransport([
+            Response(ResponseHeader.Status_Ok, list(b'0.1')),
+            Response(ResponseHeader.Status_Ok, list(b'v0.1'))
+        ])
         hw = ReadHardwareVersionCommand(mock_transport)
-        self.assertEqual("v0.1-r5", hw())
+        self.assertEqual(Version("0.1"), hw())
+        self.assertRaises(FormatError, hw)
 
     def test_firmware_version_returns_a_string(self):
-        # TODO return Version object
-        mock_transport = MockTransport([Response(ResponseHeader.Status_Ok, list(b'v0.1-r5'))])
+        mock_transport = MockTransport([
+            Response(ResponseHeader.Status_Ok, list(b'0.1-r5')),
+            Response(ResponseHeader.Status_Ok, list(b'v0.1-r5'))
+        ])
         fw = ReadFirmwareVersionCommand(mock_transport)
-        self.assertEqual("v0.1-r5", fw())
+        self.assertEqual(Version("0.1-r5"), fw())
+        self.assertRaises(FormatError, fw)
 
     def test_read_battery_status_requires_3_bytes_response(self):
         mock_transport = MockTransport([

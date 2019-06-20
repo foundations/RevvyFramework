@@ -1,5 +1,7 @@
 import struct
 from abc import ABC
+
+from revvy.configuration.version import Version
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
 
@@ -52,7 +54,7 @@ class PingCommand(Command):
 
 class ReadVersionCommand(Command, ABC):
     def parse_response(self, payload):
-        return parse_string(payload)
+        return Version(parse_string(payload))
 
 
 class ReadHardwareVersionCommand(ReadVersionCommand):

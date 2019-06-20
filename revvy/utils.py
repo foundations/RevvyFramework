@@ -269,8 +269,8 @@ class RobotManager:
 
         print('MCU features: {}'.format(self._features))
 
-        self._ble['device_information_service'].characteristic('hw_version').update(hw)
-        self._ble['device_information_service'].characteristic('fw_version').update(fw)
+        self._ble['device_information_service'].characteristic('hw_version').update(str(hw))
+        self._ble['device_information_service'].characteristic('fw_version').update(str(fw))
         self._ble['device_information_service'].characteristic('sw_version').update(sw)
 
         # start reader thread

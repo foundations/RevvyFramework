@@ -4,6 +4,10 @@ import re
 version_re = re.compile('(?P<major>\\d+?).(?P<minor>\\d+?)(-r(?P<rev>\\d+))?')
 
 
+class FormatError(Exception):
+    pass
+
+
 class Version:
     def __init__(self, ver_str):
         """
@@ -13,6 +17,8 @@ class Version:
         Version(1.0-r0)
         """
         match = version_re.match(ver_str)
+        if not match:
+            raise FormatError
         major = int(match.group('major'))
         minor = int(match.group('minor'))
         rev = int(match.group('rev')) if match.group('rev') is not None else 0
