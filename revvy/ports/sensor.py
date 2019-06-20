@@ -3,8 +3,8 @@ from revvy.mcu.rrrc_control import RevvyControl
 
 
 class SensorPortHandler(PortHandler):
-    def __init__(self, interface: RevvyControl, configs: dict, robot):
-        super().__init__(interface, configs, robot)
+    def __init__(self, interface: RevvyControl, configs: dict):
+        super().__init__(interface, configs)
 
     def _get_port_types(self):
         return self._interface.get_sensor_port_types()
@@ -17,12 +17,12 @@ class SensorPortHandler(PortHandler):
 
     def reset(self):
         super().reset()
-        self._ports = [SensorPortInstance(i + 1, self, self._robot) for i in range(self.port_count)]
+        self._ports = [SensorPortInstance(i + 1, self) for i in range(self.port_count)]
 
 
 class SensorPortInstance(PortInstance):
-    def __init__(self, port_idx, owner: SensorPortHandler, robot):
-        super().__init__(port_idx, owner, robot, {
+    def __init__(self, port_idx, owner: SensorPortHandler):
+        super().__init__(port_idx, owner, {
             'NotConfigured': lambda cfg: None,
             'BumperSwitch': lambda cfg: BumperSwitch(self, port_idx),
             'HC_SR04': lambda cfg: HcSr04(self, port_idx)
