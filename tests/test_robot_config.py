@@ -1,5 +1,6 @@
 import unittest
 
+from revvy.functions import b64_encode_str
 from revvy.robot_config import RobotConfig
 
 
@@ -31,7 +32,7 @@ class TestRobotConfig(unittest.TestCase):
             "robotConfig": [],
             "blocklyList": [
                 {
-                    "pythonCode": "some code",
+                    "pythonCode": "{SOURCE}",
                     "assignments": {
                         "buttons": [
                             {"id": 0, "priority": 2},
@@ -40,7 +41,7 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''
+        }'''.replace('{SOURCE}', b64_encode_str("some code"))
         config = RobotConfig.from_string(json)
 
         self.assertEqual('user_script_0', config.controller.buttons[0])
@@ -58,7 +59,7 @@ class TestRobotConfig(unittest.TestCase):
             "robotConfig": [],
             "blocklyList": [
                 {
-                    "pythonCode": "some code",
+                    "pythonCode": "{SOURCE}",
                     "assignments": {
                         "analog": [
                             {"channels": [0, 1], "priority": 1}
@@ -66,7 +67,7 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''
+        }'''.replace('{SOURCE}', b64_encode_str("some code"))
         config = RobotConfig.from_string(json)
 
         self.assertEqual(1, len(config.controller.analog))
@@ -82,13 +83,13 @@ class TestRobotConfig(unittest.TestCase):
             "robotConfig": [],
             "blocklyList": [
                 {
-                    "pythonCode": "some code",
+                    "pythonCode": "{SOURCE}",
                     "assignments": {
                         "background": 3
                     }
                 }
             ]
-        }'''
+        }'''.replace('{SOURCE}', b64_encode_str("some code"))
         config = RobotConfig.from_string(json)
 
         self.assertEqual(1, len(config.background_scripts))
@@ -103,13 +104,13 @@ class TestRobotConfig(unittest.TestCase):
             "robotConfig": [],
             "blocklyList": [
                 {
-                    "pythoncode": "some code",
+                    "pythoncode": "{SOURCE}",
                     "assignments": {
                         "background": 3
                     }
                 }
             ]
-        }'''
+        }'''.replace('{SOURCE}', b64_encode_str("some code"))
         config = RobotConfig.from_string(json)
 
         self.assertEqual(1, len(config.background_scripts))
@@ -160,7 +161,7 @@ class TestRobotConfig(unittest.TestCase):
             "robotConfig": [],
             "blocklyList": [
                 {
-                    "pythonCode": "some code",
+                    "pythonCode": "{SOURCE}",
                     "assignments": {
                         "buttons": [{"id": 1, "priority": 0}],
                         "analog": [{"channels": [0, 1], "priority": 1}],
@@ -168,7 +169,7 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''
+        }'''.replace('{SOURCE}', b64_encode_str("some code"))
         config = RobotConfig.from_string(json)
 
         self.assertEqual(1, len(config.background_scripts))

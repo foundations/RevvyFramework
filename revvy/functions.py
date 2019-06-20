@@ -1,4 +1,6 @@
 import traceback
+from binascii import b2a_base64, a2b_base64
+
 import math
 
 
@@ -82,3 +84,19 @@ def hex2rgb(hex_str):
     rgb = tuple(int(stripped_hex[i:i + 2], 16) for i in range(0, len(stripped_hex), 2))
 
     return rgb[0] << 16 | rgb[1] << 8 | rgb[2]
+
+
+def b64_encode_str(to_encode):
+    """
+    >>> b64_encode_str("hello")
+    'aGVsbG8='
+    """
+    return b2a_base64(to_encode.encode("utf-8")).decode("utf-8").rstrip()
+
+
+def b64_decode_str(to_decode):
+    """
+    >>> b64_decode_str('aGVsbG8=')
+    'hello'
+    """
+    return a2b_base64(to_decode.encode("utf-8")).decode("utf-8")
