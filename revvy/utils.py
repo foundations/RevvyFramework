@@ -263,7 +263,7 @@ class RobotManager:
         print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
         try:
-            self._features = self._feature_map.get_features(Version(fw))
+            self._features = self._feature_map.get_features(fw)
         except ValueError:
             self._features = []
 
