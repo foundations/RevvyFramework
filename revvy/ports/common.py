@@ -24,10 +24,6 @@ class PortHandler:
     def port_count(self):
         return self._port_count
 
-    @property
-    def interface(self):
-        return self._interface
-
     def port(self, port_idx):
         return self._ports[port_idx - 1]
 
@@ -38,6 +34,7 @@ class PortHandler:
 
         self._types = self._get_port_types()
         self._port_count = self._get_port_amount()
+        self._ports = [PortInstance(i + 1, self._interface, self) for i in range(self.port_count)]
 
     def _get_port_types(self): raise NotImplementedError
     def _get_port_amount(self): raise NotImplementedError
@@ -52,9 +49,10 @@ class PortHandler:
 
 
 class PortInstance:
-    def __init__(self, port_idx, owner: PortHandler):
+    def __init__(self, port_idx, interface: RevvyControl, owner: PortHandler):
         self._port_idx = port_idx
         self._owner = owner
+        self._interface = interface
         self._driver = None
         self._config_changed_callback = lambda port, cfg_name: None
 
@@ -74,12 +72,9 @@ class PortInstance:
     def uninitialize(self):
         self.configure("NotConfigured")
 
-    def handler(self):
-        return self._driver
-
     @property
     def interface(self):
-        return self._owner.interface
+        return self._interface
 
     @property
     def id(self):

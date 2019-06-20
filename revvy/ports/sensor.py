@@ -17,28 +17,16 @@ class SensorPortHandler(PortHandler):
         return self._interface.get_sensor_port_amount()
 
     def _set_port_type(self, port, port_type):
-        self.interface.set_sensor_port_type(port, port_type)
-
-    def reset(self):
-        super().reset()
-        self._ports = [PortInstance(i + 1, self) for i in range(self.port_count)]
+        self._interface.set_sensor_port_type(port, port_type)
 
 
 class BaseSensorPort:
     def __init__(self, port: PortInstance):
         self._port = port
         self._interface = port.interface
-        self._configured = True
         self._value = 0
 
-    def uninitialize(self):
-        self._port.uninitialize()
-        self._configured = False
-
     def read(self):
-        if not self._configured:
-            raise EnvironmentError("Port is not configured")
-
         raw = self._interface.get_sensor_port_value(self._port.id)
         self._value = self.convert_sensor_value(raw)
 
