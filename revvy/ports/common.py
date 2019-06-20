@@ -5,7 +5,7 @@ class PortHandler:
     def __init__(self, interface: RevvyControl, configs: dict, drivers: dict):
         self._interface = interface
         self._types = {"NotConfigured": 0}
-        self._ports = []
+        self._ports = {}
         self._drivers = drivers
         self._configurations = configs
         self._port_count = 0
@@ -25,7 +25,7 @@ class PortHandler:
         return self._port_count
 
     def port(self, port_idx):
-        return self._ports[port_idx - 1]
+        return self._ports[port_idx]
 
     def reset(self):
         for port in self._ports:
@@ -34,7 +34,7 @@ class PortHandler:
 
         self._types = self._get_port_types()
         self._port_count = self._get_port_amount()
-        self._ports = [PortInstance(i + 1, self._interface, self) for i in range(self.port_count)]
+        self._ports = {i+1: PortInstance(i+1, self._interface, self) for i in range(self.port_count)}
 
     def _get_port_types(self): raise NotImplementedError
     def _get_port_amount(self): raise NotImplementedError

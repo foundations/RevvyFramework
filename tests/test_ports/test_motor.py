@@ -2,6 +2,7 @@ import unittest
 
 from mock import Mock
 
+from revvy.ports.common import PortInstance
 from revvy.ports.motor import MotorPortHandler
 
 
@@ -20,3 +21,33 @@ class TestMotorPortHandler(unittest.TestCase):
         self.assertEqual(1, mock_control.get_motor_port_types.call_count)
 
         self.assertEqual(6, ports.port_count)
+
+    def test_motor_ports_are_indexed_from_one(self):
+        configs = {"NotConfigured": {}}
+
+        mock_control = Mock()
+        mock_control.get_motor_port_amount = Mock(return_value=6)
+        mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0})
+
+        ports = MotorPortHandler(mock_control, configs)
+        ports.reset()
+
+        with self.subTest("Port method"):
+            self.assertRaises(KeyError, lambda: ports.port(0))
+            self.assertIs(PortInstance, type(ports.port(1)))
+            self.assertIs(PortInstance, type(ports.port(2)))
+            self.assertIs(PortInstance, type(ports.port(3)))
+            self.assertIs(PortInstance, type(ports.port(4)))
+            self.assertIs(PortInstance, type(ports.port(5)))
+            self.assertIs(PortInstance, type(ports.port(6)))
+            self.assertRaises(KeyError, lambda: ports.port(7))
+
+        with self.subTest("Array indexing"):
+            self.assertRaises(KeyError, lambda: ports[0])
+            self.assertIs(PortInstance, type(ports[1]))
+            self.assertIs(PortInstance, type(ports[2]))
+            self.assertIs(PortInstance, type(ports[3]))
+            self.assertIs(PortInstance, type(ports[4]))
+            self.assertIs(PortInstance, type(ports[5]))
+            self.assertIs(PortInstance, type(ports[6]))
+            self.assertRaises(KeyError, lambda: ports[7])
