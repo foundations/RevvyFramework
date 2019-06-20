@@ -29,8 +29,11 @@ class RemoteController:
             return self._buttonStates[button_idx]
 
     def analog_value(self, analog_idx):
-        with self._button_mutex:
-            return self._analogStates[analog_idx]
+        try:
+            with self._button_mutex:
+                return self._analogStates[analog_idx]
+        except IndexError:
+            return 0
 
     def _button_pressed(self, idx):
         print('Button {} pressed'.format(idx))

@@ -79,3 +79,29 @@ class TestRemoteController(unittest.TestCase):
     def test_error_raised_for_invalid_button(self):
         rc = RemoteController()
         self.assertRaises(IndexError, lambda: rc.on_button_pressed(32, lambda: None))
+
+    def test_reset_removed_button_and_analog_handlers_and_clears_stored_data(self):
+        mock = Mock()
+        rc = RemoteController()
+
+        rc.on_analog_values([2, 4], mock)
+        rc.on_analog_values([3], mock)
+
+        rc.on_button_pressed(5, mock)
+
+        rc.tick({'buttons': [True] * 32, 'analog': [255, 254, 253, 123, 43, 65, 45, 42]})
+
+        self.assertEqual(3, mock.call_count)
+        self.assertEqual(254, rc.analog_value(1))
+        self.assertTrue(rc.is_button_pressed(1))
+
+        mock.reset_mock()
+
+        rc.reset()
+
+        self.assertEqual(0, rc.analog_value(1))
+        self.assertFalse(rc.is_button_pressed(1))
+
+        rc.tick({'buttons': [True] * 32, 'analog': [255, 254, 253, 123, 43, 65, 45, 42]})
+
+        self.assertEqual(0, mock.call_count)
