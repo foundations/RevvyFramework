@@ -22,9 +22,6 @@ import sys
 
 from tools.check_manifest import check_manifest
 
-mcu_features = {
-}
-
 
 def toggle_ring_led(args):
     if args['robot']._ring_led:
@@ -88,7 +85,7 @@ def start_revvy(directory, config: RobotConfig = None):
         except StorageElementNotFoundError:
             pass
 
-        robot = RobotManager(robot_control, ble, sound, config, mcu_features)
+        robot = RobotManager(robot_control, ble, sound, config)
 
         def on_device_name_changed(new_name):
             print('Device name changed to {}'.format(new_name))

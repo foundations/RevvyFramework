@@ -149,12 +149,11 @@ class MotorPortWrapper(Wrapper):
                 resource.release()
 
     def stop(self, action):
-        if action == MotorConstants.ACTION_STOP_AND_HOLD:
-            self.using_resource('motor_{}'.format(self._motor.id), lambda: self._motor.set_speed(0))
-        elif action == MotorConstants.ACTION_RELEASE:
-            self.using_resource('motor_{}'.format(self._motor.id), lambda: self._motor.set_power(0))
-        else:
-            raise ValueError
+        stop_fn = {
+            MotorConstants.ACTION_STOP_AND_HOLD: lambda: self._motor.set_speed(0),
+            MotorConstants.ACTION_RELEASE: lambda: self._motor.set_power(0),
+        }
+        self.using_resource('motor_{}'.format(self._motor.id), stop_fn[action])
 
 
 class RingLedWrapper(Wrapper):

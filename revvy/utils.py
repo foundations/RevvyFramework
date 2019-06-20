@@ -1,6 +1,4 @@
 #!/usr/bin/python3
-from revvy.configuration.features import FeatureMap
-from revvy.configuration.version import Version
 from revvy.file_storage import StorageInterface, StorageError
 from revvy.remote_controller import RemoteController, RemoteControllerScheduler
 from revvy.robot_config import RobotConfig
@@ -8,7 +6,6 @@ from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import *
-import time
 
 from revvy.mcu.rrrc_transport import *
 from revvy.ports.motor import *
@@ -146,12 +143,6 @@ class RingLed:
         return self._current_scenario
 
     def upload_user_frame(self, frame):
-        """
-        :param frame: array of 12 RGB values
-        """
-        if len(frame) != self._ring_led_count:
-            raise ValueError("Number of colors ({}) does not match LEDs ({})", len(frame), self._ring_led_count)
-
         print("Sending user LEDs: {}".format(repr(frame)))
         self._interface.ring_led_set_user_frame(frame)
 
@@ -171,15 +162,13 @@ class RobotManager:
     status_led_controlled = 2
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, robot: RevvyControl, revvy, sound, default_config=None, feature_map=None):
+    def __init__(self, robot: RevvyControl, revvy, sound, default_config=None):
         print("RobotManager: __init__()")
         self._start_time = time.time()
         self._robot = robot
         self._ble = revvy
         self._is_connected = False
         self._default_configuration = default_config if default_config is not None else RobotConfig()
-        self._feature_map = FeatureMap(feature_map if feature_map is not None else {})
-        self._features = []
         self._sound = sound
 
         self._reader = FunctionSerializer(self._robot.ping)
@@ -216,10 +205,6 @@ class RobotManager:
     @property
     def start_time(self):
         return self._start_time
-
-    @property
-    def features(self):
-        return self._features
 
     @property
     def resources(self):
@@ -261,13 +246,6 @@ class RobotManager:
         sw = FRAMEWORK_VERSION
 
         print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
-
-        try:
-            self._features = self._feature_map.get_features(fw)
-        except ValueError:
-            self._features = []
-
-        print('MCU features: {}'.format(self._features))
 
         self._ble['device_information_service'].characteristic('hw_version').update(str(hw))
         self._ble['device_information_service'].characteristic('fw_version').update(str(fw))

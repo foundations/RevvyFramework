@@ -1,7 +1,5 @@
 import json
 import traceback
-from base64 import b64decode
-from binascii import a2b_base64
 from json import JSONDecodeError
 
 from revvy.functions import b64_decode_str
