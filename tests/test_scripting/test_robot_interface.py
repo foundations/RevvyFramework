@@ -18,14 +18,14 @@ class TestRingLed(unittest.TestCase):
         robot.is_stop_requested = False
 
         rw = RingLedWrapper(robot, led_mock, {'led_ring': led_resource}, 0)
-        self.assertRaises(ValueError, lambda: rw.set(0, '#112233'))
+        self.assertRaises(IndexError, lambda: rw.set(0, '#112233'))
         rw.set(1, '#112233')
         rw.set(2, '#112233')
         rw.set(3, '#112233')
         rw.set(4, '#112233')
         rw.set(5, '#112233')
         rw.set(6, '#112233')
-        self.assertRaises(ValueError, lambda: rw.set(7, '#112233'))
+        self.assertRaises(IndexError, lambda: rw.set(7, '#112233'))
 
     def test_ring_led_set_remembers_previous_state(self):
         led_mock = Mock()
