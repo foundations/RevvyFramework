@@ -64,32 +64,19 @@ class PortInstance:
         self._config_changed_callback(self, config_name)
 
     def configure(self, config_name):
-        if config_name == 'NotConfigured':
-            config = self._owner.configurations[config_name]
-
-            self._notify_config_changed(config_name)
-
-            new_driver_name = config['driver']
-            print('PortInstance: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
-            self._owner._set_port_type(self._port_idx, self._owner.available_types[new_driver_name])
-
-            handler = self._handlers[new_driver_name](config['config'])
-            self._driver = handler
-        else:
-            if self._driver is not None:
-                self._driver.uninitialize()
-
-            config = self._owner.configurations[config_name]
-
-            new_driver_name = config['driver']
-            print('PortInstance: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
-            self._owner._set_port_type(self._port_idx, self._owner.available_types[new_driver_name])
-
-            handler = self._handlers[new_driver_name](config['config'])
-
-            self._notify_config_changed(config_name)
+        self._notify_config_changed("NotConfigured")  # temporarily disable reading port
+        handler = self._initialize_port(config_name)
+        self._notify_config_changed(config_name)
 
         self._driver = handler
+        return handler
+
+    def _initialize_port(self, config_name):
+        config = self._owner.configurations[config_name]
+        new_driver_name = config['driver']
+        print('PortInstance: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
+        self._owner._set_port_type(self._port_idx, self._owner.available_types[new_driver_name])
+        handler = self._handlers[new_driver_name](config['config'])
         return handler
 
     def uninitialize(self):
