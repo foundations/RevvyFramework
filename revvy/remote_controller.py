@@ -17,7 +17,6 @@ class RemoteController:
         self._controller_detected = lambda: None
         self._controller_disappeared = lambda: None
 
-        self._message = None
         self._missedKeepAlives = -1
 
         for i in range(len(self._buttonHandlers)):
@@ -47,7 +46,6 @@ class RemoteController:
             self._buttonActions = [lambda: None] * 32
 
             self._buttonStates = [False] * 32
-            self._message = None
             self._missedKeepAlives = -1
 
     def tick(self, message):
