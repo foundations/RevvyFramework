@@ -6,11 +6,8 @@ import struct
 
 
 class MotorPortHandler(PortHandler):
-    # index: logical number; value: physical number
-    motorPortMap = [-1, 3, 4, 5, 2, 1, 0]
-
     def __init__(self, interface: RevvyControl, configs: dict, robot):
-        super().__init__(interface, configs, robot, self.motorPortMap)
+        super().__init__(interface, configs, robot)
 
     def _get_port_amount(self):
         return self._interface.get_motor_port_amount()
@@ -23,7 +20,7 @@ class MotorPortHandler(PortHandler):
 
     def reset(self):
         super().reset()
-        self._ports = [MotorPortInstance(i, self, self._robot) for i in range(self.port_count)]
+        self._ports = [MotorPortInstance(i + 1, self, self._robot) for i in range(self.port_count)]
 
 
 class MotorPortInstance(PortInstance):

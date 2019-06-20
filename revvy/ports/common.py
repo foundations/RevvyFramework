@@ -2,13 +2,13 @@ from revvy.mcu.rrrc_control import RevvyControl
 
 
 class PortHandler:
-    def __init__(self, interface: RevvyControl, configs: dict, robot, port_map: list):
+    def __init__(self, interface: RevvyControl, configs: dict, robot):
         self._interface = interface
         self._robot = robot
         self._types = {"NotConfigured": 0}
         self._ports = []
         self._configurations = configs
-        self._port_idx_map = port_map
+        self._port_count = 0
 
     def __getitem__(self, item):
         return self.port(item)
@@ -26,14 +26,14 @@ class PortHandler:
 
     @property
     def port_count(self):
-        return len(self._port_idx_map) - 1
+        return self._port_count
 
     @property
     def interface(self):
         return self._interface
 
     def port(self, port_idx):
-        return self._ports[self._port_idx_map[port_idx]]
+        return self._ports[port_idx - 1]
 
     def reset(self):
         for port in self._ports:
@@ -41,9 +41,7 @@ class PortHandler:
         self._ports.clear()
 
         self._types = self._get_port_types()
-        count = self._get_port_amount()
-        if count != self.port_count:
-            raise ValueError('Unexpected sensor port count ({} instead of {})'.format(count, len(self._port_idx_map)))
+        self._port_count = self._get_port_amount()
 
     def _get_port_types(self): raise NotImplementedError
     def _get_port_amount(self): raise NotImplementedError
@@ -66,20 +64,32 @@ class PortInstance:
         self._config_changed_callback(self, config_name)
 
     def configure(self, config_name):
-        if self._driver is not None and config_name != 'NotConfigured':
-            self._driver.uninitialize()
+        if config_name == 'NotConfigured':
+            config = self._owner.configurations[config_name]
 
-        config = self._owner.configurations[config_name]
+            self._notify_config_changed(config_name)
 
-        new_driver_name = config['driver']
-        print('PortInstance: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
-        self._owner._set_port_type(self._port_idx, self._owner.available_types[new_driver_name])
+            new_driver_name = config['driver']
+            print('PortInstance: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
+            self._owner._set_port_type(self._port_idx, self._owner.available_types[new_driver_name])
 
-        handler = self._handlers[new_driver_name](config['config'])
+            handler = self._handlers[new_driver_name](config['config'])
+            self._driver = handler
+        else:
+            if self._driver is not None:
+                self._driver.uninitialize()
+
+            config = self._owner.configurations[config_name]
+
+            new_driver_name = config['driver']
+            print('PortInstance: Configuring port {} to {} ({})'.format(self._port_idx, config_name, new_driver_name))
+            self._owner._set_port_type(self._port_idx, self._owner.available_types[new_driver_name])
+
+            handler = self._handlers[new_driver_name](config['config'])
+
+            self._notify_config_changed(config_name)
+
         self._driver = handler
-
-        self._notify_config_changed(config_name)
-
         return handler
 
     def uninitialize(self):
@@ -93,13 +103,8 @@ class PortInstance:
         return self._owner.interface
 
     @property
-    def idx(self):
-        return self._port_idx
-
-    @property
     def id(self):
-        """User-facing motor port number"""
-        return self._owner._port_idx_map.index(self._port_idx)
+        return self._port_idx
 
     def __getattr__(self, name):
         return self._driver.__getattribute__(name)

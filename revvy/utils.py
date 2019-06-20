@@ -101,9 +101,9 @@ class DifferentialDrivetrain:
     def configure(self):
         motors = [DifferentialDrivetrain.NOT_ASSIGNED] * self._owner._motor_ports.port_count
         for motor in self._left_motors:
-            motors[motor.idx] = DifferentialDrivetrain.LEFT
+            motors[motor.id - 1] = DifferentialDrivetrain.LEFT
         for motor in self._right_motors:
-            motors[motor.idx] = DifferentialDrivetrain.RIGHT
+            motors[motor.id - 1] = DifferentialDrivetrain.RIGHT
 
         self._owner._robot.set_drivetrain_motors(motors)
 

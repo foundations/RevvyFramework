@@ -3,11 +3,8 @@ from revvy.mcu.rrrc_control import RevvyControl
 
 
 class SensorPortHandler(PortHandler):
-    # index: logical number; value: physical number
-    sensorPortMap = [-1, 0, 1, 2, 3]
-
     def __init__(self, interface: RevvyControl, configs: dict, robot):
-        super().__init__(interface, configs, robot, self.sensorPortMap)
+        super().__init__(interface, configs, robot)
 
     def _get_port_types(self):
         return self._interface.get_sensor_port_types()
@@ -20,7 +17,7 @@ class SensorPortHandler(PortHandler):
 
     def reset(self):
         super().reset()
-        self._ports = [SensorPortInstance(i, self, self._robot) for i in range(self.port_count)]
+        self._ports = [SensorPortInstance(i + 1, self, self._robot) for i in range(self.port_count)]
 
 
 class SensorPortInstance(PortInstance):

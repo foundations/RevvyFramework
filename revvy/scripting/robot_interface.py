@@ -188,15 +188,16 @@ class RingLedWrapper(Wrapper):
 
 
 class PortCollection:
-    def __init__(self, ports: list, port_map: list, names: dict):
+    def __init__(self, ports: list, names: dict):
         self._ports = ports
-        self._portMap = port_map
         self._portNameMap = names
 
     def __getitem__(self, item):
         if item is str:
             item = self._portNameMap[item]
-        return self._ports[self._portMap[item]]
+        else:
+            item -= 1
+        return self._ports[item]
 
     def __iter__(self):
         return self._ports.__iter__()
@@ -349,8 +350,8 @@ class RobotInterface:
         self._start_time = robot.start_time
         motor_wrappers = list(MotorPortWrapper(self, port, robot.resources, priority) for port in robot._motor_ports)
         sensor_wrappers = list(SensorPortWrapper(self, port, robot.resources, priority) for port in robot._sensor_ports)
-        self._motors = PortCollection(motor_wrappers, MotorPortHandler.motorPortMap, robot.config.motors.names)
-        self._sensors = PortCollection(sensor_wrappers, SensorPortHandler.sensorPortMap, robot.config.sensors.names)
+        self._motors = PortCollection(motor_wrappers, robot.config.motors.names)
+        self._sensors = PortCollection(sensor_wrappers, robot.config.sensors.names)
         self._sound = SoundWrapper(self, robot.sound, robot.resources, priority)
         self._ring_led = RingLedWrapper(self, robot._ring_led, robot.resources, priority)
         self._drivetrain = DriveTrainWrapper(self, robot._drivetrain, robot.resources, priority)
