@@ -77,17 +77,17 @@ class MotorPortWrapper(Wrapper):
 
     def move(self, direction, amount, unit_amount, limit, unit_limit):
         self.check_terminated()
-        if unit_amount in [MotorConstants.UNIT_ROT, MotorConstants.UNIT_DEG]:
-            if unit_amount == MotorConstants.UNIT_ROT:
-                amount = amount * 360
+        resource = self.try_take('motor_{}'.format(self._motor.id))
+        if resource:
+            try:
+                if unit_amount in [MotorConstants.UNIT_ROT, MotorConstants.UNIT_DEG]:
+                    if unit_amount == MotorConstants.UNIT_ROT:
+                        amount = amount * 360
 
-            if direction == MotorConstants.DIR_CCW:
-                amount *= -1
+                    if direction == MotorConstants.DIR_CCW:
+                        amount *= -1
 
-            # start moving depending on limits
-            resource = self.try_take('motor_{}'.format(self._motor.id))
-            if resource:
-                try:
+                    # start moving depending on limits
                     print("Rotating {} degrees".format(amount))
                     set_pos_fns = {
                         MotorConstants.UNIT_SPEED_RPM:
@@ -101,14 +101,9 @@ class MotorPortWrapper(Wrapper):
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._motor.is_moving:
                         self.sleep(0.2)
-                finally:
-                    resource.release()
 
-        elif unit_amount == MotorConstants.UNIT_SEC:
-            # start moving depending on limits
-            resource = self.try_take('motor_{}'.format(self._motor.id))
-            if resource:
-                try:
+                elif unit_amount == MotorConstants.UNIT_SEC:
+                    # start moving depending on limits
                     set_speed_fns = {
                         MotorConstants.UNIT_SPEED_RPM: {
                             MotorConstants.DIR_CW: lambda: self._motor.set_speed(rpm2dps(limit)),
@@ -117,16 +112,16 @@ class MotorPortWrapper(Wrapper):
                         MotorConstants.UNIT_SPEED_PWR: {
                             MotorConstants.DIR_CW: lambda: self._motor.set_speed(900, power_limit=limit),
                             MotorConstants.DIR_CCW: lambda: self._motor.set_speed(-900, power_limit=limit),
-                        },
+                        }
                     }
 
                     resource.run(set_speed_fns[unit_limit][direction])
                     self.sleep(amount)
                     resource.run(lambda: self._motor.set_speed(0))
-                finally:
-                    resource.release()
-        else:
-            raise ValueError
+                else:
+                    raise ValueError
+            finally:
+                resource.release()
 
     def spin(self, direction, rotation, unit_rotation):
         # start moving depending on limits
@@ -222,25 +217,27 @@ class DriveTrainWrapper(Wrapper):
         self._drivetrain = drivetrain
 
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
+        left_multipliers = {
+            MotorConstants.DIRECTION_FWD: 1,
+            MotorConstants.DIRECTION_BACK: -1,
+            MotorConstants.DIRECTION_LEFT: -1,
+            MotorConstants.DIRECTION_RIGHT: 1,
+        }
+        right_multipliers = {
+            MotorConstants.DIRECTION_FWD: 1,
+            MotorConstants.DIRECTION_BACK: -1,
+            MotorConstants.DIRECTION_LEFT: 1,
+            MotorConstants.DIRECTION_RIGHT: -1,
+        }
+
         self.check_terminated()
-        if unit_rotation == MotorConstants.UNIT_ROT:
-            degrees = rotation * 360
-            if direction in [MotorConstants.DIRECTION_BACK, MotorConstants.DIRECTION_RIGHT]:
-                degrees *= -1
-
-            if direction in [MotorConstants.DIRECTION_FWD, MotorConstants.DIRECTION_BACK]:
-                print('Moving {} degrees'.format(degrees))
-                left_degrees = degrees
-                right_degrees = degrees
-            else:
-                print('Turning {} degrees'.format(degrees))
-                left_degrees = -degrees
-                right_degrees = degrees
-
-            # start moving depending on limits
-            resource = self.try_take('drivetrain')
-            if resource:
-                try:
+        resource = self.try_take('drivetrain')
+        if resource:
+            try:
+                if unit_rotation == MotorConstants.UNIT_ROT:
+                    degrees = rotation * 360
+                    left_degrees = degrees * left_multipliers[direction]
+                    right_degrees = degrees * right_multipliers[direction]
                     move_fns = {
                         MotorConstants.UNIT_SPEED_RPM:
                             lambda: self._drivetrain.move(left_degrees, right_degrees, rpm2dps(speed), rpm2dps(speed)),
@@ -253,48 +250,17 @@ class DriveTrainWrapper(Wrapper):
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._drivetrain.is_moving:
                         self.sleep(0.2)
-                finally:
-                    resource.release()
 
-        elif unit_rotation == MotorConstants.UNIT_SEC:
-            # start moving depending on limits
-            resource = self.try_take('drivetrain')
-            if resource:
-                try:
+                elif unit_rotation == MotorConstants.UNIT_SEC:
                     if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-
-                        if direction == MotorConstants.DIRECTION_FWD:
-                            left = rpm2dps(speed)
-                            right = rpm2dps(speed)
-                        elif direction == MotorConstants.DIRECTION_BACK:
-                            left = -rpm2dps(speed)
-                            right = -rpm2dps(speed)
-                        elif direction == MotorConstants.DIRECTION_RIGHT:
-                            left = rpm2dps(speed)
-                            right = -rpm2dps(speed)
-                        elif direction == MotorConstants.DIRECTION_LEFT:
-                            left = -rpm2dps(speed)
-                            right = rpm2dps(speed)
-                        else:
-                            raise ValueError
+                        left = rpm2dps(speed) * left_multipliers[direction]
+                        right = rpm2dps(speed) * right_multipliers[direction]
 
                         resource.run(lambda: self._drivetrain.set_speeds(left, right))
-                    elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
 
-                        if direction == MotorConstants.DIRECTION_FWD:
-                            left = 900
-                            right = 900
-                        elif direction == MotorConstants.DIRECTION_BACK:
-                            left = -900
-                            right = -900
-                        elif direction == MotorConstants.DIRECTION_RIGHT:
-                            left = 900
-                            right = -900
-                        elif direction == MotorConstants.DIRECTION_LEFT:
-                            left = -900
-                            right = 900
-                        else:
-                            raise ValueError
+                    elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
+                        left = 900 * left_multipliers[direction]
+                        right = 900 * right_multipliers[direction]
 
                         resource.run(lambda: self._drivetrain.set_speeds(left, right, power_limit=speed))
                     else:
@@ -303,10 +269,10 @@ class DriveTrainWrapper(Wrapper):
                     self.sleep(rotation)
 
                     resource.run(lambda: self._drivetrain.set_speeds(0, 0))
-                finally:
-                    resource.release()
-        else:
-            raise ValueError
+                else:
+                    raise ValueError
+            finally:
+                resource.release()
 
     def set_speeds(self, sl, sr):
         self.using_resource('drivetrain', lambda: self._drivetrain.set_speeds(sl, sr))
