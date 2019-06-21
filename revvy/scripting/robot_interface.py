@@ -165,17 +165,17 @@ class RingLedWrapper(Wrapper):
     def set_scenario(self, scenario):
         self.using_resource('led_ring', lambda: self._ring_led.set_scenario(scenario))
 
-    def set(self, led_index, str_color):
+    def set(self, led_index, color):
         self.check_terminated()
         if type(led_index) is not list:
             led_index = [led_index]
 
-        color = hex2rgb(str_color)
+        rgb = hex2rgb(color)
 
         for idx in led_index:
             if not (1 <= idx <= self._ring_led.count):
                 raise IndexError('Led index invalid: {}'.format(idx))
-            self._user_leds[idx - 1] = color
+            self._user_leds[idx - 1] = rgb
 
         self.using_resource('led_ring', lambda: self._ring_led.display_user_frame(self._user_leds))
 
