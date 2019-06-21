@@ -186,7 +186,7 @@ class PortCollection:
         self._portNameMap = names
 
     def __getitem__(self, item):
-        if item is str:
+        if type(item) is str:
             item = self._portNameMap[item]
         else:
             item -= 1

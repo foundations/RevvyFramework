@@ -3,7 +3,7 @@ from mock import Mock
 
 from revvy.functions import hex2rgb
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import RingLedWrapper
+from revvy.scripting.robot_interface import RingLedWrapper, PortCollection
 
 
 class TestRingLed(unittest.TestCase):
@@ -48,3 +48,21 @@ class TestRingLed(unittest.TestCase):
             led_mock.display_user_frame.call_args[0][0]
         )
         self.assertEqual(2, led_mock.display_user_frame.call_count)
+
+
+class TestPortCollection(unittest.TestCase):
+    def test_ports_can_be_accessed_by_id(self):
+        pc = PortCollection([2, 3, 5], {})
+
+        self.assertEqual(2, pc[1])
+        self.assertEqual(3, pc[2])
+        self.assertEqual(5, pc[3])
+        self.assertRaises(IndexError, lambda: pc[4])
+
+    def test_ports_can_be_accessed_by_name(self):
+        pc = PortCollection([2, 3, 5], {'foo': 0, 'bar': 1, 'baz': 2})
+
+        self.assertEqual(2, pc['foo'])
+        self.assertEqual(3, pc['bar'])
+        self.assertEqual(5, pc['baz'])
+        self.assertRaises(KeyError, lambda: pc['foobar'])
