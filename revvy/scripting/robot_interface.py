@@ -15,6 +15,7 @@ class Wrapper:
         return self._robot.is_stop_requested
 
     def try_take(self, resource_name):
+        self.check_terminated()
         return self._resources[resource_name].request(self._priority)
 
     def sleep(self, s):
@@ -25,18 +26,13 @@ class Wrapper:
             raise InterruptedError
 
     def using_resource(self, resource_name, callback):
-        resource = self.try_take(resource_name)
-        if resource:
-            try:
-                resource.run(callback)
-            finally:
-                resource.release()
+        self.if_resource_available(resource_name, lambda res: res.run(callback))
 
     def if_resource_available(self, resource_name, callback):
         resource = self.try_take(resource_name)
         if resource:
             try:
-                callback()
+                callback(resource)
             finally:
                 resource.release()
 
@@ -76,7 +72,6 @@ class MotorPortWrapper(Wrapper):
         self._motor.configure(config_name)
 
     def move(self, direction, amount, unit_amount, limit, unit_limit):
-        self.check_terminated()
         resource = self.try_take('motor_{}'.format(self._motor.id))
         if resource:
             try:
@@ -161,7 +156,6 @@ class RingLedWrapper(Wrapper):
         self.using_resource('led_ring', lambda: self._ring_led.set_scenario(scenario))
 
     def set(self, led_index, color):
-        self.check_terminated()
         if type(led_index) is not list:
             led_index = [led_index]
 
@@ -230,7 +224,6 @@ class DriveTrainWrapper(Wrapper):
             MotorConstants.DIRECTION_RIGHT: -1,
         }
 
-        self.check_terminated()
         resource = self.try_take('drivetrain')
         if resource:
             try:
@@ -292,8 +285,7 @@ class SoundWrapper(Wrapper):
         self._sound = sound
 
     def play_tune(self, name):
-        self.check_terminated()
-        self.if_resource_available('sound', lambda: self._sound.play_tune(name))
+        self.if_resource_available('sound', lambda resource: self._sound.play_tune(name))
 
 
 # FIXME: type hints missing because of circular reference that causes ImportError
