@@ -14,7 +14,7 @@ class PortHandler:
         return self.port(item)
 
     def __iter__(self):
-        return self._ports.__iter__()
+        return self._ports.values().__iter__()
 
     @property
     def available_types(self):
