@@ -46,7 +46,6 @@ class BaseMotorController:
 
     @property
     def is_moving(self):
-        # FIXME probably not really reliable
         if self._pos_reached is None:
             return not (math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80)
         else:
