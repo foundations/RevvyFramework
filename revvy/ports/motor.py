@@ -30,6 +30,7 @@ class BaseMotorController:
         self._pos = 0
         self._speed = 0
         self._power = 0
+        self._pos_reached = None
 
     @property
     def speed(self):
@@ -46,7 +47,10 @@ class BaseMotorController:
     @property
     def is_moving(self):
         # FIXME probably not really reliable
-        return not (math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80)
+        if self._pos_reached is None:
+            return not (math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80)
+        else:
+            return not (self._pos_reached and math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80)
 
 
 class DcMotorController(BaseMotorController):
@@ -95,13 +99,19 @@ class DcMotorController(BaseMotorController):
 
     def get_status(self):
         data = self._interface.get_motor_position(self._port.id)
-        if len(data) != 9:
-            print('Motor {}: Received {} bytes of data instead of 9'.format(self._port.id, len(data)))
 
-        (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
+        if len(data) == 9:
+            (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
+            pos_reached = None
+        elif len(data) == 10:
+            (pos, speed, power, pos_reached) = struct.unpack('<lfbb', bytearray(data))
+        else:
+            print('Motor {}: Received {} bytes of data instead of 9 or 13'.format(self._port.id, len(data)))
+            return
 
         self._pos = pos
         self._speed = speed
         self._power = power
+        self._pos_reached = pos_reached
 
         return {'position': pos, 'speed': speed, 'power': power}
