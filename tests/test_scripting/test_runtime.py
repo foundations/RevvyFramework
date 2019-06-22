@@ -2,6 +2,7 @@ import time
 import unittest
 from mock import Mock
 
+from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RobotInterface
 from revvy.scripting.runtime import ScriptManager
 
@@ -10,7 +11,11 @@ def create_robot_mock():
     robot_mock = Mock()
     robot_mock._ring_led = Mock()
     robot_mock._ring_led.count = 6
-    robot_mock.resources = []
+    robot_mock.resources = {
+        'led_ring': Resource(),
+        'drivetrain': Resource(),
+        'sound': Resource()
+    }
     robot_mock._motor_ports = []
     robot_mock._sensor_ports = []
     robot_mock._remote_controller = Mock()
