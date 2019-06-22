@@ -53,112 +53,6 @@ class SensorPortWrapper(Wrapper):
         return self._sensor.value
 
 
-def rpm2dps(rpm):
-    """
-    >>> rpm2dps(1)
-    6
-    >>> rpm2dps(60)
-    360
-    """
-    return rpm * 6
-
-
-class MotorPortWrapper(Wrapper):
-    """Wrapper class to expose motor ports to user scripts"""
-
-    def __init__(self, robot, motor: PortInstance, resources: dict, priority=0):
-        super().__init__(robot, resources, priority)
-        self._motor = motor
-
-    def configure(self, config_name):
-        self._motor.configure(config_name)
-
-    def move(self, direction, amount, unit_amount, limit, unit_limit):
-        resource = self.try_take('motor_{}'.format(self._motor.id))
-
-        set_fns = {
-            MotorConstants.UNIT_DEG: {
-                MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(amount, speed_limit=rpm2dps(limit),
-                                                                             pos_type='relative'),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-amount, speed_limit=rpm2dps(limit),
-                                                                             pos_type='relative'),
-                },
-                MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(amount, power_limit=limit,
-                                                                             pos_type='relative'),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-amount, power_limit=limit,
-                                                                             pos_type='relative')
-                }
-            },
-
-            MotorConstants.UNIT_ROT: {
-                MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(360 * amount, speed_limit=rpm2dps(limit),
-                                                                             pos_type='relative'),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-360 * amount, speed_limit=rpm2dps(limit),
-                                                                             pos_type='relative'),
-                },
-                MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(360 * amount, power_limit=limit,
-                                                                             pos_type='relative'),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-360 * amount, power_limit=limit,
-                                                                             pos_type='relative')
-                }
-            },
-
-            MotorConstants.UNIT_SEC: {
-                MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(limit)),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-limit)),
-                },
-                MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_speed(900, power_limit=limit),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_speed(-900, power_limit=limit),
-                }
-            }
-        }
-
-        if resource:
-            try:
-                resource.run(set_fns[unit_amount][unit_limit][direction])
-
-                if unit_amount in [MotorConstants.UNIT_ROT, MotorConstants.UNIT_DEG]:
-                    # wait for movement to finish
-                    self.sleep(0.2)
-                    while not resource.is_interrupted and self._motor.is_moving:
-                        self.sleep(0.2)
-
-                elif unit_amount == MotorConstants.UNIT_SEC:
-                    self.sleep(amount)
-                    resource.run(lambda: self._motor.set_speed(0))
-
-            finally:
-                resource.release()
-
-    def spin(self, direction, rotation, unit_rotation):
-        # start moving depending on limits
-        set_speed_fns = {
-            MotorConstants.UNIT_SPEED_RPM: {
-                MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(rotation)),
-                MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-rotation))
-            },
-            MotorConstants.UNIT_SPEED_PWR: {
-                MotorConstants.DIR_CW:  lambda: self._motor.set_speed(900, power_limit=rotation),
-                MotorConstants.DIR_CCW: lambda: self._motor.set_speed(-900, power_limit=rotation)
-            }
-        }
-
-        self.using_resource('motor_{}'.format(self._motor.id), set_speed_fns[unit_rotation][direction])
-
-    def stop(self, action):
-        stop_fn = {
-            MotorConstants.ACTION_STOP_AND_HOLD: lambda: self._motor.set_speed(0),
-            MotorConstants.ACTION_RELEASE:       lambda: self._motor.set_power(0),
-        }
-        self.using_resource('motor_{}'.format(self._motor.id), stop_fn[action])
-
-
 class RingLedWrapper(Wrapper):
     """Wrapper class to expose LED ring to user scripts"""
 
@@ -224,6 +118,111 @@ class MotorConstants:
     ACTION_RELEASE = 1
 
 
+def rpm2dps(rpm):
+    """
+    >>> rpm2dps(1)
+    6
+    >>> rpm2dps(60)
+    360
+    """
+    return rpm * 6
+
+
+class MotorPortWrapper(Wrapper):
+    """Wrapper class to expose motor ports to user scripts"""
+
+    def __init__(self, robot, motor: PortInstance, resources: dict, priority=0):
+        super().__init__(robot, resources, priority)
+        self._motor = motor
+
+    def configure(self, config_name):
+        self._motor.configure(config_name)
+
+    def move(self, direction, amount, unit_amount, limit, unit_limit):
+        set_fns = {
+            MotorConstants.UNIT_DEG: {
+                MotorConstants.UNIT_SPEED_RPM: {
+                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(amount, speed_limit=rpm2dps(limit),
+                                                                             pos_type='relative'),
+                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-amount, speed_limit=rpm2dps(limit),
+                                                                             pos_type='relative'),
+                },
+                MotorConstants.UNIT_SPEED_PWR: {
+                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(amount, power_limit=limit,
+                                                                             pos_type='relative'),
+                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-amount, power_limit=limit,
+                                                                             pos_type='relative')
+                }
+            },
+
+            MotorConstants.UNIT_ROT: {
+                MotorConstants.UNIT_SPEED_RPM: {
+                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(360 * amount, speed_limit=rpm2dps(limit),
+                                                                             pos_type='relative'),
+                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-360 * amount, speed_limit=rpm2dps(limit),
+                                                                             pos_type='relative'),
+                },
+                MotorConstants.UNIT_SPEED_PWR: {
+                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(360 * amount, power_limit=limit,
+                                                                             pos_type='relative'),
+                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-360 * amount, power_limit=limit,
+                                                                             pos_type='relative')
+                }
+            },
+
+            MotorConstants.UNIT_SEC: {
+                MotorConstants.UNIT_SPEED_RPM: {
+                    MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(limit)),
+                    MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-limit)),
+                },
+                MotorConstants.UNIT_SPEED_PWR: {
+                    MotorConstants.DIR_CW:  lambda: self._motor.set_speed(900, power_limit=limit),
+                    MotorConstants.DIR_CCW: lambda: self._motor.set_speed(-900, power_limit=limit),
+                }
+            }
+        }
+
+        resource = self.try_take('motor_{}'.format(self._motor.id))
+        if resource:
+            try:
+                resource.run(set_fns[unit_amount][unit_limit][direction])
+
+                if unit_amount in [MotorConstants.UNIT_ROT, MotorConstants.UNIT_DEG]:
+                    # wait for movement to finish
+                    self.sleep(0.2)
+                    while not resource.is_interrupted and self._motor.is_moving:
+                        self.sleep(0.2)
+
+                elif unit_amount == MotorConstants.UNIT_SEC:
+                    self.sleep(amount)
+                    resource.run(lambda: self._motor.set_speed(0))
+
+            finally:
+                resource.release()
+
+    def spin(self, direction, rotation, unit_rotation):
+        # start moving depending on limits
+        set_speed_fns = {
+            MotorConstants.UNIT_SPEED_RPM: {
+                MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(rotation)),
+                MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-rotation))
+            },
+            MotorConstants.UNIT_SPEED_PWR: {
+                MotorConstants.DIR_CW:  lambda: self._motor.set_speed(900, power_limit=rotation),
+                MotorConstants.DIR_CCW: lambda: self._motor.set_speed(-900, power_limit=rotation)
+            }
+        }
+
+        self.using_resource('motor_{}'.format(self._motor.id), set_speed_fns[unit_rotation][direction])
+
+    def stop(self, action):
+        stop_fn = {
+            MotorConstants.ACTION_STOP_AND_HOLD: lambda: self._motor.set_speed(0),
+            MotorConstants.ACTION_RELEASE:       lambda: self._motor.set_power(0),
+        }
+        self.using_resource('motor_{}'.format(self._motor.id), stop_fn[action])
+
+
 class DriveTrainWrapper(Wrapper):
     def __init__(self, robot, drivetrain, resources: dict, priority=0):
         super().__init__(robot, resources, priority)
@@ -243,46 +242,47 @@ class DriveTrainWrapper(Wrapper):
             MotorConstants.DIRECTION_RIGHT: -1,
         }
 
+        set_fns = {
+            MotorConstants.UNIT_ROT: {
+                MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.move(
+                    360 * rotation * left_multipliers[direction],
+                    360 * rotation * right_multipliers[direction],
+                    left_speed=rpm2dps(speed),
+                    right_speed=rpm2dps(speed)),
+
+                MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.move(
+                    360 * rotation * left_multipliers[direction],
+                    360 * rotation * right_multipliers[direction],
+                    power_limit=speed)
+            },
+            MotorConstants.UNIT_SEC: {
+                MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.set_speeds(
+                    rpm2dps(speed) * left_multipliers[direction],
+                    rpm2dps(speed) * right_multipliers[direction]),
+
+                MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.set_speeds(
+                    900 * left_multipliers[direction],
+                    900 * right_multipliers[direction],
+                    power_limit=speed)
+            }
+        }
+
         resource = self.try_take('drivetrain')
         if resource:
             try:
-                if unit_rotation == MotorConstants.UNIT_ROT:
-                    degrees = rotation * 360
-                    left_degrees = degrees * left_multipliers[direction]
-                    right_degrees = degrees * right_multipliers[direction]
-                    move_fns = {
-                        MotorConstants.UNIT_SPEED_RPM:
-                            lambda: self._drivetrain.move(left_degrees, right_degrees, rpm2dps(speed), rpm2dps(speed)),
-                        MotorConstants.UNIT_SPEED_PWR:
-                            lambda: self._drivetrain.move(left_degrees, right_degrees, power_limit=speed),
-                    }
-                    resource.run(move_fns[unit_speed])
+                resource.run(set_fns[unit_rotation][unit_speed])
 
+                if unit_rotation == MotorConstants.UNIT_ROT:
                     # wait for movement to finish
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._drivetrain.is_moving:
                         self.sleep(0.2)
 
                 elif unit_rotation == MotorConstants.UNIT_SEC:
-                    if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-                        left = rpm2dps(speed) * left_multipliers[direction]
-                        right = rpm2dps(speed) * right_multipliers[direction]
-
-                        resource.run(lambda: self._drivetrain.set_speeds(left, right))
-
-                    elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-                        left = 900 * left_multipliers[direction]
-                        right = 900 * right_multipliers[direction]
-
-                        resource.run(lambda: self._drivetrain.set_speeds(left, right, power_limit=speed))
-                    else:
-                        raise ValueError
-
                     self.sleep(rotation)
 
                     resource.run(lambda: self._drivetrain.set_speeds(0, 0))
-                else:
-                    raise ValueError
+
             finally:
                 resource.release()
 
@@ -326,6 +326,7 @@ class RobotInterface:
 
         # shorthand functions
         self.drive = self._drivetrain.drive
+        self.play_tune = self._sound.play_tune
 
     def stop_all_motors(self, action):
         for motor in self._motors:
@@ -354,9 +355,6 @@ class RobotInterface:
     @property
     def controller(self):
         return self._remote_controller
-
-    def play_tune(self, name):
-        self._sound.play_tune(name)
 
     def play_note(self): pass  # TODO
 
