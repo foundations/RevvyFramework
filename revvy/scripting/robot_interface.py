@@ -45,7 +45,7 @@ class SensorPortWrapper(Wrapper):
         self._sensor = sensor
 
     def configure(self, config_name):
-        self._sensor.configure(config_name)
+        self.using_resource('sensor_{}'.format(self._sensor.id), lambda: self._sensor.configure(config_name))
 
     def read(self):
         self.check_terminated()
