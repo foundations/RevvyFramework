@@ -130,6 +130,7 @@ def rpm2dps(rpm):
 
 class MotorPortWrapper(Wrapper):
     """Wrapper class to expose motor ports to user scripts"""
+    max_rpm = 150
 
     def __init__(self, robot, motor: PortInstance, resources: dict, priority=0):
         super().__init__(robot, resources, priority)
@@ -176,8 +177,8 @@ class MotorPortWrapper(Wrapper):
                     MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-limit)),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_speed(900, power_limit=limit),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_speed(-900, power_limit=limit),
+                    MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(self.max_rpm), power_limit=limit),
+                    MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-self.max_rpm), power_limit=limit),
                 }
             }
         }
@@ -208,8 +209,8 @@ class MotorPortWrapper(Wrapper):
                 MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-rotation))
             },
             MotorConstants.UNIT_SPEED_PWR: {
-                MotorConstants.DIR_CW:  lambda: self._motor.set_speed(900, power_limit=rotation),
-                MotorConstants.DIR_CCW: lambda: self._motor.set_speed(-900, power_limit=rotation)
+                MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(self.max_rpm), power_limit=rotation),
+                MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-self.max_rpm), power_limit=rotation)
             }
         }
 
@@ -224,6 +225,8 @@ class MotorPortWrapper(Wrapper):
 
 
 class DriveTrainWrapper(Wrapper):
+    max_rpm = 150
+
     def __init__(self, robot, drivetrain, resources: dict, priority=0):
         super().__init__(robot, resources, priority)
         self._drivetrain = drivetrain
@@ -261,8 +264,8 @@ class DriveTrainWrapper(Wrapper):
                     rpm2dps(speed) * right_multipliers[direction]),
 
                 MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.set_speeds(
-                    900 * left_multipliers[direction],
-                    900 * right_multipliers[direction],
+                    rpm2dps(self.max_rpm) * left_multipliers[direction],
+                    rpm2dps(self.max_rpm) * right_multipliers[direction],
                     power_limit=speed)
             }
         }
