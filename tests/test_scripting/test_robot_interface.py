@@ -60,7 +60,8 @@ class TestPortCollection(unittest.TestCase):
         self.assertRaises(IndexError, lambda: pc[4])
 
     def test_ports_can_be_accessed_by_name(self):
-        pc = PortCollection([2, 3, 5], {'foo': 0, 'bar': 1, 'baz': 2})
+        # named ports are indexed from 1
+        pc = PortCollection([2, 3, 5], {'foo': 1, 'bar': 2, 'baz': 3})
 
         self.assertEqual(2, pc['foo'])
         self.assertEqual(3, pc['bar'])

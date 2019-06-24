@@ -90,9 +90,8 @@ class PortCollection:
     def __getitem__(self, item):
         if type(item) is str:
             item = self._portNameMap[item]
-        else:
-            item -= 1
-        return self._ports[item]
+
+        return self._ports[item - 1]
 
     def __iter__(self):
         return self._ports.__iter__()
