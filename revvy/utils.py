@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from revvy.file_storage import StorageInterface, StorageError
-from revvy.remote_controller import RemoteController, RemoteControllerScheduler
+from revvy.remote_controller import RemoteController, RemoteControllerScheduler, RemoteControllerThread
 from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
@@ -186,6 +186,7 @@ class RobotManager:
 
         self._remote_controller = rc
         self._remote_controller_scheduler = rcs
+        self._remote_controller_thread = RemoteControllerThread(rcs)
 
         self._drivetrain = DifferentialDrivetrain(self)
         self._ring_led = RingLed(self._robot)
@@ -393,7 +394,7 @@ class RobotManager:
                 print("Applying new configuration")
 
                 self._drivetrain.reset()
-                self._remote_controller_scheduler.reset()
+                self._remote_controller_thread.stop()
 
                 # set up motors
                 for motor in self._motor_ports:
@@ -431,7 +432,7 @@ class RobotManager:
                     if script:
                         self._remote_controller.on_button_pressed(button, self._scripts[script].start)
 
-                self._remote_controller_scheduler.start()
+                self._remote_controller_thread.start()
 
                 print('Robot configured')
                 self._set_status(self.StatusConfigured)
@@ -441,12 +442,12 @@ class RobotManager:
                     self._scripts[script].start()
             else:
                 print("Deinitialize robot")
-                self._remote_controller_scheduler.reset()
+                self._remote_controller_thread.stop()
                 self._drivetrain.reset()
                 self._drivetrain.configure()
                 self._motor_ports.reset()
                 self._sensor_ports.reset()
-                self._remote_controller_scheduler.stop()
+                self._remote_controller_thread.stop()
                 self._set_status(self.StatusNotConfigured)
 
             self._robot.set_master_status(status)
@@ -454,7 +455,7 @@ class RobotManager:
     def stop(self):
         print("Stopping robot manager")
         self._status = self.StatusStopped
-        self._remote_controller_scheduler.exit()
+        self._remote_controller_thread.exit()
         self._ble.stop()
         self._scripts.reset()
         self._status_update_thread.exit()

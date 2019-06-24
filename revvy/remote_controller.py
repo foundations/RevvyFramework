@@ -67,7 +67,7 @@ class RemoteController:
         self._analogActions.append({'channels': channels, 'action': action})
 
 
-class RemoteControllerScheduler(ThreadWrapper):
+class RemoteControllerScheduler:
     def __init__(self, rc: RemoteController):
         self._controller = rc
         self._data_ready_event = Event()
@@ -75,7 +75,6 @@ class RemoteControllerScheduler(ThreadWrapper):
         self._controller_lost_callback = lambda: None
         self._data_mutex = Lock()
         self._message = None
-        super().__init__(self._schedule_controller, "RemoteControllerThread")
 
     def data_ready(self, message):
         with self._data_mutex:
@@ -86,49 +85,31 @@ class RemoteControllerScheduler(ThreadWrapper):
         with self._data_mutex:
             return self._message
 
-    def _schedule_controller(self, ctx: ThreadContext):
-        while not ctx.stop_requested:
-            # wait for first message
-            print('RemoteControllerScheduler: Waiting for controller')
-            self._data_ready_event.wait()
+    def handle_controller(self, ctx: ThreadContext):
+        print('RemoteControllerScheduler: Waiting for controller')
 
+        self._data_ready_event.clear()
+
+        ctx.on_stopped(self._data_ready_event.set)
+
+        # wait for first message
+        first = True
+        while self._data_ready_event.wait(None if first else 0.5):
             if ctx.stop_requested:
                 break
 
-            self._controller_detected_callback()
+            if first:
+                self._controller_detected_callback()
+                first = False
 
             self._data_ready_event.clear()
             self._controller.tick(self.get_message())
 
-            while self._data_ready_event.wait(0.5):
-                if ctx.stop_requested:
-                    break
-
-                self._data_ready_event.clear()
-                self._controller.tick(self.get_message())
-
-            if ctx.stop_requested:
-                break
-
+        if not ctx.stop_requested:
             self._controller_lost_callback()
-        print('RemoteControllerScheduler: Stopped')
 
-    def start(self):
-        print('RemoteControllerScheduler: start()')
-        self._data_ready_event.clear()
-        super().start()
-
-    def stop(self):
-        print('RemoteControllerScheduler: stop()')
-        super().stop()
-        # break out of a wait-for-message
-        self._data_ready_event.set()
-
-    def reset(self):
-        print('RemoteControllerScheduler: reset()')
-        self.stop()
-        if not self._exiting:
-            self._controller.reset()
+        # reset here, controller was lost or stopped
+        self._controller.reset()
 
     def on_controller_detected(self, callback):
         print('RemoteControllerScheduler: Register controller found handler')
@@ -137,3 +118,15 @@ class RemoteControllerScheduler(ThreadWrapper):
     def on_controller_lost(self, callback):
         print('RemoteControllerScheduler: Register controller lost handler')
         self._controller_lost_callback = callback
+
+
+class RemoteControllerThread(ThreadWrapper):
+    def __init__(self, rcs: RemoteControllerScheduler):
+        self._scheduler = rcs
+
+        super().__init__(self._run, "RemoteControllerThread")
+
+    def _run(self, ctx: ThreadContext):
+        while not ctx.stop_requested:
+            self._scheduler.handle_controller(ctx)
+        print('RemoteControllerScheduler: Stopped')
