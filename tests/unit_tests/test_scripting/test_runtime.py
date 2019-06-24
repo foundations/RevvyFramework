@@ -7,6 +7,9 @@ from revvy.scripting.robot_interface import RobotInterface
 from revvy.scripting.runtime import ScriptManager
 
 
+sleep_time = 0.01
+
+
 def create_robot_mock():
     robot_mock = Mock()
     robot_mock._ring_led = Mock()
@@ -39,7 +42,7 @@ test.assertIsInstance(robot, RobotInterface)
 mock()''')
 
         sm['test'].start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         sm['test'].cleanup()
 
         self.assertEqual(1, mock.call_count)
@@ -61,7 +64,7 @@ mock()''')
         sm.add_script('test', _script)
 
         sm['test'].start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         sm['test'].cleanup()
 
         self.assertEqual(1, mock.call_count)
@@ -80,10 +83,30 @@ mock()''')
         sm.assign('RobotInterface', RobotInterface)
 
         sm['test'].start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         sm['test'].cleanup()
 
         self.assertEqual(1, mock.call_count)
+
+    def test_script_input_dict_is_passed_as_variables(self):
+        robot_mock = create_robot_mock()
+
+        mock = Mock()
+
+        sm = ScriptManager(robot_mock)
+        sm.add_script('test', '''mock()''')
+
+        sm['test'].start({'mock': mock})
+        time.sleep(sleep_time)
+
+        self.assertEqual(1, mock.call_count)
+
+        with self.subTest('Input is not remmebered'):
+            sm['test'].start()  # mock shall not be called again
+            time.sleep(sleep_time)
+            self.assertEqual(1, mock.call_count)
+
+        sm['test'].cleanup()
 
     def test_overwriting_a_script_stops_the_previous_one(self):
         robot_mock = create_robot_mock()
@@ -101,7 +124,7 @@ mock()''')
         # first call, make sure the script runs
         sm['test'].on_stopped(stopped_mock)
         sm['test'].start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         # add second script
         sm.add_script('test', 'mock()')
@@ -113,7 +136,7 @@ mock()''')
         # run and check second script
         sm['test'].on_stopped(stopped_mock)
         sm['test'].start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         # test that stop also stops a script
         sm['test'].stop()
@@ -143,7 +166,7 @@ while not ctx.stop_requested:
         sm['test2'].on_stopped(stopped_mock)
         sm['test'].start()
         sm['test2'].start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         sm.reset()
 
@@ -165,7 +188,7 @@ while not ctx.stop_requested:
 
         # first call, make sure the script runs
         sm['test'].start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         self.assertEqual(1, mock.call_count)
         sm.reset()
@@ -177,16 +200,17 @@ while not ctx.stop_requested:
         mock2 = Mock()
 
         sm = ScriptManager(robot_mock)
+        sm.assign('sleep_time', sleep_time)
         sm.add_script('test1', '''
 mock()
-time.sleep(0.1)
+time.sleep(sleep_time)
 while not ctx.stop_requested:
     Control.terminate_all()
 ''')
         sm.add_script('test2', '''
 mock()
 while not ctx.stop_requested:
-    time.sleep(0.1)
+    time.sleep(sleep_time)
 ''')
         sm['test1'].assign('mock', mock1)
         sm['test2'].assign('mock', mock2)
@@ -194,7 +218,7 @@ while not ctx.stop_requested:
         # first call, make sure the script runs
         sm['test1'].start()
         sm['test2'].start()
-        time.sleep(0.2)
+        time.sleep(2 * sleep_time)
 
         # scripts started?
         self.assertEqual(1, mock1.call_count)

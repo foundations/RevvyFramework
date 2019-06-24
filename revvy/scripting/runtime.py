@@ -21,6 +21,7 @@ class ScriptHandle:
         self._globals = dict(global_variables)
         self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
         self._thread_ctx = None
+        self._inputs = {}
 
         if callable(script):
             self._runnable = script
@@ -50,6 +51,7 @@ class ScriptHandle:
             self._thread_ctx = ctx
             self._runnable({
                 **self._globals,
+                **self._inputs,
                 'Control': ctx,
                 'ctx': ctx,
                 'time': TimeWrapper(ctx)
@@ -61,7 +63,11 @@ class ScriptHandle:
         if self._thread_ctx is not None:
             self._thread_ctx.sleep(s)
 
-    def start(self):
+    def start(self, variables=None):
+        if variables is not None:
+            self._inputs = variables
+        else:
+            self._inputs = {}
         self._thread.start()
 
     def stop(self):

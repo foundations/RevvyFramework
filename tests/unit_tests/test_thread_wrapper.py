@@ -5,6 +5,8 @@ from mock import Mock
 
 from revvy.thread_wrapper import ThreadWrapper, ThreadContext
 
+sleep_time = 0.01
+
 
 class TestThreadWrapper(unittest.TestCase):
     def test_thread_wrapper_can_be_exited_if_not_started(self):
@@ -17,11 +19,11 @@ class TestThreadWrapper(unittest.TestCase):
         tw = ThreadWrapper(mock)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         self.assertEqual(1, mock.call_count)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         tw.exit()
         self.assertEqual(2, mock.call_count)
@@ -37,7 +39,7 @@ class TestThreadWrapper(unittest.TestCase):
         tw = ThreadWrapper(_dummy_thread_fn)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         tw.exit()
 
         self.assertEqual(1, mock.call_count)
@@ -49,7 +51,7 @@ class TestThreadWrapper(unittest.TestCase):
         tw.on_stopped(mock)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         tw.exit()
 
         self.assertEqual(1, mock.call_count)
@@ -65,19 +67,19 @@ class TestThreadWrapper(unittest.TestCase):
         tw = ThreadWrapper(_dummy_thread_fn)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         # repeated start has no effect when the thread is running
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         tw.stop()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         self.assertEqual(1, mock.call_count)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         tw.exit()
 
@@ -89,12 +91,12 @@ class TestThreadWrapper(unittest.TestCase):
         def _dummy_thread_fn(ctx: ThreadContext):
             ctx.on_stopped(mock)
             while not ctx.stop_requested:
-                time.sleep(0.1)
+                time.sleep(sleep_time)
 
         tw = ThreadWrapper(_dummy_thread_fn)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         tw.exit()
 
         self.assertEqual(1, mock.call_count)
@@ -110,10 +112,10 @@ class TestThreadWrapper(unittest.TestCase):
         tw.on_stopped(mock)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
 
         tw.exit()
         self.assertEqual(2, mock.call_count)
@@ -128,7 +130,7 @@ class TestThreadWrapper(unittest.TestCase):
         tw = ThreadWrapper(lambda ctx: ctx.sleep(10000))
         start_time = time.time()
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         tw.exit()
         end_time = time.time()
         self.assertLess(end_time - start_time, 2)
@@ -139,13 +141,13 @@ class TestThreadWrapper(unittest.TestCase):
         def _thread_fn(ctx: ThreadContext):
             while not ctx.stop_requested:
                 mock()
-                ctx.sleep(10)
+                ctx.sleep(100 * sleep_time)
 
         tw = ThreadWrapper(_thread_fn)
         tw.stop()
         self.assertEqual(0, mock.call_count)
 
         tw.start()
-        time.sleep(0.1)
+        time.sleep(sleep_time)
         tw.exit()
         self.assertEqual(1, mock.call_count)

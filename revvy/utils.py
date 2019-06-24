@@ -346,11 +346,6 @@ class RobotManager:
         self._ble['battery_service'].characteristic('main_battery').update_value(battery['main'])
         self._ble['battery_service'].characteristic('motor_battery').update_value(battery['motor'])
 
-    def _run_analog(self, script_name, script_input):
-        script = self._scripts[script_name]
-        script.assign('input', script_input)
-        script.start()
-
     def configure(self, config):
         print('RobotManager: configure()')
         if self._status != self.StatusStopped:
@@ -424,7 +419,7 @@ class RobotManager:
                 for analog in config.controller.analog:
                     self._remote_controller.on_analog_values(
                         analog['channels'],
-                        lambda in_data, scr=analog['script']: self._run_analog(scr, in_data)
+                        lambda in_data, scr=analog['script']: self._scripts[scr].start({'input': in_data})
                     )
 
                 for button in range(len(config.controller.buttons)):
