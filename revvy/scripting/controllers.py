@@ -6,8 +6,10 @@ def stick_controller(x, y):
 
     >>> stick_controller(0, 0)
     (0, 0)
-    >>> stick_controller(1.2, 2.3)
-    (1.2, 2.3)
+    >>> stick_controller(0.2, 0.3)
+    (0.2, 0.3)
+    >>> stick_controller(-0.2, -0.3)
+    (-0.2, -0.3)
     """
     return x, y
 
