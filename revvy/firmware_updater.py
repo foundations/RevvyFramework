@@ -67,6 +67,10 @@ class McuUpdater:
         except Exception as e:
             print(e)
 
+        # read operating mode - this should return only when application has started
+        assert self._read_operation_mode() == op_mode_application
+        # todo handle failed update
+
     def ensure_firmware_up_to_date(self, expected_version: Version, fw_loader):
         mode = self._read_operation_mode()
 
