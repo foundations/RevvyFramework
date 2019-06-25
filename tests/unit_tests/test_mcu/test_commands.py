@@ -1,6 +1,6 @@
 import unittest
 
-from revvy.configuration.version import FormatError
+from revvy.version import FormatError
 from revvy.mcu.commands import *
 from revvy.mcu.rrrc_transport import Response, ResponseHeader
 

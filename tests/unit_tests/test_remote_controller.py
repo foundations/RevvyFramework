@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from revvy.remote_controller import RemoteController
+from revvy.robot.remote_controller import RemoteController
 
 
 class TestRemoteController(unittest.TestCase):

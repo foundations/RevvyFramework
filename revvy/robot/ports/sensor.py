@@ -1,5 +1,6 @@
-from revvy.ports.common import PortHandler, PortInstance
+
 from revvy.mcu.rrrc_control import RevvyControl
+from revvy.robot.ports.common import PortHandler, PortInstance
 
 
 def create_sensor_port_handler(interface: RevvyControl, configs: dict):

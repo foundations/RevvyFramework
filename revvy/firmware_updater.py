@@ -1,7 +1,7 @@
 import binascii
 import time
 
-from revvy.configuration.version import Version
+from revvy.version import Version
 from revvy.functions import split
 from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
 

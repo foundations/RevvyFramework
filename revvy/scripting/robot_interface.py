@@ -1,7 +1,7 @@
 import time
 
 from revvy.functions import hex2rgb
-from revvy.ports.common import PortInstance
+from revvy.robot.ports.common import PortInstance
 
 
 class ResourceWrapper:

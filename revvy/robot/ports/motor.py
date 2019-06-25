@@ -1,7 +1,7 @@
 import math
 
-from revvy.ports.common import PortHandler, PortInstance
 from revvy.mcu.rrrc_control import RevvyControl
+from revvy.robot.ports.common import PortHandler, PortInstance
 import struct
 
 

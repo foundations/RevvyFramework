@@ -1,6 +1,11 @@
 #!/usr/bin/python3
 from revvy.file_storage import StorageInterface, StorageError
-from revvy.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
+from revvy.mcu.rrrc_control import RevvyControl
+from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
+from revvy.robot.led_ring import RingLed
+from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.motor import create_motor_port_handler
+from revvy.robot.ports.sensor import create_sensor_port_handler
 from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
@@ -8,8 +13,6 @@ from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import *
 
 from revvy.mcu.rrrc_transport import *
-from revvy.ports.motor import *
-from revvy.ports.sensor import *
 from revvy.fw_version import *
 
 
@@ -113,42 +116,6 @@ class DifferentialDrivetrain:
 
     def move(self, left, right, left_speed=0, right_speed=0, power_limit=0):
         self._owner._robot.set_drivetrain_position(left, right, left_speed, right_speed, power_limit)
-
-
-class RingLed:
-    Off = 0
-    UserFrame = 1
-    ColorWheel = 2
-    ColorFade = 3
-
-    def __init__(self, interface: RevvyControl):
-        self._interface = interface
-        self._ring_led_count = 0
-        self._current_scenario = self.Off
-
-    @property
-    def count(self):
-        return self._ring_led_count
-
-    def reset(self):
-        self.set_scenario(RingLed.Off)
-        self._ring_led_count = self._interface.ring_led_get_led_amount()
-
-    def set_scenario(self, scenario):
-        self._current_scenario = scenario
-        self._interface.ring_led_set_scenario(scenario)
-
-    @property
-    def scenario(self):
-        return self._current_scenario
-
-    def upload_user_frame(self, frame):
-        print("Sending user LEDs: {}".format(repr(frame)))
-        self._interface.ring_led_set_user_frame(frame)
-
-    def display_user_frame(self, frame):
-        self.upload_user_frame(frame)
-        self.set_scenario(self.UserFrame)
 
 
 class RobotManager:
@@ -255,11 +222,6 @@ class RobotManager:
         # start reader thread
         self._status_update_thread.start()
         self._robot.set_bluetooth_connection_status(False)
-
-        # call reset to read port counts, types
-        self._ring_led.reset()
-        self._sensor_ports.reset()
-        self._motor_ports.reset()
 
         self._resources = {
             'led_ring': Resource(),

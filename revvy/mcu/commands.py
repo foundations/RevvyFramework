@@ -1,7 +1,7 @@
 import struct
 from abc import ABC
 
-from revvy.configuration.version import Version
+from revvy.version import Version
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
 

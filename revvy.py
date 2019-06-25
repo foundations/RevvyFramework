@@ -14,7 +14,7 @@ from revvy.functions import getserial
 from revvy.hardware_dependent.sound import play_sound, setup_sound
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.sound import Sound
+from revvy.robot.sound import Sound
 from revvy.utils import *
 from revvy.mcu.rrrc_transport import *
 from revvy.mcu.rrrc_control import *

@@ -2,8 +2,8 @@ import unittest
 
 from mock import Mock
 
-from revvy.ports.common import PortInstance
-from revvy.ports.motor import create_motor_port_handler
+from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.motor import create_motor_port_handler
 
 
 class TestMotorPortHandler(unittest.TestCase):
