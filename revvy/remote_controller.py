@@ -10,14 +10,11 @@ class RemoteController:
 
         self._analogActions = []
         self._analogStates = []
-        self._buttonHandlers = []
+        self._buttonHandlers = [EdgeTrigger() for _ in range(32)]
         self._buttonStates = [False] * 32
 
         self._controller_detected = lambda: None
         self._controller_disappeared = lambda: None
-
-        for i in range(32):
-            self._buttonHandlers.append(EdgeTrigger())
 
     def is_button_pressed(self, button_idx):
         with self._button_mutex:
@@ -49,11 +46,10 @@ class RemoteController:
         # handle analog channels
         for handler in self._analogActions:
             # check if all channels are present in the message
-            if all(map(lambda x: x < len(message['analog']), handler['channels'])):
-                values = list(map(lambda x: message['analog'][x], handler['channels']))
-                handler['action'](values)
-            else:
-                print('Skip analog handler for channels {}'.format(",".join(map(str, handler['channels']))))
+            try:
+                handler['action']([message['analog'][x] for x in handler['channels']])
+            except IndexError:
+                print('Skip analog handler for channels {}'.format(", ".join(map(str, handler['channels']))))
 
         # handle button presses
         for idx in range(len(self._buttonHandlers)):
@@ -81,10 +77,6 @@ class RemoteControllerScheduler:
             self._message = message
         self._data_ready_event.set()
 
-    def get_message(self):
-        with self._data_mutex:
-            return self._message
-
     def handle_controller(self, ctx: ThreadContext):
         print('RemoteControllerScheduler: Waiting for controller')
 
@@ -102,8 +94,10 @@ class RemoteControllerScheduler:
                 self._controller_detected_callback()
                 first = False
 
+            with self._data_mutex:
+                message = self._message
             self._data_ready_event.clear()
-            self._controller.tick(self.get_message())
+            self._controller.tick(message)
 
         if not ctx.stop_requested:
             self._controller_lost_callback()
@@ -120,13 +114,10 @@ class RemoteControllerScheduler:
         self._controller_lost_callback = callback
 
 
-class RemoteControllerThread(ThreadWrapper):
-    def __init__(self, rcs: RemoteControllerScheduler):
-        self._scheduler = rcs
-
-        super().__init__(self._run, "RemoteControllerThread")
-
-    def _run(self, ctx: ThreadContext):
+def create_remote_controller_thread(rcs: RemoteControllerScheduler):
+    def _run(ctx: ThreadContext):
         while not ctx.stop_requested:
-            self._scheduler.handle_controller(ctx)
+            rcs.handle_controller(ctx)
         print('RemoteControllerScheduler: Stopped')
+
+    return ThreadWrapper(_run, "RemoteControllerThread")

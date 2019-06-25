@@ -2,22 +2,11 @@ import binascii
 import time
 
 from revvy.configuration.version import Version
+from revvy.functions import split
 from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
 
 op_mode_application = 0xAA
 op_mode_bootloader = 0xBB
-
-
-def split(data, chunk_size):
-    """
-    >>> list(split([1, 2, 3, 4], 2))
-    [[1, 2], [3, 4]]
-    >>> list(split([1, 2, 3, 4, 5], 2))
-    [[1, 2], [3, 4], [5]]
-    >>> list(split(b'apple', 2))
-    [b'ap', b'pl', b'e']
-    """
-    return (data[i:i + chunk_size] for i in range(0, len(data), chunk_size))
 
 
 class McuUpdater:

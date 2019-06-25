@@ -14,11 +14,7 @@ def clip(x, min_x, max_x):
     >>> clip(1.5, 1, 2)
     1.5
     """
-    if x < min_x:
-        return min_x
-    if x > max_x:
-        return max_x
-    return x
+    return min(max(x, min_x), max_x)
 
 
 def map_values(x, min_x, max_x, min_y, max_y):
@@ -71,6 +67,18 @@ def retry(fn, retries=5):
     return status
 
 
+def split(data, chunk_size):
+    """
+    >>> list(split([1, 2, 3, 4], 2))
+    [[1, 2], [3, 4]]
+    >>> list(split([1, 2, 3, 4, 5], 2))
+    [[1, 2], [3, 4], [5]]
+    >>> list(split(b'apple', 2))
+    [b'ap', b'pl', b'e']
+    """
+    return (data[i:i + chunk_size] for i in range(0, len(data), chunk_size))
+
+
 def hex2rgb(hex_str):
     """
     >>> hex2rgb("#aabbcc")
@@ -80,8 +88,7 @@ def hex2rgb(hex_str):
     >>> hex2rgb("#0000FF")
     255
     """
-    stripped_hex = hex_str.lstrip('#')
-    rgb = tuple(int(stripped_hex[i:i + 2], 16) for i in range(0, len(stripped_hex), 2))
+    rgb = [int(chunk, 16) for chunk in split(hex_str.lstrip('#'), 2)]
 
     return rgb[0] << 16 | rgb[1] << 8 | rgb[2]
 

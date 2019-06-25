@@ -2,9 +2,9 @@ from threading import Lock
 
 
 class ResourceHandle:
-    def __init__(self, resource, callback=None):
+    def __init__(self, resource, callback=lambda: None):
         self._resource = resource
-        self._callback = callback if callback is not None else lambda: None
+        self._callback = callback
         self._is_interrupted = False
 
     def release(self):
@@ -30,7 +30,7 @@ class Resource:
         self._current_priority = 0
         self._active_handle = None
 
-    def request(self, with_priority=0, on_taken_away=None):
+    def request(self, with_priority=0, on_taken_away=lambda: None):
         with self._lock:
             if self._active_handle is None:
                 self._current_priority = with_priority

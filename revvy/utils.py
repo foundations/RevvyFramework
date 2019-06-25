@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from revvy.file_storage import StorageInterface, StorageError
-from revvy.remote_controller import RemoteController, RemoteControllerScheduler, RemoteControllerThread
+from revvy.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
 from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
@@ -186,7 +186,7 @@ class RobotManager:
 
         self._remote_controller = rc
         self._remote_controller_scheduler = rcs
-        self._remote_controller_thread = RemoteControllerThread(rcs)
+        self._remote_controller_thread = create_remote_controller_thread(rcs)
 
         self._drivetrain = DifferentialDrivetrain(self)
         self._ring_led = RingLed(self._robot)
@@ -384,12 +384,12 @@ class RobotManager:
             self._reader.add('battery', self._robot.get_battery_status)
             self._data_dispatcher.add('battery', self._update_battery)
 
+            self._drivetrain.reset()
+            self._remote_controller_thread.stop()
+
             if config:
                 # apply new configuration
                 print("Applying new configuration")
-
-                self._drivetrain.reset()
-                self._remote_controller_thread.stop()
 
                 # set up motors
                 for motor in self._motor_ports:
@@ -437,8 +437,6 @@ class RobotManager:
                     self._scripts[script].start()
             else:
                 print("Deinitialize robot")
-                self._remote_controller_thread.stop()
-                self._drivetrain.reset()
                 self._drivetrain.configure()
                 self._motor_ports.reset()
                 self._sensor_ports.reset()
@@ -487,7 +485,7 @@ class FunctionSerializer:
     def run(self):
         data = {}
         with self._fn_lock:
-            if len(self._functions) == 0:
+            if not self._functions:
                 self._default_action()
             else:
                 for name in self._functions:
