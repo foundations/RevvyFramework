@@ -1,12 +1,12 @@
 import math
 
 
-def stick_contoller(x, y):
+def stick_controller(x, y):
     """Two wheel speeds are controlled independently, just pass through
 
-    >>> stick_contoller(0, 0)
+    >>> stick_controller(0, 0)
     (0, 0)
-    >>> stick_contoller(1.2, 2.3)
+    >>> stick_controller(1.2, 2.3)
     (1.2, 2.3)
     """
     return x, y

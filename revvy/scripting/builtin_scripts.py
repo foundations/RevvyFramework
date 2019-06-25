@@ -1,5 +1,5 @@
 from revvy.functions import clip, map_values
-from revvy.scripting.controllers import joystick, stick_contoller
+from revvy.scripting.controllers import joystick, stick_controller
 
 
 def normalize_analog(b):
@@ -34,4 +34,4 @@ def drive_joystick(args):
 
 
 def drive_2sticks(args):
-    drive(args, stick_contoller)
+    drive(args, stick_controller)
