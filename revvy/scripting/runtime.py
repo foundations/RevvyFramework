@@ -5,14 +5,8 @@ import time
 
 class TimeWrapper:
     def __init__(self, ctx: ThreadContext):
-        self._ctx = ctx
-
-    # noinspection PyMethodMayBeStatic
-    def time(self):
-        return time.time()
-
-    def sleep(self, s):
-        self._ctx.sleep(s)
+        self.time = time.time
+        self.sleep = ctx.sleep
 
 
 class ScriptHandle:
@@ -20,8 +14,12 @@ class ScriptHandle:
         self._owner = owner
         self._globals = dict(global_variables)
         self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
-        self._thread_ctx = None
         self._inputs = {}
+
+        self.stop = self._thread.stop
+        self.cleanup = self._thread.exit
+        self.on_stopped = self._thread.on_stopped
+        self.sleep = lambda s: None
 
         if callable(script):
             self._runnable = script
@@ -36,19 +34,20 @@ class ScriptHandle:
     def is_running(self):
         return self._thread.is_running
 
-    def on_stopped(self, callback):
-        self._thread.on_stopped(callback)
-
     def assign(self, name, value):
         self._globals[name] = value
 
     def _run(self, ctx):
         try:
             # script control interface
-            ctx.terminate = self._terminate
+            def _terminate():
+                self.stop()
+                raise InterruptedError
+
+            ctx.terminate = _terminate
             ctx.terminate_all = self._owner.stop_all_scripts
 
-            self._thread_ctx = ctx
+            self.sleep = ctx.sleep
             self._runnable({
                 **self._globals,
                 **self._inputs,
@@ -58,27 +57,14 @@ class ScriptHandle:
             })
         finally:
             self._thread_ctx = None
-
-    def sleep(self, s):
-        if self._thread_ctx is not None:
-            self._thread_ctx.sleep(s)
+            self.sleep = lambda s: None
 
     def start(self, variables=None):
         if variables is not None:
             self._inputs = variables
         else:
-            self._inputs = {}
+            self._inputs.clear()
         self._thread.start()
-
-    def stop(self):
-        self._thread.stop()
-
-    def cleanup(self):
-        self._thread.exit()
-
-    def _terminate(self):
-        self.stop()
-        raise InterruptedError
 
 
 class ScriptManager:
@@ -88,11 +74,13 @@ class ScriptManager:
         self._scripts = {}
 
     def reset(self):
+        print('ScriptManager: stopping scripts')
         for script in self._scripts:
             self._scripts[script].cleanup()
 
-        self._globals = {}
-        self._scripts = {}
+        print('ScriptManager: resetting state')
+        self._globals.clear()
+        self._scripts.clear()
 
     def assign(self, name, value):
         self._globals[name] = value
@@ -101,9 +89,10 @@ class ScriptManager:
 
     def add_script(self, name, script, priority=0):
         if name in self._scripts:
+            print('ScriptManager: Stopping {} before overriding'.format(name))
             self._scripts[name].cleanup()
 
-        print('New script: {}'.format(name))
+        print('ScriptManager: New script: {}'.format(name))
         script = ScriptHandle(self, script, name, self._globals)
         script.assign('robot', RobotInterface(script, self._robot, priority))
         self._scripts[name] = script
