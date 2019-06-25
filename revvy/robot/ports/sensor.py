@@ -23,6 +23,11 @@ class BaseSensorPort:
         self._port = port
         self._interface = port.interface
         self._value = 0
+        self._has_data = False
+
+    @property
+    def has_data(self):
+        return self._has_data
 
     def read(self):
         raw = self._interface.get_sensor_port_value(self._port.id)
@@ -39,9 +44,13 @@ class BaseSensorPort:
 
 class BumperSwitch(BaseSensorPort):
     def convert_sensor_value(self, raw):
+        self._has_data = True
         return raw[0] == 1
 
 
 class HcSr04(BaseSensorPort):
     def convert_sensor_value(self, raw):
-        return int.from_bytes(raw, byteorder='little')
+        dst = int.from_bytes(raw, byteorder='little')
+        if dst != 0:
+            self._has_data = True
+        return dst
