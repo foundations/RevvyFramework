@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from revvy.file_storage import StorageInterface, StorageError
 from revvy.mcu.rrrc_control import RevvyControl
+from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.common import PortInstance
@@ -66,58 +67,6 @@ class Sensors:
     }
 
 
-class DifferentialDrivetrain:
-    NOT_ASSIGNED = 0
-    LEFT = 1
-    RIGHT = 2
-
-    CONTROL_GO_POS = 0
-    CONTROL_GO_SPD = 1
-    CONTROL_STOP = 2
-
-    def __init__(self, owner):
-        self._owner = owner
-        self._motors = []
-        self._left_motors = []
-        self._right_motors = []
-
-    @property
-    def motors(self):
-        return self._motors
-
-    def reset(self):
-        self._motors.clear()
-        self._left_motors.clear()
-        self._right_motors.clear()
-
-    def add_left_motor(self, motor):
-        self._motors.append(motor)
-        self._left_motors.append(motor)
-
-    def add_right_motor(self, motor):
-        self._motors.append(motor)
-        self._right_motors.append(motor)
-
-    def configure(self):
-        motors = [DifferentialDrivetrain.NOT_ASSIGNED] * self._owner._motor_ports.port_count
-        for motor in self._left_motors:
-            motors[motor.id - 1] = DifferentialDrivetrain.LEFT
-        for motor in self._right_motors:
-            motors[motor.id - 1] = DifferentialDrivetrain.RIGHT
-
-        self._owner._robot.set_drivetrain_motors(motors)
-
-    @property
-    def is_moving(self):
-        return any(motor.is_moving for motor in self._motors)
-
-    def set_speeds(self, left, right, power_limit=0):
-        self._owner._robot.set_drivetrain_speed(left, right, power_limit)
-
-    def move(self, left, right, left_speed=0, right_speed=0, power_limit=0):
-        self._owner._robot.set_drivetrain_position(left, right, left_speed, right_speed, power_limit)
-
-
 class RobotManager:
     StatusStartingUp = 0
     StatusNotConfigured = 1
@@ -155,10 +104,10 @@ class RobotManager:
         self._remote_controller_scheduler = rcs
         self._remote_controller_thread = create_remote_controller_thread(rcs)
 
-        self._drivetrain = DifferentialDrivetrain(self)
         self._ring_led = RingLed(self._robot)
         self._motor_ports = create_motor_port_handler(self._robot, Motors.types)
         self._sensor_ports = create_sensor_port_handler(self._robot, Sensors.types)
+        self._drivetrain = DifferentialDrivetrain(self._robot, self._motor_ports.port_count)
 
         revvy['live_message_service'].register_message_handler(self._remote_controller_scheduler.data_ready)
         revvy.on_connection_changed(self._on_connection_changed)
