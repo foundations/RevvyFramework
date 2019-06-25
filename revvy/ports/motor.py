@@ -25,8 +25,11 @@ class MotorPortHandler(PortHandler):
 class DcMotorController:
     """Generic driver for dc motors"""
     def __init__(self, port: PortInstance, port_config):
-        self._port = port
-        self._interface = port.interface
+        self._name = 'Motor {}'.format(port.id)
+
+        self._configure = lambda cfg: port.interface.set_motor_port_config(port.id, cfg)
+        self._control = lambda ctrl, value: port.interface.set_motor_port_control_value(port.id, [ctrl] + value)
+        self._read = lambda: port.interface.get_motor_position(port.id)
 
         self._pos = 0
         self._speed = 0
@@ -42,9 +45,9 @@ class DcMotorController:
         config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
         config += list(struct.pack("<h", port_config['encoder_resolution']))
 
-        print('Sending configuration: {}'.format(config))
+        print('{}: Sending configuration: {}'.format(self._name, config))
 
-        self._interface.set_motor_port_config(self._port.id, config)
+        self._configure(config)
 
     @property
     def speed(self):
@@ -67,15 +70,15 @@ class DcMotorController:
             return not (self._pos_reached and stopped)
 
     def set_speed(self, speed, power_limit=None):
-        print('Motor::set_speed')
+        print('{}::set_speed'.format(self._name))
         control = list(struct.pack("<f", speed))
         if power_limit is not None:
             control += list(struct.pack("<f", power_limit))
 
-        self._interface.set_motor_port_control_value(self._port.id, [1] + control)
+        self._control(1, control)
 
     def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute'):
-        print('Motor::set_position')
+        print('{}::set_position'.format(self._name))
         control = list(struct.pack('<l', position))
 
         if speed_limit is not None and power_limit is not None:
@@ -86,14 +89,14 @@ class DcMotorController:
             control += list(struct.pack("<bf", 0, power_limit))
 
         pos_request_types = {'absolute': 2, 'relative': 3}
-        self._interface.set_motor_port_control_value(self._port.id, [pos_request_types[pos_type]] + control)
+        self._control(pos_request_types[pos_type], control)
 
     def set_power(self, power):
-        print('Motor::set_power')
-        self._interface.set_motor_port_control_value(self._port.id, [0, power])
+        print('{}::set_power'.format(self._name))
+        self._control(0, power)
 
     def get_status(self):
-        data = self._interface.get_motor_position(self._port.id)
+        data = self._read()
 
         if len(data) == 9:
             (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
@@ -101,7 +104,7 @@ class DcMotorController:
         elif len(data) == 10:
             (pos, speed, power, pos_reached) = struct.unpack('<lfbb', bytearray(data))
         else:
-            print('Motor {}: Received {} bytes of data instead of 9 or 13'.format(self._port.id, len(data)))
+            print('{}: Received {} bytes of data instead of 9 or 13'.format(self._name, len(data)))
             return
 
         self._pos = pos
