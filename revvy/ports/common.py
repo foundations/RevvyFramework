@@ -8,7 +8,10 @@ class PortHandler:
         self._ports = {}
         self._drivers = drivers
         self._configurations = configs
-        self._port_count = 0
+
+        self._types = self._get_port_types()
+        self._port_count = self._get_port_amount()
+        self._ports = {i: PortInstance(i, interface, self) for i in range(1, self.port_count + 1)}
 
     def __getitem__(self, port_idx):
         return self._ports[port_idx]
@@ -28,11 +31,6 @@ class PortHandler:
     def reset(self):
         for port in self._ports:
             port.uninitialize()
-        self._ports.clear()
-
-        self._types = self._get_port_types()
-        self._port_count = self._get_port_amount()
-        self._ports = {i: PortInstance(i, self._interface, self) for i in range(1, self.port_count + 1)}
 
     def _get_port_types(self): raise NotImplementedError
     def _get_port_amount(self): raise NotImplementedError

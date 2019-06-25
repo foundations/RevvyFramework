@@ -7,7 +7,7 @@ from revvy.ports.motor import MotorPortHandler
 
 
 class TestMotorPortHandler(unittest.TestCase):
-    def test_reset_reads_port_amount_and_types(self):
+    def test_constructor_reads_port_amount_and_types(self):
         configs = {"NotConfigured": {}}
 
         mock_control = Mock()
@@ -15,7 +15,6 @@ class TestMotorPortHandler(unittest.TestCase):
         mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0, "DcMotor": 1})
 
         ports = MotorPortHandler(mock_control, configs)
-        ports.reset()
 
         self.assertEqual(1, mock_control.get_motor_port_amount.call_count)
         self.assertEqual(1, mock_control.get_motor_port_types.call_count)
@@ -30,7 +29,6 @@ class TestMotorPortHandler(unittest.TestCase):
         mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0})
 
         ports = MotorPortHandler(mock_control, configs)
-        ports.reset()
 
         self.assertRaises(KeyError, lambda: ports[0])
         self.assertIs(PortInstance, type(ports[1]))
@@ -53,7 +51,6 @@ class TestMotorPortHandler(unittest.TestCase):
         mock_control.set_motor_port_type = Mock()
 
         ports = MotorPortHandler(mock_control, configs)
-        ports.reset()
 
         self.assertIs(PortInstance, type(ports[1]))
         self.assertEqual(0, mock_control.set_motor_port_type.call_count)
