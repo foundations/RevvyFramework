@@ -29,11 +29,15 @@ class DifferentialDrivetrain:
         self._left_motors.clear()
         self._right_motors.clear()
 
+        self.configure()
+
     def add_left_motor(self, motor):
+        print('Drivetrain: Add motor {} to left side'.format(motor.id))
         self._motors.append(motor)
         self._left_motors.append(motor.id - 1)
 
     def add_right_motor(self, motor):
+        print('Drivetrain: Add motor {} to right side'.format(motor.id))
         self._motors.append(motor)
         self._right_motors.append(motor.id - 1)
 
