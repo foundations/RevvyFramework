@@ -2,15 +2,11 @@ from revvy.mcu.rrrc_control import RevvyControl
 
 
 class PortHandler:
-    def __init__(self, interface: RevvyControl, configs: dict, drivers: dict):
-        self._interface = interface
-        self._types = {"NotConfigured": 0}
-        self._ports = {}
+    def __init__(self, interface: RevvyControl, configs: dict, drivers: dict, amount: int, supported: dict):
         self._drivers = drivers
         self._configurations = configs
-
-        self._types = self._get_port_types()
-        self._port_count = self._get_port_amount()
+        self._types = supported
+        self._port_count = amount
         self._ports = {i: PortInstance(i, interface, self) for i in range(1, self.port_count + 1)}
 
     def __getitem__(self, port_idx):
@@ -32,8 +28,6 @@ class PortHandler:
         for port in self._ports:
             port.uninitialize()
 
-    def _get_port_types(self): raise NotImplementedError
-    def _get_port_amount(self): raise NotImplementedError
     def _set_port_type(self, port, port_type): raise NotImplementedError
 
     def configure_port(self, port, config_name):

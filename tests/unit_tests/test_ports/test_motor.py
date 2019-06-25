@@ -3,7 +3,7 @@ import unittest
 from mock import Mock
 
 from revvy.ports.common import PortInstance
-from revvy.ports.motor import MotorPortHandler
+from revvy.ports.motor import create_motor_port_handler
 
 
 class TestMotorPortHandler(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestMotorPortHandler(unittest.TestCase):
         mock_control.get_motor_port_amount = Mock(return_value=6)
         mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0, "DcMotor": 1})
 
-        ports = MotorPortHandler(mock_control, configs)
+        ports = create_motor_port_handler(mock_control, configs)
 
         self.assertEqual(1, mock_control.get_motor_port_amount.call_count)
         self.assertEqual(1, mock_control.get_motor_port_types.call_count)
@@ -28,7 +28,7 @@ class TestMotorPortHandler(unittest.TestCase):
         mock_control.get_motor_port_amount = Mock(return_value=6)
         mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0})
 
-        ports = MotorPortHandler(mock_control, configs)
+        ports = create_motor_port_handler(mock_control, configs)
 
         self.assertRaises(KeyError, lambda: ports[0])
         self.assertIs(PortInstance, type(ports[1]))
@@ -50,7 +50,7 @@ class TestMotorPortHandler(unittest.TestCase):
         mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0})
         mock_control.set_motor_port_type = Mock()
 
-        ports = MotorPortHandler(mock_control, configs)
+        ports = create_motor_port_handler(mock_control, configs)
 
         self.assertIs(PortInstance, type(ports[1]))
         self.assertEqual(0, mock_control.set_motor_port_type.call_count)

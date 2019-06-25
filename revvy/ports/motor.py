@@ -5,21 +5,18 @@ from revvy.mcu.rrrc_control import RevvyControl
 import struct
 
 
-class MotorPortHandler(PortHandler):
-    def __init__(self, interface: RevvyControl, configs: dict):
-        super().__init__(interface, configs, {
-            'NotConfigured': lambda port, cfg: None,
-            'DcMotor': lambda port, cfg: DcMotorController(port, cfg)
-        })
+def create_motor_port_handler(interface: RevvyControl, configs: dict):
+    port_amount = interface.get_motor_port_amount()
+    port_types = interface.get_motor_port_types()
 
-    def _get_port_amount(self):
-        return self._interface.get_motor_port_amount()
+    drivers = {
+        'NotConfigured': lambda port, cfg: None,
+        'DcMotor':       lambda port, cfg: DcMotorController(port, cfg)
+    }
+    handler = PortHandler(interface, configs, drivers, port_amount, port_types)
+    handler._set_port_type = interface.set_motor_port_type
 
-    def _get_port_types(self):
-        return self._interface.get_motor_port_types()
-
-    def _set_port_type(self, port, port_type):
-        self._interface.set_motor_port_type(port, port_type)
+    return handler
 
 
 class DcMotorController:

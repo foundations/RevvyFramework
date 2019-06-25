@@ -190,8 +190,8 @@ class RobotManager:
 
         self._drivetrain = DifferentialDrivetrain(self)
         self._ring_led = RingLed(self._robot)
-        self._motor_ports = MotorPortHandler(self._robot, Motors.types)
-        self._sensor_ports = SensorPortHandler(self._robot, Sensors.types)
+        self._motor_ports = create_motor_port_handler(self._robot, Motors.types)
+        self._sensor_ports = create_sensor_port_handler(self._robot, Sensors.types)
 
         revvy['live_message_service'].register_message_handler(self._remote_controller_scheduler.data_ready)
         revvy.on_connection_changed(self._on_connection_changed)

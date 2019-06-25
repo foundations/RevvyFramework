@@ -2,22 +2,19 @@ from revvy.ports.common import PortHandler, PortInstance
 from revvy.mcu.rrrc_control import RevvyControl
 
 
-class SensorPortHandler(PortHandler):
-    def __init__(self, interface: RevvyControl, configs: dict):
-        super().__init__(interface, configs, {
-            'NotConfigured': lambda port, cfg: None,
-            'BumperSwitch': lambda port, cfg: BumperSwitch(port),
-            'HC_SR04': lambda port, cfg: HcSr04(port)
-        })
+def create_sensor_port_handler(interface: RevvyControl, configs: dict):
+    port_amount = interface.get_sensor_port_amount()
+    port_types = interface.get_sensor_port_types()
 
-    def _get_port_types(self):
-        return self._interface.get_sensor_port_types()
+    drivers = {
+        'NotConfigured': lambda port, cfg: None,
+        'BumperSwitch':  lambda port, cfg: BumperSwitch(port),
+        'HC_SR04':       lambda port, cfg: HcSr04(port)
+    }
+    handler = PortHandler(interface, configs, drivers, port_amount, port_types)
+    handler._set_port_type = interface.set_sensor_port_type
 
-    def _get_port_amount(self):
-        return self._interface.get_sensor_port_amount()
-
-    def _set_port_type(self, port, port_type):
-        self._interface.set_sensor_port_type(port, port_type)
+    return handler
 
 
 class BaseSensorPort:
