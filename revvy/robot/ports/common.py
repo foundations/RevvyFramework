@@ -25,7 +25,7 @@ class PortHandler:
         return self._port_count
 
     def reset(self):
-        for port in self._ports:
+        for port in self:
             port.uninitialize()
 
     def _set_port_type(self, port, port_type): raise NotImplementedError
