@@ -73,8 +73,8 @@ def split(data, chunk_size):
     [[1, 2], [3, 4]]
     >>> list(split([1, 2, 3, 4, 5], 2))
     [[1, 2], [3, 4], [5]]
-    >>> list(split(b'apple', 2))
-    [b'ap', b'pl', b'e']
+    >>> list(split(b'apple', 3))
+    [b'app', b'le']
     """
     return (data[i:i + chunk_size] for i in range(0, len(data), chunk_size))
 
