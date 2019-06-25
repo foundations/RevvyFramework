@@ -136,23 +136,17 @@ def start_revvy(directory, config: RobotConfig = None):
 
 motor_test = '''
 configs = {
-    'left': {
-        'cw': 'RevvyMotor_CCW',
-        'ccw': 'RevvyMotor'
-    },
-    'right': {
-        'cw': 'RevvyMotor',
-        'ccw': 'RevvyMotor_CCW'
-    }
+    'cw': 'RevvyMotor',
+    'ccw': 'RevvyMotor_CCW'
 }
-robot.motors[{MOTOR}].configure(configs["{MOTOR_SIDE}"]["{MOTOR_DIR}"])
+robot.motors[{MOTOR}].configure(configs["{MOTOR_DIR}"])
 robot.motors[{MOTOR}].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
 time.sleep(1)
 robot.motors[{MOTOR}].move(direction=Motor.DIR_CCW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
 time.sleep(1)
 robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
 robot.motors[{MOTOR}].configure("NotConfigured")
-'''.replace('{MOTOR}', '1').replace('{MOTOR_SIDE}', 'left').replace('{MOTOR_DIR}', 'cw')
+'''.replace('{MOTOR}', '1').replace('{MOTOR_DIR}', 'cw')
 
 drivetrain_test = '''
 configs = {
