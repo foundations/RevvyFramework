@@ -3,7 +3,7 @@ from mock import Mock
 
 from revvy.functions import hex2rgb
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import RingLedWrapper, PortCollection
+from revvy.scripting.robot_interface import RingLedWrapper, PortCollection, ResourceWrapper
 
 
 class TestRingLed(unittest.TestCase):
@@ -12,12 +12,12 @@ class TestRingLed(unittest.TestCase):
         led_mock.display_user_frame = Mock()
         led_mock.count = 6
 
-        led_resource = Resource()
+        led_resource = ResourceWrapper(Resource(), 0)
 
-        robot = Mock()
-        robot.is_stop_requested = False
+        script = Mock()
+        script.is_stop_requested = False
 
-        rw = RingLedWrapper(robot, led_mock, led_resource, 0)
+        rw = RingLedWrapper(script, led_mock, led_resource)
         self.assertRaises(IndexError, lambda: rw.set(0, '#112233'))
         rw.set(1, '#112233')
         rw.set(2, '#112233')
@@ -32,12 +32,12 @@ class TestRingLed(unittest.TestCase):
         led_mock.display_user_frame = Mock()
         led_mock.count = 6
 
-        led_resource = Resource()
+        led_resource = ResourceWrapper(Resource(), 0)
 
-        robot = Mock()
-        robot.is_stop_requested = False
+        script = Mock()
+        script.is_stop_requested = False
 
-        rw = RingLedWrapper(robot, led_mock, led_resource, 0)
+        rw = RingLedWrapper(script, led_mock, led_resource)
         rw.set(1, '#112233')
         self.assertEqual([hex2rgb("#112233"), 0, 0, 0, 0, 0], led_mock.display_user_frame.call_args[0][0])
         self.assertEqual(1, led_mock.display_user_frame.call_count)
