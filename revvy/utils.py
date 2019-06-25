@@ -105,15 +105,28 @@ class RobotManager:
         self._remote_controller_thread = create_remote_controller_thread(rcs)
 
         self._ring_led = RingLed(self._robot)
+
+        self._resources = {
+            'led_ring': Resource(),
+            'drivetrain': Resource(),
+            'sound': Resource()
+        }
         self._motor_ports = create_motor_port_handler(self._robot, Motors.types)
+        for port in self._motor_ports:
+            port.on_config_changed(self._motor_config_changed)
+            self._resources['motor_{}'.format(port.id)] = Resource()
+
         self._sensor_ports = create_sensor_port_handler(self._robot, Sensors.types)
+        for port in self._sensor_ports:
+            port.on_config_changed(self._sensor_config_changed)
+            self._resources['sensor_{}'.format(port.id)] = Resource()
+
         self._drivetrain = DifferentialDrivetrain(self._robot, self._motor_ports.port_count)
 
         revvy['live_message_service'].register_message_handler(self._remote_controller_scheduler.data_ready)
         revvy.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
-        self._resources = {}
         self._config = self._default_configuration
 
         self._update_requested = False
@@ -149,13 +162,7 @@ class RobotManager:
 
         print("Waiting for MCU")
         # TODO if we are getting stuck here (> ~3s), firmware is probably not valid
-        retry_ping = True
-        while retry_ping:
-            retry_ping = False
-            try:
-                self._robot.ping()
-            except (BrokenPipeError, IOError, OSError):
-                retry_ping = True
+        self._ping_robot()
 
         # read versions
         hw = self._robot.get_hardware_version()
@@ -171,19 +178,6 @@ class RobotManager:
         # start reader thread
         self._status_update_thread.start()
         self._robot.set_bluetooth_connection_status(False)
-
-        self._resources = {
-            'led_ring': Resource(),
-            'drivetrain': Resource(),
-            'sound': Resource()
-        }
-        for port in self._motor_ports:
-            port.on_config_changed(self._motor_config_changed)
-            self._resources['motor_{}'.format(port.id)] = Resource()
-
-        for port in self._sensor_ports:
-            port.on_config_changed(self._sensor_config_changed)
-            self._resources['sensor_{}'.format(port.id)] = Resource()
 
         self._ble.start()
 
@@ -276,15 +270,11 @@ class RobotManager:
             self._ring_led.set_scenario(RingLed.Off)
 
             self._scripts.reset()
+            self._scripts.assign('Motor', MotorConstants)
+            self._scripts.assign('RingLed', RingLed)
 
-            # wait for a potential reset
-            retry_ping = True
-            while retry_ping:
-                retry_ping = False
-                try:
-                    self._robot.ping()
-                except (BrokenPipeError, IOError, OSError):
-                    retry_ping = True
+            # ping robot, because robot may reset after stopping scripts
+            self._ping_robot()
 
             self._robot.set_bluetooth_connection_status(self._is_connected)
 
@@ -298,6 +288,11 @@ class RobotManager:
             self._drivetrain.reset()
             self._remote_controller_thread.stop()
 
+            self._motor_ports.reset()
+            self._sensor_ports.reset()
+
+            self._set_status(self.StatusNotConfigured)
+
             if config:
                 # apply new configuration
                 print("Applying new configuration")
@@ -307,11 +302,9 @@ class RobotManager:
                     motor.configure(config.motors[motor.id])
 
                 for motor_id in config.drivetrain['left']:
-                    print('Drivetrain: Add motor {} to left side'.format(motor_id))
                     self._drivetrain.add_left_motor(self._motor_ports[motor_id])
 
                 for motor_id in config.drivetrain['right']:
-                    print('Drivetrain: Add motor {} to right side'.format(motor_id))
                     self._drivetrain.add_right_motor(self._motor_ports[motor_id])
 
                 self._drivetrain.configure()
@@ -321,8 +314,6 @@ class RobotManager:
                     sensor.configure(config.sensors[sensor.id])
 
                 # set up scripts
-                self._scripts.assign('Motor', MotorConstants)
-                self._scripts.assign('RingLed', RingLed)
                 for name in config.scripts:
                     self._scripts.add_script(name, config.scripts[name]['script'], config.scripts[name]['priority'])
 
@@ -346,13 +337,6 @@ class RobotManager:
                 # start background scripts
                 for script in config.background_scripts:
                     self._scripts[script].start()
-            else:
-                print("Deinitialize robot")
-                self._drivetrain.configure()
-                self._motor_ports.reset()
-                self._sensor_ports.reset()
-                self._remote_controller_thread.stop()
-                self._set_status(self.StatusNotConfigured)
 
             self._robot.set_master_status(status)
 
@@ -367,6 +351,15 @@ class RobotManager:
     def _set_status(self, status):
         if self._status != self.StatusStopped:
             self._status = status
+
+    def _ping_robot(self):
+        retry_ping = True
+        while retry_ping:
+            retry_ping = False
+            try:
+                self._robot.ping()
+            except (BrokenPipeError, IOError, OSError):
+                retry_ping = True
 
 
 class FunctionSerializer:
