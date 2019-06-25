@@ -4,10 +4,18 @@ from revvy.functions import hex2rgb
 from revvy.ports.common import PortInstance
 
 
-class Wrapper:
-    def __init__(self, script, resource, priority=0):
+class ResourceWrapper:
+    def __init__(self, resource, priority=0):
         self._resource = resource
         self._priority = priority
+
+    def request(self):
+        return self._resource.request(self._priority)
+
+
+class Wrapper:
+    def __init__(self, script, resource: ResourceWrapper):
+        self._resource = resource
         self._script = script
 
     @property
@@ -16,7 +24,7 @@ class Wrapper:
 
     def try_take_resource(self):
         self.check_terminated()
-        return self._resource.request(self._priority)
+        return self._resource.request()
 
     def sleep(self, s):
         self._script.sleep(s)
@@ -40,8 +48,8 @@ class Wrapper:
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
 
-    def __init__(self, script, sensor: PortInstance, resources: dict, priority=0):
-        super().__init__(script, resources, priority)
+    def __init__(self, script, sensor: PortInstance, resource):
+        super().__init__(script, resource)
         self._sensor = sensor
 
     def configure(self, config_name):
@@ -56,8 +64,8 @@ class SensorPortWrapper(Wrapper):
 class RingLedWrapper(Wrapper):
     """Wrapper class to expose LED ring to user scripts"""
 
-    def __init__(self, script, ring_led, resource, priority=0):
-        super().__init__(script, resource, priority)
+    def __init__(self, script, ring_led, resource):
+        super().__init__(script, resource)
         self._ring_led = ring_led
         self._user_leds = [0] * ring_led.count
 
@@ -131,8 +139,8 @@ class MotorPortWrapper(Wrapper):
     """Wrapper class to expose motor ports to user scripts"""
     max_rpm = 150
 
-    def __init__(self, script, motor: PortInstance, resource, priority=0):
-        super().__init__(script, resource, priority)
+    def __init__(self, script, motor: PortInstance, resource):
+        super().__init__(script, resource)
         self._motor = motor
 
     def configure(self, config_name):
@@ -226,8 +234,8 @@ class MotorPortWrapper(Wrapper):
 class DriveTrainWrapper(Wrapper):
     max_rpm = 150
 
-    def __init__(self, script, drivetrain, resource, priority=0):
-        super().__init__(script, resource, priority)
+    def __init__(self, script, drivetrain, resource):
+        super().__init__(script, resource)
         self._drivetrain = drivetrain
 
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
@@ -301,8 +309,8 @@ class RemoteControllerWrapper:
 
 
 class SoundWrapper(Wrapper):
-    def __init__(self, script, sound, resources: dict, priority=0):
-        super().__init__(script, resources, priority)
+    def __init__(self, script, sound, resource):
+        super().__init__(script, resource)
         self._sound = sound
 
     def play_tune(self, name):
@@ -315,13 +323,16 @@ class RobotInterface:
 
     def __init__(self, script, robot, priority=0):
         self._start_time = robot.start_time
-        motor_wrappers = [MotorPortWrapper(script, port, robot.resources['motor_{}'.format(port.id)], priority) for port in robot._motor_ports]
-        sensor_wrappers = [SensorPortWrapper(script, port, robot.resources['sensor_{}'.format(port.id)], priority) for port in robot._sensor_ports]
+
+        resources = {name: ResourceWrapper(robot.resources[name], priority) for name in robot.resources}
+
+        motor_wrappers = [MotorPortWrapper(script, port, resources['motor_{}'.format(port.id)]) for port in robot._motor_ports]
+        sensor_wrappers = [SensorPortWrapper(script, port, resources['sensor_{}'.format(port.id)]) for port in robot._sensor_ports]
         self._motors = PortCollection(motor_wrappers, robot.config.motors.names)
         self._sensors = PortCollection(sensor_wrappers, robot.config.sensors.names)
-        self._sound = SoundWrapper(script, robot.sound, robot.resources['sound'], priority)
-        self._ring_led = RingLedWrapper(script, robot._ring_led, robot.resources['led_ring'], priority)
-        self._drivetrain = DriveTrainWrapper(script, robot._drivetrain, robot.resources['drivetrain'], priority)
+        self._sound = SoundWrapper(script, robot.sound, resources['sound'])
+        self._ring_led = RingLedWrapper(script, robot._ring_led, resources['led_ring'])
+        self._drivetrain = DriveTrainWrapper(script, robot._drivetrain, resources['drivetrain'])
         self._remote_controller = RemoteControllerWrapper(robot._remote_controller)
 
         self._script = script
