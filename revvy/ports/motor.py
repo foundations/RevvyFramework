@@ -104,7 +104,7 @@ class DcMotorController:
         elif len(data) == 10:
             (pos, speed, power, pos_reached) = struct.unpack('<lfbb', bytearray(data))
         else:
-            print('{}: Received {} bytes of data instead of 9 or 13'.format(self._name, len(data)))
+            print('{}: Received {} bytes of data instead of 9 or 10'.format(self._name, len(data)))
             return
 
         self._pos = pos
