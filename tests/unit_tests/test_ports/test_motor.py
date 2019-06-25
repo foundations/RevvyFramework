@@ -32,25 +32,14 @@ class TestMotorPortHandler(unittest.TestCase):
         ports = MotorPortHandler(mock_control, configs)
         ports.reset()
 
-        with self.subTest("Port method"):
-            self.assertRaises(KeyError, lambda: ports.port(0))
-            self.assertIs(PortInstance, type(ports.port(1)))
-            self.assertIs(PortInstance, type(ports.port(2)))
-            self.assertIs(PortInstance, type(ports.port(3)))
-            self.assertIs(PortInstance, type(ports.port(4)))
-            self.assertIs(PortInstance, type(ports.port(5)))
-            self.assertIs(PortInstance, type(ports.port(6)))
-            self.assertRaises(KeyError, lambda: ports.port(7))
-
-        with self.subTest("Array indexing"):
-            self.assertRaises(KeyError, lambda: ports[0])
-            self.assertIs(PortInstance, type(ports[1]))
-            self.assertIs(PortInstance, type(ports[2]))
-            self.assertIs(PortInstance, type(ports[3]))
-            self.assertIs(PortInstance, type(ports[4]))
-            self.assertIs(PortInstance, type(ports[5]))
-            self.assertIs(PortInstance, type(ports[6]))
-            self.assertRaises(KeyError, lambda: ports[7])
+        self.assertRaises(KeyError, lambda: ports[0])
+        self.assertIs(PortInstance, type(ports[1]))
+        self.assertIs(PortInstance, type(ports[2]))
+        self.assertIs(PortInstance, type(ports[3]))
+        self.assertIs(PortInstance, type(ports[4]))
+        self.assertIs(PortInstance, type(ports[5]))
+        self.assertIs(PortInstance, type(ports[6]))
+        self.assertRaises(KeyError, lambda: ports[7])
 
     def test_configure_raises_error_if_driver_is_not_supported_in_mcu(self):
         configs = {

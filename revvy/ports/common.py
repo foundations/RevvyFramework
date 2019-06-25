@@ -10,22 +10,20 @@ class PortHandler:
         self._configurations = configs
         self._port_count = 0
 
-    def __getitem__(self, item):
-        return self.port(item)
+    def __getitem__(self, port_idx):
+        return self._ports[port_idx]
 
     def __iter__(self):
         return self._ports.values().__iter__()
 
     @property
     def available_types(self):
-        return self._types
+        """List of names of the supported drivers"""
+        return self._types.values()
 
     @property
     def port_count(self):
         return self._port_count
-
-    def port(self, port_idx):
-        return self._ports[port_idx]
 
     def reset(self):
         for port in self._ports:
@@ -34,7 +32,7 @@ class PortHandler:
 
         self._types = self._get_port_types()
         self._port_count = self._get_port_amount()
-        self._ports = {i+1: PortInstance(i+1, self._interface, self) for i in range(self.port_count)}
+        self._ports = {i: PortInstance(i, self._interface, self) for i in range(1, self.port_count + 1)}
 
     def _get_port_types(self): raise NotImplementedError
     def _get_port_amount(self): raise NotImplementedError
