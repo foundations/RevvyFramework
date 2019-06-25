@@ -194,13 +194,14 @@ while not ctx.stop_requested:
         sm.reset()
 
     def test_script_can_stop_other_scripts(self):
+        # TODO: testing this using time.sleep is fragile and can fail randomly
         robot_mock = create_robot_mock()
 
         mock1 = Mock()
         mock2 = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.assign('sleep_time', sleep_time)
+        sm.assign('sleep_time', 0.1)
         sm.add_script('test1', '''
 mock()
 time.sleep(sleep_time)
@@ -218,7 +219,7 @@ while not ctx.stop_requested:
         # first call, make sure the script runs
         sm['test1'].start()
         sm['test2'].start()
-        time.sleep(2 * sleep_time)
+        time.sleep(0.2)
 
         # scripts started?
         self.assertEqual(1, mock1.call_count)
