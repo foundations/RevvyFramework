@@ -22,8 +22,9 @@ class MotorPortHandler(PortHandler):
         self._interface.set_motor_port_type(port, port_type)
 
 
-class BaseMotorController:
-    def __init__(self, port: PortInstance):
+class DcMotorController:
+    """Generic driver for dc motors"""
+    def __init__(self, port: PortInstance, port_config):
         self._port = port
         self._interface = port.interface
 
@@ -31,6 +32,19 @@ class BaseMotorController:
         self._speed = 0
         self._power = 0
         self._pos_reached = None
+
+        (posMin, posMax) = port_config['position_limits']
+        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = port_config['position_controller']
+        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = port_config['speed_controller']
+
+        config = list(struct.pack("<ll", posMin, posMax))
+        config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
+        config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
+        config += list(struct.pack("<h", port_config['encoder_resolution']))
+
+        print('Sending configuration: {}'.format(config))
+
+        self._interface.set_motor_port_config(self._port.id, config)
 
     @property
     def speed(self):
@@ -46,29 +60,11 @@ class BaseMotorController:
 
     @property
     def is_moving(self):
+        stopped = math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80
         if self._pos_reached is None:
-            return not (math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80)
+            return not stopped
         else:
-            return not (self._pos_reached and math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80)
-
-
-class DcMotorController(BaseMotorController):
-    """Generic driver for dc motors"""
-    def __init__(self, port: PortInstance, port_config):
-        super().__init__(port)
-
-        (posMin, posMax) = port_config['position_limits']
-        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = port_config['position_controller']
-        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = port_config['speed_controller']
-
-        config = list(struct.pack("<ll", posMin, posMax))
-        config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
-        config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
-        config += list(struct.pack("<h", port_config['encoder_resolution']))
-
-        print('Sending configuration: {}'.format(config))
-
-        self._interface.set_motor_port_config(self._port.id, config)
+            return not (self._pos_reached and stopped)
 
     def set_speed(self, speed, power_limit=None):
         print('Motor::set_speed')
