@@ -261,11 +261,10 @@ class TestThreadWrapper(unittest.TestCase):
         try:
             # this is a probabilistic failure, false positives may happen still if the implementation is incorrect
             for i in range(1000):
-                with self.subTest('Run #{}'.format(i)):
-                    mock.reset_mock()
-                    tw.start()
-                    tw.stop().wait()
+                mock.reset_mock()
+                tw.start()
+                tw.stop().wait()
 
-                    self.assertEqual(1, mock.call_count)
+                self.assertEqual(1, mock.call_count)
         finally:
             tw.exit()
