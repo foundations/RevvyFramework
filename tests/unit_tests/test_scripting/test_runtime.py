@@ -37,7 +37,7 @@ class TestRuntime(unittest.TestCase):
 test.assertIsInstance(robot, RobotInterface)
 mock()''')
 
-        sm['test'].start().wait()
+        sm['test'].start()
         sm['test'].cleanup()
 
         self.assertEqual(1, mock.call_count)
@@ -58,7 +58,7 @@ mock()''')
 
         sm.add_script('test', _script)
 
-        sm['test'].start().wait()
+        sm['test'].start()
         sm['test'].cleanup()
 
         self.assertEqual(1, mock.call_count)
@@ -76,7 +76,7 @@ mock()''')
         sm.assign('test', self)
         sm.assign('RobotInterface', RobotInterface)
 
-        sm['test'].start().wait()
+        sm['test'].start()
         sm['test'].cleanup()
 
         self.assertEqual(1, mock.call_count)
@@ -117,7 +117,7 @@ mock()''')
 
         # first call, make sure the script runs
         sm['test'].on_stopped(stopped_mock)
-        sm['test'].start().wait()
+        sm['test'].start()
 
         # add second script
         sm.add_script('test', 'mock()')  # stops the first script
