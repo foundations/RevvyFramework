@@ -94,7 +94,7 @@ class FileStorage(StorageInterface):
     def read_metadata(self, filename):
         try:
             with open(self._meta_file(filename), "r") as meta_file:
-                return json.loads(meta_file.read())
+                return json.load(meta_file)
         except IOError:
             raise StorageElementNotFoundError
 
