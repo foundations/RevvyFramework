@@ -38,18 +38,12 @@ class ThreadWrapper:
     # noinspection PyBroadException
     def _thread_func(self):
         while self._wait_for_start():
-            print('Started')
             try:
                 with self._lock:
-                    print('Create context')
                     self._ctx = ThreadContext(self)
-                    print('Set running event')
                     self._thread_running_event.set()
-                    print('Clearing control event')
                     self._control.clear()
-                print('Running thread function')
                 self._func(self._ctx)
-                print('Thread function exited')
             except InterruptedError:
                 print('{}: interrupted'.format(self._name))
             except Exception:
@@ -83,23 +77,18 @@ class ThreadWrapper:
         print("{}: stopping".format(self._name))
         evt = Event()
         if self._control.is_set():
-            print('Waiting for running event')
             self._thread_running_event.wait()
 
         with self._lock:
-            print('Check if thread is running')
             if self._thread_running_event.is_set():
                 # register callback that sets event when thread stops
                 self._stopped_callbacks.append(evt.set)
 
-                print('Requesting stop')
                 # request thread to stop
                 self._ctx.stop()
 
-                print('Call stop requested callbacks')
                 _call_callbacks(self._stop_requested_callbacks)
             else:
-                print('Not running')
                 evt.set()
 
         return evt
@@ -121,7 +110,6 @@ class ThreadWrapper:
 
     def on_stop_requested(self, callback):
         with self._lock:
-            print('on_stop_requested()')
             call = self._ctx and self._ctx.stop_requested
             if not call:
                 self._stop_requested_callbacks.append(callback)
