@@ -2,6 +2,13 @@ import traceback
 from threading import Event, Thread
 
 
+def _call_callbacks(cb_list):
+    for cb in list(cb_list):
+        keep_callback = cb()
+        if not keep_callback:
+            cb_list.remove(cb)
+
+
 class ThreadWrapper:
     """
     Helper class to enable stopping/restarting threads from the outside
@@ -14,30 +21,36 @@ class ThreadWrapper:
         self._exiting = False
         self._name = name
         self._func = func
-        self._stopped_callback = lambda: None
-        self._stop_requested_callback = lambda: None
+        self._stopped_callbacks = []
+        self._stop_requested_callbacks = []
         self._control = Event()
+        self._thread_running_event = Event()
         self._ctx = None
         self._thread = Thread(target=self._thread_func, args=())
         self._thread.start()
 
+    def _wait_for_start(self):
+        self._control.wait()
+        self._control.clear()
+
+        return not self._exiting
+
     # noinspection PyBroadException
     def _thread_func(self):
-        while not self._exiting:
-            self._control.wait()
-            if not self._exiting:
-                try:
-                    self._ctx = ThreadContext(self)
-                    self._func(self._ctx)
-                except InterruptedError:
-                    print('{}: interrupted'.format(self._name))
-                except Exception:
-                    print(traceback.format_exc())
-                finally:
-                    print('{}: stopped'.format(self._name))
-                    self._stopped_callback()
-                    self._ctx = None
-            self._control.clear()
+        while self._wait_for_start():
+            try:
+                self._ctx = ThreadContext(self)
+                self._thread_running_event.set()
+                self._func(self._ctx)
+            except InterruptedError:
+                print('{}: interrupted'.format(self._name))
+            except Exception:
+                print(traceback.format_exc())
+            finally:
+                print('{}: stopped'.format(self._name))
+                self._thread_running_event.clear()
+                _call_callbacks(self._stopped_callbacks)
+                self._ctx = None
 
     @property
     def stopping(self):
@@ -47,22 +60,31 @@ class ThreadWrapper:
 
     @property
     def is_running(self):
-        return self._ctx is not None
+        return self._thread_running_event.is_set()
 
     def start(self):
         if self._exiting:
             raise AssertionError("Can't restart thread")
 
-        if not self.stopping:
-            print("{}: starting".format(self._name))
-            self._control.set()
+        print("{}: starting".format(self._name))
+        self._control.set()
+
+        return self._thread_running_event
 
     def stop(self):
         print("{}: stopping".format(self._name))
-        if self._control.is_set():
+        evt = Event()
+        if self._thread_running_event.is_set():
+            self.on_stopped(evt.set)
+
             if self._ctx is not None:
                 self._ctx.stop()
-            self._stop_requested_callback()
+
+            _call_callbacks(self._stop_requested_callbacks)
+        else:
+            evt.set()
+
+        return evt
 
     def exit(self):
         self._exiting = True
@@ -73,10 +95,10 @@ class ThreadWrapper:
         print("{}: exited".format(self._name))
 
     def on_stopped(self, callback):
-        self._stopped_callback = callback
+        self._stopped_callbacks.append(callback)
 
     def on_stop_requested(self, callback):
-        self._stop_requested_callback = callback
+        self._stop_requested_callbacks.append(callback)
 
 
 class ThreadContext:
