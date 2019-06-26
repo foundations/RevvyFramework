@@ -83,3 +83,16 @@ class TestFileStorage(unittest.TestCase):
         called_files.sort()
 
         self.assertListEqual(expected_files, called_files)
+
+    @patch('revvy.file_storage.open', new_callable=mock_open)
+    def test_stored_metadata_can_be_read_back(self, mock):
+        storage = FileStorage('.')
+        mock.reset_mock()
+
+        storage.write('file', b'data', md5='md5')
+
+        # this is fragile since it relies on implementation details
+        mock().read.return_value = "".join(args[0][0] for args in mock().write.call_args_list[1:])
+
+        meta = storage.read_metadata('file')
+        self.assertDictEqual({'md5': 'md5', 'length': 4}, meta)
