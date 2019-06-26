@@ -253,7 +253,8 @@ class TestThreadWrapper(unittest.TestCase):
         def test_fn(ctx):
             evt = Event()
             ctx.on_stopped(evt.set)
-            evt.wait()
+            if not evt.wait(2):
+                self.fail('Thread stop was not called')
             mock()
 
         tw = ThreadWrapper(test_fn)
@@ -263,7 +264,8 @@ class TestThreadWrapper(unittest.TestCase):
             for i in range(1000):
                 mock.reset_mock()
                 tw.start()
-                tw.stop().wait()
+                if not tw.stop().wait(2):
+                    self.fail('Failed to stop thread')
 
                 self.assertEqual(1, mock.call_count)
         finally:
