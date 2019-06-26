@@ -23,17 +23,15 @@ import sys
 from tools.check_manifest import check_manifest
 
 
-def toggle_ring_led(args):
-    if args['robot']._ring_led:
-        if args['robot']._ring_led.scenario == RingLed.Off:
-            args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
-        elif args['robot']._ring_led.scenario == RingLed.ColorWheel:
-            args['robot']._ring_led.set_scenario(RingLed.ColorFade)
-        else:
-            args['robot']._ring_led.set_scenario(RingLed.Off)
+def start_revvy(config: RobotConfig = None):
 
+    directory = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(directory)
 
-def start_revvy(directory, config: RobotConfig = None):
+    # self-test
+    if not check_manifest(os.path.join(directory, 'manifest.json')):
+        return 2
+
     # prepare environment
     data_dir = os.path.join(directory, '..', '..', 'data')
     package_data_dir = os.path.join(directory, 'data')
@@ -46,24 +44,26 @@ def start_revvy(directory, config: RobotConfig = None):
     device_storage = FileStorage(os.path.join(data_dir, 'device'))
     ble_storage = FileStorage(os.path.join(data_dir, 'ble'))
 
-    sound = Sound(setup_sound, play_sound, {
-        'alarm_clock': os.path.join(package_data_dir, 'assets', 'alarm_clock.mp3'),
-        'bell': os.path.join(package_data_dir, 'assets', 'bell.mp3'),
-        'buzzer': os.path.join(package_data_dir, 'assets', 'buzzer.mp3'),
-        'car_horn': os.path.join(package_data_dir, 'assets', 'car-horn.mp3'),
-        'cat': os.path.join(package_data_dir, 'assets', 'cat.mp3'),
-        'dog': os.path.join(package_data_dir, 'assets', 'dog.mp3'),
-        'duck': os.path.join(package_data_dir, 'assets', 'duck.mp3'),
-        'engine_revving': os.path.join(package_data_dir, 'assets', 'engine-revving.mp3'),
-        'lion': os.path.join(package_data_dir, 'assets', 'lion.mp3'),
-        'oh_no': os.path.join(package_data_dir, 'assets', 'oh-no.mp3'),
-        'robot': os.path.join(package_data_dir, 'assets', 'robot.mp3'),
-        'robot2': os.path.join(package_data_dir, 'assets', 'robot2.mp3'),
-        'siren': os.path.join(package_data_dir, 'assets', 'siren.mp3'),
-        'ta_da': os.path.join(package_data_dir, 'assets', 'tada.mp3'),
-        'uh_oh': os.path.join(package_data_dir, 'assets', 'uh-oh.mp3'),
-        'yee_haw': os.path.join(package_data_dir, 'assets', 'yee-haw.mp3'),
-    })
+    sound_files = {
+        'alarm_clock':    'alarm_clock.mp3',
+        'bell':           'bell.mp3',
+        'buzzer':         'buzzer.mp3',
+        'car_horn':       'car-horn.mp3',
+        'cat':            'cat.mp3',
+        'dog':            'dog.mp3',
+        'duck':           'duck.mp3',
+        'engine_revving': 'engine-revving.mp3',
+        'lion':           'lion.mp3',
+        'oh_no':          'oh-no.mp3',
+        'robot':          'robot.mp3',
+        'robot2':         'robot2.mp3',
+        'siren':          'siren.mp3',
+        'ta_da':          'tada.mp3',
+        'uh_oh':          'uh-oh.mp3',
+        'yee_haw':        'yee-haw.mp3',
+    }
+    sound_paths = {key: os.path.join(package_data_dir, 'assets', sound_files[key]) for key in sound_files}
+    sound = Sound(setup_sound, play_sound, sound_paths)
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
@@ -102,9 +102,12 @@ def start_revvy(directory, config: RobotConfig = None):
             elif message_type == LongMessageType.CONFIGURATION_DATA:
                 message_data = storage.get_long_message(message_type).decode()
                 print('New configuration: {}'.format(message_data))
-                parsed_config = RobotConfig.from_string(message_data)
-                if parsed_config is not None:
-                    robot.configure(parsed_config)
+                if config is not None:
+                    print('New configuration ignored')
+                else:
+                    parsed_config = RobotConfig.from_string(message_data)
+                    if parsed_config is not None:
+                        robot.configure(parsed_config)
             elif message_type == LongMessageType.FRAMEWORK_DATA:
                 robot.request_update()
 
@@ -134,6 +137,19 @@ def start_revvy(directory, config: RobotConfig = None):
         return ret_val
 
 
+# test scripts
+
+
+def toggle_ring_led(args):
+    if args['robot']._ring_led:
+        if args['robot']._ring_led.scenario == RingLed.Off:
+            args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
+        elif args['robot']._ring_led.scenario == RingLed.ColorWheel:
+            args['robot']._ring_led.set_scenario(RingLed.ColorFade)
+        else:
+            args['robot']._ring_led.set_scenario(RingLed.Off)
+
+
 motor_test = '''
 configs = {
     'cw': 'RevvyMotor',
@@ -147,6 +163,7 @@ time.sleep(1)
 robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
 robot.motors[{MOTOR}].configure("NotConfigured")
 '''.replace('{MOTOR}', '1').replace('{MOTOR_DIR}', 'cw')
+
 
 drivetrain_test = '''
 configs = {
@@ -170,6 +187,7 @@ robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
 time.sleep(0.2)
 robot.motors[{MOTOR}].configure("NotConfigured")
 '''.replace('{MOTOR}', '1').replace('{MOTOR_SIDE}', 'left').replace('{MOTOR_DIR}', 'cw')
+
 
 button_light_test = '''
 robot.sensors[{SENSOR}].configure("BumperSwitch")
@@ -199,6 +217,7 @@ if test_ok:
 robot.led.set(list(range(1, 13)), "#000000")
 robot.sensors[{SENSOR}].configure("NotConfigured")
 '''.replace('{SENSOR}', '2')
+
 
 ultrasound_light_test = '''
 robot.sensors[{SENSOR}].configure("HC_SR04")
@@ -244,9 +263,4 @@ robot.motors[{MOTOR}].configure("NotConfigured")
 
 
 if __name__ == "__main__":
-    current_directory = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(current_directory)
-    if check_manifest(os.path.join(current_directory, 'manifest.json')):
-        sys.exit(start_revvy(current_directory, None))
-    else:
-        sys.exit(2)
+    sys.exit(start_revvy())
