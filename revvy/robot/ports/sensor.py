@@ -1,3 +1,4 @@
+import struct
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
@@ -9,8 +10,8 @@ def create_sensor_port_handler(interface: RevvyControl, configs: dict):
 
     drivers = {
         'NotConfigured': lambda port, cfg: None,
-        'BumperSwitch':  lambda port, cfg: BumperSwitch(port),
-        'HC_SR04':       lambda port, cfg: HcSr04(port)
+        'BumperSwitch':  bumper_switch,
+        'HC_SR04':       hcsr04
     }
     handler = PortHandler(interface, configs, drivers, port_amount, port_types)
     handler._set_port_type = interface.set_sensor_port_type
@@ -18,20 +19,21 @@ def create_sensor_port_handler(interface: RevvyControl, configs: dict):
     return handler
 
 
-class BaseSensorPort:
+class BaseSensorPortDriver:
     def __init__(self, port: PortInstance):
         self._port = port
         self._interface = port.interface
-        self._value = 0
-        self._has_data = False
+        self._value = None
 
     @property
     def has_data(self):
-        return self._has_data
+        return self._value is not None
 
     def read(self):
         raw = self._interface.get_sensor_port_value(self._port.id)
-        self._value = self.convert_sensor_value(raw)
+        converted = self.convert_sensor_value(raw)
+        if converted is not None:
+            self._value = converted
 
         return {'raw': raw, 'converted': self._value}
 
@@ -42,15 +44,26 @@ class BaseSensorPort:
     def convert_sensor_value(self, raw): raise NotImplementedError
 
 
-class BumperSwitch(BaseSensorPort):
-    def convert_sensor_value(self, raw):
-        self._has_data = True
+# noinspection PyUnusedLocal
+def bumper_switch(port: PortInstance, cfg):
+    sensor = BaseSensorPortDriver(port)
+
+    def process_bumper(raw):
         return raw[0] == 1
 
+    sensor.convert_sensor_value = process_bumper
+    return sensor
 
-class HcSr04(BaseSensorPort):
-    def convert_sensor_value(self, raw):
-        dst = int.from_bytes(raw, byteorder='little')
-        if dst != 0:
-            self._has_data = True
+
+# noinspection PyUnusedLocal
+def hcsr04(port: PortInstance, cfg):
+    sensor = BaseSensorPortDriver(port)
+
+    def process_ultrasonic(raw):
+        (dst, ) = struct.unpack('<l', raw)
+        if dst == 0:
+            return None
         return dst
+
+    sensor.convert_sensor_value = process_ultrasonic
+    return sensor
