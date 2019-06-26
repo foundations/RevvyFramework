@@ -64,7 +64,7 @@ class ScriptHandle:
             self._inputs = variables
         else:
             self._inputs.clear()
-        self._thread.start()
+        return self._thread.start()
 
 
 class ScriptManager:

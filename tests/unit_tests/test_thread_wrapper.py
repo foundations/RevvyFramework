@@ -12,6 +12,15 @@ class TestThreadWrapper(unittest.TestCase):
         tw = ThreadWrapper(lambda: None)
         tw.exit()
 
+    def test_thread_wrapper_can_be_exited_if_started(self):
+        mock = Mock()
+        tw = ThreadWrapper(lambda x: None)
+        tw.on_stopped(mock)
+        tw.start()
+        tw.exit()
+
+        self.assertEqual(1, mock.call_count)
+
     def test_waiting_for_a_stopped_thread_to_stop_does_nothing(self):
         tw = ThreadWrapper(lambda ctx: None)
         tw.start().wait()
@@ -237,3 +246,26 @@ class TestThreadWrapper(unittest.TestCase):
             tw.exit()
 
         self.assertEqual(2, mock.call_count)
+
+    def test_stopping_a_starting_thread_stops_thread(self):
+        mock = Mock()
+
+        def test_fn(ctx):
+            evt = Event()
+            ctx.on_stopped(evt.set)
+            evt.wait()
+            mock()
+
+        tw = ThreadWrapper(test_fn)
+
+        try:
+            # this is a probabilistic failure, false positives may happen still if the implementation is incorrect
+            for i in range(1000):
+                with self.subTest('Run #{}'.format(i)):
+                    mock.reset_mock()
+                    tw.start()
+                    tw.stop().wait()
+
+                    self.assertEqual(1, mock.call_count)
+        finally:
+            tw.exit()

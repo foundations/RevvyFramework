@@ -74,6 +74,9 @@ class ThreadWrapper:
     def stop(self):
         print("{}: stopping".format(self._name))
         evt = Event()
+        if self._control.is_set():
+            self._thread_running_event.wait()
+
         if self._thread_running_event.is_set():
             self.on_stopped(evt.set)
 
@@ -87,9 +90,11 @@ class ThreadWrapper:
         return evt
 
     def exit(self):
-        self._exiting = True
+        # stop current run
         self.stop()
+
         print("{}: exiting".format(self._name))
+        self._exiting = True
         self._control.set()
         self._thread.join()
         print("{}: exited".format(self._name))
