@@ -90,7 +90,7 @@ class DcMotorController:
 
     def set_power(self, power):
         print('{}::set_power'.format(self._name))
-        self._control(0, power)
+        self._control(0, [power])
 
     def get_status(self):
         data = self._read()
