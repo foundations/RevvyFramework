@@ -274,7 +274,7 @@ class RobotManager:
             # ping robot, because robot may reset after stopping scripts
             self._ping_robot()
 
-            self._ring_led.set_scenario(RingLed.Off)
+            self._ring_led.set_scenario(RingLed.BreathingGreen)
             self._robot.set_bluetooth_connection_status(self._is_connected)
 
             # set up status reader, data dispatcher

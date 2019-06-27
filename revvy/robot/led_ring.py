@@ -6,11 +6,13 @@ class RingLed:
     UserFrame = 1
     ColorWheel = 2
     ColorFade = 3
+    BusyIndicator = 4
+    BreathingGreen = 5
 
     def __init__(self, interface: RevvyControl):
         self._interface = interface
         self._ring_led_count = self._interface.ring_led_get_led_amount()
-        self._current_scenario = self.Off
+        self._current_scenario = self.BreathingGreen
 
     @property
     def count(self):
