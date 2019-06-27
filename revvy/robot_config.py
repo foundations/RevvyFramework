@@ -6,11 +6,14 @@ from revvy.functions import b64_decode_str
 from revvy.scripting.builtin_scripts import drive_joystick, drive_2sticks
 
 motor_types = [
-    # left             right
-    ["NotConfigured",  "NotConfigured"],
-    ["RevvyMotor_CCW", "RevvyMotor"],  # motor
-    ["RevvyMotor_CCW", "RevvyMotor"],  # drivetrain
+    "NotConfigured",
+    # motor
+    [
+        "RevvyMotor",
+        "RevvyMotor_CCW"
+    ]
 ]
+
 motor_sides = ["left", "right"]
 
 sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch"]
@@ -100,14 +103,26 @@ class RobotConfig:
             if 'motors' in robot_config:
                 i = 1
                 for motor in robot_config['motors']:
-                    if not motor or motor['type'] == 0:
-                        motor_type = "NotConfigured"
-                    else:
-                        motor_type = motor_types[motor['type']][motor['direction']]
+                    if not motor:
+                        motor = {'type': 0}
+
+                    if motor['type'] == 0:
+                        motor_type = motor_types[motor['type']]
+
+                    elif motor['type'] == 1:
+                        # motor
+                        motor_type = motor_types[1][motor['direction']]
                         config.motors.names[motor['name']] = i
 
-                        if motor['type'] == 2:  # drivetrain
-                            config.drivetrain[motor_sides[motor['side']]].append(i)
+                    elif motor['type'] == 2:
+                        # drivetrain
+                        motor_type = motor_types[1][motor['direction']]
+                        config.motors.names[motor['name']] = i
+                        config.drivetrain[motor_sides[motor['side']]].append(i)
+
+                    else:
+                        raise ValueError
+
                     config.motors[i] = motor_type
 
                     i += 1
@@ -125,7 +140,7 @@ class RobotConfig:
                     i += 1
 
             return config
-        except (JSONDecodeError, KeyError):
+        except (JSONDecodeError, KeyError, ValueError):
             print('Failed to decode received configuration')
             print(traceback.format_exc())
             return None
