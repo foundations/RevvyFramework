@@ -14,7 +14,7 @@ class ResourceHandle:
         self._is_interrupted = True
         self._callback()
 
-    def run(self, callback):
+    def run_uninterruptable(self, callback):
         with self._resource._lock:
             if not self._is_interrupted:
                 callback()

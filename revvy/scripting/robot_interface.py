@@ -34,7 +34,7 @@ class Wrapper:
             raise InterruptedError
 
     def using_resource(self, callback):
-        self.if_resource_available(lambda res: res.run(callback))
+        self.if_resource_available(lambda res: res.run_uninterruptable(callback))
 
     def if_resource_available(self, callback):
         resource = self.try_take_resource()
@@ -200,7 +200,7 @@ class MotorPortWrapper(Wrapper):
         resource = self.try_take_resource()
         if resource:
             try:
-                resource.run(set_fns[unit_amount][unit_limit][direction])
+                resource.run_uninterruptable(set_fns[unit_amount][unit_limit][direction])
 
                 if unit_amount in [MotorConstants.UNIT_ROT, MotorConstants.UNIT_DEG]:
                     # wait for movement to finish
@@ -210,7 +210,7 @@ class MotorPortWrapper(Wrapper):
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
                     self.sleep(amount)
-                    resource.run(lambda: self._motor.set_speed(0))
+                    resource.run_uninterruptable(lambda: self._motor.set_speed(0))
 
             finally:
                 resource.release()
@@ -287,7 +287,7 @@ class DriveTrainWrapper(Wrapper):
         resource = self.try_take_resource()
         if resource:
             try:
-                resource.run(set_fns[unit_rotation][unit_speed])
+                resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
 
                 if unit_rotation == MotorConstants.UNIT_ROT:
                     # wait for movement to finish
@@ -298,7 +298,7 @@ class DriveTrainWrapper(Wrapper):
                 elif unit_rotation == MotorConstants.UNIT_SEC:
                     self.sleep(rotation)
 
-                    resource.run(lambda: self._drivetrain.set_speeds(0, 0))
+                    resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
 
             finally:
                 resource.release()

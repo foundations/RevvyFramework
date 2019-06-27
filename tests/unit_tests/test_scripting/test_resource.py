@@ -66,6 +66,6 @@ class TestResource(unittest.TestCase):
         handle = r.request(priority_low)
         handle2 = r.request(priority_high)
 
-        handle2.run(mock)
-        handle.run(lambda: self.fail('This should not run'))
+        handle2.run_uninterruptable(mock)
+        handle.run_uninterruptable(lambda: self.fail('This should not run'))
         self.assertEqual(1, mock.call_count)
