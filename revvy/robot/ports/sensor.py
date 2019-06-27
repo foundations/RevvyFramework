@@ -60,7 +60,8 @@ def hcsr04(port: PortInstance, cfg):
     sensor = BaseSensorPortDriver(port)
 
     def process_ultrasonic(raw):
-        (dst, ) = struct.unpack('<l', raw)
+        assert len(raw) == 4
+        dst = int.from_bytes(raw, byteorder='little')
         if dst == 0:
             return None
         return dst
