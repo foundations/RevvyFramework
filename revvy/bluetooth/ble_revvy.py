@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import os
 import struct
 import traceback
 
@@ -412,6 +413,7 @@ class CustomBatteryService(BleService):
 class RevvyBLE:
     def __init__(self, device_name: Observable, serial, long_message_handler):
         self._deviceName = device_name.get()
+        os.environ["BLENO_DEVICE_NAME"] = self._deviceName
         print('Initializing {}'.format(self._deviceName))
 
         device_name.subscribe(self._device_name_changed)
@@ -441,6 +443,7 @@ class RevvyBLE:
 
     def _device_name_changed(self, name):
         self._deviceName = name
+        os.environ["BLENO_DEVICE_NAME"] = self._deviceName
         self._bleno.stopAdvertising(self._start_advertising)
 
     def _on_state_change(self, state):
@@ -452,6 +455,7 @@ class RevvyBLE:
             self._bleno.stopAdvertising()
 
     def _start_advertising(self):
+        print('Start advertising as {}'.format(self._deviceName))
         self._bleno.startAdvertising(self._deviceName, self._advertised_uuid_list)
 
     def _on_advertising_start(self, error):
