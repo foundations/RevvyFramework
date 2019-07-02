@@ -11,10 +11,17 @@ class RemoteController:
         self._analogActions = []
         self._analogStates = []
         self._buttonHandlers = [EdgeTrigger() for _ in range(32)]
+        self._buttonActions = [lambda: None] * 32
         self._buttonStates = [False] * 32
 
         self._controller_detected = lambda: None
         self._controller_disappeared = lambda: None
+
+        for i in range(len(self._buttonHandlers)):
+            handler = self._buttonHandlers[i]
+            handler.handle(1)
+            handler.on_rising_edge(lambda btn=i: self._handle_button_pressed(btn))
+            handler.on_falling_edge(lambda btn=i: self._handle_button_released(btn))
 
     def is_button_pressed(self, button_idx):
         with self._button_mutex:
@@ -32,8 +39,12 @@ class RemoteController:
         with self._button_mutex:
             self._analogActions.clear()
             self._analogStates.clear()
-            for handler in self._buttonHandlers:
-                handler.on_rising_edge(lambda: None)
+
+            self._buttonActions = [lambda: None] * 32
+
+            for i in range(len(self._buttonHandlers)):
+                handler = self._buttonHandlers[i]
+                handler.handle(1)
 
             self._buttonStates = [False] * 32
 
@@ -41,7 +52,6 @@ class RemoteController:
         # copy states
         with self._button_mutex:
             self._analogStates = message['analog']
-            self._buttonStates = message['buttons']
 
         # handle analog channels
         for handler in self._analogActions:
@@ -61,6 +71,13 @@ class RemoteController:
 
     def on_analog_values(self, channels, action):
         self._analogActions.append({'channels': channels, 'action': action})
+
+    def _handle_button_pressed(self, btn):
+        self._buttonStates[btn] = True
+        self._buttonActions[btn]()
+
+    def _handle_button_released(self, btn):
+        self._buttonStates[btn] = False
 
 
 class RemoteControllerScheduler:
