@@ -125,9 +125,11 @@ class TestRemoteController(unittest.TestCase):
         self.assertEqual(1, mock.call_count)
         self.assertTrue(rc.is_button_pressed(1))
 
+        rc.tick({'buttons': [False] * 32, 'analog': []})
         mock.reset_mock()
         rc.reset()
 
+        rc.tick({'buttons': [True] * 32, 'analog': []})
         rc.tick({'buttons': [True] * 32, 'analog': []})
 
         self.assertEqual(0, mock.call_count)
