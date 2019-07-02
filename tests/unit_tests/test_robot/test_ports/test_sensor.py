@@ -92,7 +92,7 @@ class TestBumperSwitch(unittest.TestCase):
     def test_bumper_returns_boolean(self):
         port = create_port()
 
-        port.interface.get_sensor_port_value.side_effect = [[1], [0]]
+        port.interface.get_sensor_port_value.side_effect = [[1, 1], [0, 0], [0, 1]]
 
         sensor = bumper_switch(port, None)
 
@@ -101,6 +101,9 @@ class TestBumperSwitch(unittest.TestCase):
 
         sensor.read()
         self.assertFalse(sensor.value)
+
+        sensor.read()
+        self.assertTrue(sensor.value)
 
 
 class TestHcSr04(unittest.TestCase):
