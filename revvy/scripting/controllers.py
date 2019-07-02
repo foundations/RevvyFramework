@@ -14,6 +14,25 @@ def stick_controller(x, y):
     return x, y
 
 
+def generic_joystick(x, y, factor):
+    """Calculate control vector length and angle based on touch (x, y) coordinates with configurable exponential rate"""
+
+    if x == y == 0:
+        return 0.0, 0.0
+
+    angle = math.atan2(y, x) - math.pi / 2
+    length = math.sqrt(x * x + y * y)
+
+    length = (1 - factor) * (length ** 3) + (factor * length)
+
+    v = length * math.cos(angle)
+    w = length * math.sin(angle)
+
+    sr = round(v + w, 3)
+    sl = round(v - w, 3)
+    return sl, sr
+
+
 def joystick(x, y):
     """Calculate control vector length and angle based on touch (x, y) coordinates
 
@@ -29,15 +48,24 @@ def joystick(x, y):
     (-1.0, 1.0)
     """
 
-    if x == y == 0:
-        return 0.0, 0.0
+    return generic_joystick(x, y, 1)
 
-    angle = math.atan2(y, x) - math.pi / 2
-    length = math.sqrt(x * x + y * y)
 
-    v = length * math.cos(angle)
-    w = length * math.sin(angle)
+def expo_joystick(x, y):
+    """Calculate control vector length and angle based on touch (x, y) coordinates, using exponential rate
 
-    sr = round(v + w, 3)
-    sl = round(v - w, 3)
-    return sl, sr
+    >>> expo_joystick(0, 0)
+    (0.0, 0.0)
+    >>> expo_joystick(0, 1)
+    (1.0, 1.0)
+    >>> expo_joystick(0, -1)
+    (-1.0, -1.0)
+    >>> expo_joystick(1, 0)
+    (1.0, -1.0)
+    >>> expo_joystick(-1, 0)
+    (-1.0, 1.0)
+    >>> expo_joystick(0.5, 0)
+    (0.312, -0.312)
+    """
+
+    return generic_joystick(x, y, 0.5)
