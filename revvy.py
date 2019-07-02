@@ -98,6 +98,7 @@ def start_revvy(config: RobotConfig = None):
                 message_data = storage.get_long_message(message_type).decode()
                 print('Running test script: {}'.format(message_data))
                 robot._scripts.add_script("test_kit", message_data, 0)
+                robot._scripts["test_kit"].on_stopped(lambda: robot.configure(None))
                 robot._scripts["test_kit"].start()
             elif message_type == LongMessageType.CONFIGURATION_DATA:
                 message_data = storage.get_long_message(message_type).decode()
