@@ -81,7 +81,7 @@ class RobotManager:
 
         self._reader = FunctionSerializer(self._robot.ping)
 
-        self._status_update_thread = ThreadWrapper(self._update_thread, "RobotUpdateThread")
+        self._status_update_thread = periodic(self._update, 0.1, "RobotStatusUpdaterThread")
         self._background_fn_lock = Lock()
         self._background_fn = None
 
@@ -144,6 +144,16 @@ class RobotManager:
 
         self._update_requested = False
 
+    def _update(self):
+        self._reader.run()
+
+        with self._background_fn_lock:
+            fn = self._background_fn
+            self._background_fn = None
+
+        if callable(fn):
+            fn()
+
     @property
     def start_time(self):
         return self._start_time
@@ -196,25 +206,6 @@ class RobotManager:
         with self._background_fn_lock:
             self._background_fn = callback
 
-    def _update_thread(self, ctx: ThreadContext):
-        _next_call = time.time()
-
-        while not ctx.stop_requested:
-            self._reader.run()
-
-            with self._background_fn_lock:
-                fn = self._background_fn
-                self._background_fn = None
-
-            if callable(fn):
-                fn()
-                _next_call = time.time()
-            else:
-                _next_call += 0.1
-                diff = _next_call - time.time()
-                if diff > 0:
-                    time.sleep(diff)
-
     def _on_connection_changed(self, is_connected):
         print('Phone connected' if is_connected else 'Phone disconnected')
         if not is_connected:
@@ -249,11 +240,12 @@ class RobotManager:
         # set up status reader, data dispatcher
         self._reader.reset()
 
-        def _update_battery(battery):
+        def _update_battery():
+            battery = self._robot.get_battery_status()
             self._ble['battery_service'].characteristic('main_battery').update_value(battery['main'])
             self._ble['battery_service'].characteristic('motor_battery').update_value(battery['motor'])
 
-        self._reader.add('battery', lambda: _update_battery(self._robot.get_battery_status()))
+        self._reader.add('battery', _update_battery)
 
         self._drivetrain.reset()
         self._remote_controller_thread.stop()

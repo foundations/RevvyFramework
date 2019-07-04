@@ -1,3 +1,4 @@
+import time
 import traceback
 from threading import Event, Thread, Lock
 
@@ -135,3 +136,28 @@ class ThreadContext:
 
     def on_stopped(self, callback):
         self._thread.on_stop_requested(callback)
+
+
+def periodic(fn, period, name="PeriodicThread"):
+    """
+    Call fn periodically
+    
+    :param fn: the function to run
+    :param period: period time in seconds
+    :param name: optional name to prefix the thread log messages
+    :return: the created thread object
+    """
+    def _call_periodically(ctx: ThreadContext):
+        _next_call = time.time()
+        while not ctx.stop_requested:
+            fn()
+
+            _next_call += period
+            diff = _next_call - time.time()
+            if diff > 0:
+                time.sleep(diff)
+            else:
+                # period was missed, let's restart
+                _next_call = time.time()
+
+    return ThreadWrapper(_call_periodically, name)
