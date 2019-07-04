@@ -80,7 +80,6 @@ class RobotManager:
         self._status = RobotStatusIndicator(robot)
 
         self._reader = FunctionSerializer(self._robot.ping)
-        self._data_dispatcher = DataDispatcher()
 
         self._status_update_thread = ThreadWrapper(self._update_thread, "RobotUpdateThread")
         self._background_fn_lock = Lock()
@@ -104,27 +103,31 @@ class RobotManager:
         }
 
         def _motor_config_changed(motor: PortInstance, config_name):
-            motor_name = 'motor_{}'.format(motor.id)
+            port_name = 'motor_{}'.format(motor.id)
             if config_name != 'NotConfigured':
-                self._reader.add(motor_name, motor.get_status)
-                self._data_dispatcher.add(motor_name, lambda value, mid=motor.id: self._update_motor(mid, value))
+                def _update_motor():
+                    value = motor.get_status()
+                    self._ble['live_message_service'].update_motor(motor.id, value['power'], value['speed'], value['position'])
+
+                self._reader.add(port_name, _update_motor)
             else:
-                self._reader.remove(motor_name)
-                self._data_dispatcher.remove(motor_name)
+                self._reader.remove(port_name)
+
+        def _sensor_config_changed(sensor: PortInstance, config_name):
+            port_name = 'sensor_{}'.format(sensor.id)
+            if config_name != 'NotConfigured':
+                def _update_sensor():
+                    value = sensor.read()
+                    self._ble['live_message_service'].update_sensor(sensor.id, value['raw'])
+
+                self._reader.add(port_name, _update_sensor)
+            else:
+                self._reader.remove(port_name)
 
         self._motor_ports = create_motor_port_handler(self._robot, Motors)
         for port in self._motor_ports:
             port.on_config_changed(_motor_config_changed)
             self._resources['motor_{}'.format(port.id)] = Resource()
-
-        def _sensor_config_changed(sensor: PortInstance, config_name):
-            sensor_name = 'sensor_{}'.format(sensor.id)
-            if config_name != 'NotConfigured':
-                self._reader.add(sensor_name, sensor.read)
-                self._data_dispatcher.add(sensor_name, lambda value, sid=sensor.id: self._update_sensor(sid, value))
-            else:
-                self._reader.remove(sensor_name)
-                self._data_dispatcher.remove(sensor_name)
 
         self._sensor_ports = create_sensor_port_handler(self._robot, Sensors)
         for port in self._sensor_ports:
@@ -197,8 +200,7 @@ class RobotManager:
         _next_call = time.time()
 
         while not ctx.stop_requested:
-            data = self._reader.run()
-            self._data_dispatcher.dispatch(data)
+            self._reader.run()
 
             with self._background_fn_lock:
                 fn = self._background_fn
@@ -229,16 +231,6 @@ class RobotManager:
             self._status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.configure(None)
 
-    def _update_sensor(self, sid, value):
-        self._ble['live_message_service'].update_sensor(sid, value['raw'])
-
-    def _update_motor(self, mid, value):
-        self._ble['live_message_service'].update_motor(mid, value['power'], value['speed'], value['position'])
-
-    def _update_battery(self, battery):
-        self._ble['battery_service'].characteristic('main_battery').update_value(battery['main'])
-        self._ble['battery_service'].characteristic('motor_battery').update_value(battery['motor'])
-
     def configure(self, config):
         print('RobotManager: configure()')
         if self._status.robot_status != RobotStatus.Stopped:
@@ -256,10 +248,12 @@ class RobotManager:
 
         # set up status reader, data dispatcher
         self._reader.reset()
-        self._data_dispatcher.reset()
 
-        self._reader.add('battery', self._robot.get_battery_status)
-        self._data_dispatcher.add('battery', self._update_battery)
+        def _update_battery(battery):
+            self._ble['battery_service'].characteristic('main_battery').update_value(battery['main'])
+            self._ble['battery_service'].characteristic('motor_battery').update_value(battery['motor'])
+
+        self._reader.add('battery', lambda: _update_battery(self._robot.get_battery_status()))
 
         self._drivetrain.reset()
         self._remote_controller_thread.stop()
@@ -351,7 +345,6 @@ class RobotManager:
 class FunctionSerializer:
     def __init__(self, default_action=lambda: None):
         self._functions = {}
-        self._returnValues = {}
         self._fn_lock = Lock()
         self._default_action = default_action
 
@@ -363,7 +356,6 @@ class FunctionSerializer:
         print('FunctionSerializer: new function: {}'.format(name))
         with self._fn_lock:
             self._functions[name] = reader
-            self._returnValues[name] = None
 
     def remove(self, name):
         with self._fn_lock:
@@ -373,41 +365,12 @@ class FunctionSerializer:
                 pass
 
     def run(self):
-        data = {}
         with self._fn_lock:
             if not self._functions:
                 self._default_action()
+                return {}
             else:
-                for name in self._functions:
-                    data[name] = self._functions[name]()
-        return data
-
-
-class DataDispatcher:
-    def __init__(self):
-        self._handlers = {}
-        self._lock = Lock()
-
-    def reset(self):
-        with self._lock:
-            self._handlers = {}
-
-    def add(self, name, handler):
-        with self._lock:
-            self._handlers[name] = handler
-
-    def remove(self, name):
-        with self._lock:
-            try:
-                del self._handlers[name]
-            except KeyError:
-                pass
-
-    def dispatch(self, data):
-        for key in data:
-            with self._lock:
-                if key in self._handlers:
-                    self._handlers[key](data[key])
+                return {key: self._functions[key]() for key in self._functions}
 
 
 class DeviceNameProvider:

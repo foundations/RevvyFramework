@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 from revvy.file_storage import StorageInterface, StorageElementNotFoundError, IntegrityError
-from revvy.utils import FunctionSerializer, DeviceNameProvider, DataDispatcher
+from revvy.utils import FunctionSerializer, DeviceNameProvider
 
 
 class TestFunctionSerializer(unittest.TestCase):
@@ -107,56 +107,3 @@ class TestDeviceNameProvider(unittest.TestCase):
         self.assertEqual(dnp.get_device_name(), 'something else')
         self.assertEqual('device-name', storage.write.call_args[0][0])
         self.assertEqual(b'something else', storage.write.call_args[0][1])
-
-
-class TestDataDispatcher(unittest.TestCase):
-    def test_only_handlers_with_data_are_called(self):
-        dsp = DataDispatcher()
-
-        foo = Mock()
-        bar = Mock()
-
-        dsp.add("foo", foo)
-        dsp.add("bar", bar)
-
-        dsp.dispatch({'foo': 'data', 'baz': 'anything'})
-
-        self.assertEqual(foo.call_count, 1)
-        self.assertEqual(bar.call_count, 0)
-
-    def test_removed_handler_is_not_called(self):
-        dsp = DataDispatcher()
-
-        foo = Mock()
-        bar = Mock()
-
-        dsp.add('foo', foo)
-        dsp.add('bar', bar)
-
-        dsp.remove('foo')
-
-        dsp.dispatch({'foo': 'data', 'bar': 'anything'})
-
-        self.assertEqual(foo.call_count, 0)
-        self.assertEqual(bar.call_count, 1)
-
-    def test_remove_ignores_missing_keys(self):
-        dsp = DataDispatcher()
-
-        dsp.remove('foo')
-
-    def test_reset_removes_all_handlers(self):
-        dsp = DataDispatcher()
-
-        foo = Mock()
-        bar = Mock()
-
-        dsp.add('foo', foo)
-        dsp.add('bar', bar)
-
-        dsp.reset()
-
-        dsp.dispatch({'foo': 'data', 'bar': 'anything'})
-
-        self.assertEqual(foo.call_count, 0)
-        self.assertEqual(bar.call_count, 0)
