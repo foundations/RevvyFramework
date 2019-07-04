@@ -84,7 +84,6 @@ class RobotManager:
 
         self._status_update_thread = ThreadWrapper(self._update_thread, "RobotUpdateThread")
         self._background_fn_lock = Lock()
-        self._config_lock = Lock()
         self._background_fn = None
 
         rc = RemoteController()
@@ -103,14 +102,33 @@ class RobotManager:
             'drivetrain': Resource(),
             'sound':      Resource()
         }
+
+        def _motor_config_changed(motor: PortInstance, config_name):
+            motor_name = 'motor_{}'.format(motor.id)
+            if config_name != 'NotConfigured':
+                self._reader.add(motor_name, motor.get_status)
+                self._data_dispatcher.add(motor_name, lambda value, mid=motor.id: self._update_motor(mid, value))
+            else:
+                self._reader.remove(motor_name)
+                self._data_dispatcher.remove(motor_name)
+
         self._motor_ports = create_motor_port_handler(self._robot, Motors)
         for port in self._motor_ports:
-            port.on_config_changed(self._motor_config_changed)
+            port.on_config_changed(_motor_config_changed)
             self._resources['motor_{}'.format(port.id)] = Resource()
+
+        def _sensor_config_changed(sensor: PortInstance, config_name):
+            sensor_name = 'sensor_{}'.format(sensor.id)
+            if config_name != 'NotConfigured':
+                self._reader.add(sensor_name, sensor.read)
+                self._data_dispatcher.add(sensor_name, lambda value, sid=sensor.id: self._update_sensor(sid, value))
+            else:
+                self._reader.remove(sensor_name)
+                self._data_dispatcher.remove(sensor_name)
 
         self._sensor_ports = create_sensor_port_handler(self._robot, Sensors)
         for port in self._sensor_ports:
-            port.on_config_changed(self._sensor_config_changed)
+            port.on_config_changed(_sensor_config_changed)
             self._resources['sensor_{}'.format(port.id)] = Resource()
 
         self._drivetrain = DifferentialDrivetrain(self._robot, self._motor_ports.port_count)
@@ -171,24 +189,6 @@ class RobotManager:
             self._status.robot_status = RobotStatus.NotConfigured
             self.configure(None)
 
-    def _motor_config_changed(self, motor: PortInstance, config_name):
-        motor_name = 'motor_{}'.format(motor.id)
-        if config_name != 'NotConfigured':
-            self._reader.add(motor_name, motor.get_status)
-            self._data_dispatcher.add(motor_name, lambda value, mid=motor.id: self._update_motor(mid, value))
-        else:
-            self._reader.remove(motor_name)
-            self._data_dispatcher.remove(motor_name)
-
-    def _sensor_config_changed(self, sensor: PortInstance, config_name):
-        sensor_name = 'sensor_{}'.format(sensor.id)
-        if config_name != 'NotConfigured':
-            self._reader.add(sensor_name, sensor.read)
-            self._data_dispatcher.add(sensor_name, lambda value, sid=sensor.id: self._update_sensor(sid, value))
-        else:
-            self._reader.remove(sensor_name)
-            self._data_dispatcher.remove(sensor_name)
-
     def run_in_background(self, callback):
         with self._background_fn_lock:
             self._background_fn = callback
@@ -244,87 +244,92 @@ class RobotManager:
         if self._status.robot_status != RobotStatus.Stopped:
             self.run_in_background(lambda: self._configure(config))
 
+    def _reset_configuration(self):
+        self._scripts.reset()
+        self._scripts.assign('Motor', MotorConstants)
+        self._scripts.assign('RingLed', RingLed)
+
+        # ping robot, because robot may reset after stopping scripts
+        self._ping_robot()
+
+        self._ring_led.set_scenario(RingLed.BreathingGreen)
+
+        # set up status reader, data dispatcher
+        self._reader.reset()
+        self._data_dispatcher.reset()
+
+        self._reader.add('battery', self._robot.get_battery_status)
+        self._data_dispatcher.add('battery', self._update_battery)
+
+        self._drivetrain.reset()
+        self._remote_controller_thread.stop()
+
+        self._motor_ports.reset()
+        self._sensor_ports.reset()
+
+        self._status.robot_status = RobotStatus.NotConfigured
+        self._status.update()
+
+    def _apply_new_configuration(self, config):
+        # apply new configuration
+        print("Applying new configuration")
+
+        # set up motors
+        for motor in self._motor_ports:
+            motor.configure(config.motors[motor.id])
+
+        for motor_id in config.drivetrain['left']:
+            self._drivetrain.add_left_motor(self._motor_ports[motor_id])
+
+        for motor_id in config.drivetrain['right']:
+            self._drivetrain.add_right_motor(self._motor_ports[motor_id])
+
+        self._drivetrain.configure()
+
+        # set up sensors
+        for sensor in self._sensor_ports:
+            sensor.configure(config.sensors[sensor.id])
+
+        # set up scripts
+        for name in config.scripts:
+            self._scripts.add_script(name, config.scripts[name]['script'], config.scripts[name]['priority'])
+
+        # set up remote controller
+        for analog in config.controller.analog:
+            self._remote_controller.on_analog_values(
+                analog['channels'],
+                lambda in_data, scr=analog['script']: self._scripts[scr].start({'input': in_data})
+            )
+
+        for button in range(len(config.controller.buttons)):
+            script = config.controller.buttons[button]
+            if script:
+                self._remote_controller.on_button_pressed(button, self._scripts[script].start)
+
+        self._remote_controller_thread.start()
+
+        # start background scripts
+        for script in config.background_scripts:
+            self._scripts[script].start()
+
     def _configure(self, config):
-        with self._config_lock:
-            is_configured = True if config else False
+        is_default_config = config is None
 
-            if not config and self._status.robot_status != RobotStatus.Stopped:
-                config = self._default_configuration
-            self._config = config
+        if not config and self._status.robot_status != RobotStatus.Stopped:
+            config = self._default_configuration
+        self._config = config
 
-            self._scripts.reset()
-            self._scripts.assign('Motor', MotorConstants)
-            self._scripts.assign('RingLed', RingLed)
+        self._scripts.stop_all_scripts()
+        self._reset_configuration()
 
-            # ping robot, because robot may reset after stopping scripts
-            self._ping_robot()
-
-            self._ring_led.set_scenario(RingLed.BreathingGreen)
-
-            # set up status reader, data dispatcher
-            self._reader.reset()
-            self._data_dispatcher.reset()
-
-            self._reader.add('battery', self._robot.get_battery_status)
-            self._data_dispatcher.add('battery', self._update_battery)
-
-            self._drivetrain.reset()
-            self._remote_controller_thread.stop()
-
-            self._motor_ports.reset()
-            self._sensor_ports.reset()
-
-            self._status.robot_status = RobotStatus.NotConfigured
-            self._status.update()
-
-            if config:
-                # apply new configuration
-                print("Applying new configuration")
-
-                # set up motors
-                for motor in self._motor_ports:
-                    motor.configure(config.motors[motor.id])
-
-                for motor_id in config.drivetrain['left']:
-                    self._drivetrain.add_left_motor(self._motor_ports[motor_id])
-
-                for motor_id in config.drivetrain['right']:
-                    self._drivetrain.add_right_motor(self._motor_ports[motor_id])
-
-                self._drivetrain.configure()
-
-                # set up sensors
-                for sensor in self._sensor_ports:
-                    sensor.configure(config.sensors[sensor.id])
-
-                # set up scripts
-                for name in config.scripts:
-                    self._scripts.add_script(name, config.scripts[name]['script'], config.scripts[name]['priority'])
-
-                # set up remote controller
-                for analog in config.controller.analog:
-                    self._remote_controller.on_analog_values(
-                        analog['channels'],
-                        lambda in_data, scr=analog['script']: self._scripts[scr].start({'input': in_data})
-                    )
-
-                for button in range(len(config.controller.buttons)):
-                    script = config.controller.buttons[button]
-                    if script:
-                        self._remote_controller.on_button_pressed(button, self._scripts[script].start)
-
-                self._remote_controller_thread.start()
-
-                print('Robot configured')
-
-                # start background scripts
-                for script in config.background_scripts:
-                    self._scripts[script].start()
-
-            if is_configured:
-                self._status.robot_status = RobotStatus.Configured
-            else:
+        if config:
+            self._apply_new_configuration(config)
+            if is_default_config:
                 self._status.robot_status = RobotStatus.NotConfigured
+            else:
+                self._status.robot_status = RobotStatus.Configured
+        else:
+            self._status.robot_status = RobotStatus.NotConfigured
 
     def stop(self):
         self._status.robot_status = RobotStatus.Stopped
