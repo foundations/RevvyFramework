@@ -83,7 +83,7 @@ class RobotManager:
 
         self._status_update_thread = periodic(self._update, 0.1, "RobotStatusUpdaterThread")
         self._background_fn_lock = Lock()
-        self._background_fn = None
+        self._background_fns = []
 
         rc = RemoteController()
         rcs = RemoteControllerScheduler(rc)
@@ -148,11 +148,12 @@ class RobotManager:
         self._reader.run()
 
         with self._background_fn_lock:
-            fn = self._background_fn
-            self._background_fn = None
+            fns = self._background_fns
+            self._background_fns = []
 
-        if callable(fn):
-            fn()
+        for fn in fns:
+            if callable(fn):
+                fn()
 
     @property
     def start_time(self):
@@ -204,7 +205,7 @@ class RobotManager:
 
     def run_in_background(self, callback):
         with self._background_fn_lock:
-            self._background_fn = callback
+            self._background_fns.append(callback)
 
     def _on_connection_changed(self, is_connected):
         print('Phone connected' if is_connected else 'Phone disconnected')
