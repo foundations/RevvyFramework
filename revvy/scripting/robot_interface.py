@@ -304,7 +304,13 @@ class DriveTrainWrapper(Wrapper):
                 resource.release()
 
     def set_speeds(self, sl, sr):
-        self.using_resource(lambda: self._drivetrain.set_speeds(sl, sr))
+        resource = self.try_take_resource()
+        if resource:
+            try:
+                self._drivetrain.set_speeds(sl, sr)
+            finally:
+                if sl == sr == 0:
+                    resource.release()
 
 
 class RemoteControllerWrapper:
