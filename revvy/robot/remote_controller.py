@@ -14,6 +14,7 @@ class RemoteController:
 
         self._analogActions = []
         self._analogStates = []
+        self._previousAnalogStates = []
         self._buttonHandlers = [EdgeTrigger() for _ in range(32)]
         self._buttonActions = [lambda: None] * 32
         self._buttonStates = [False] * 32
@@ -43,6 +44,7 @@ class RemoteController:
         with self._button_mutex:
             self._analogActions.clear()
             self._analogStates.clear()
+            self._previousAnalogStates.clear()
 
             self._buttonActions = [lambda: None] * 32
 
@@ -62,13 +64,20 @@ class RemoteController:
     def tick(self, message: RemoteControllerCommand):
         # copy states
         with self._button_mutex:
+            self._previousAnalogStates = self._analogStates
             self._analogStates = message.analog
 
         # handle analog channels
         for handler in self._analogActions:
             # check if all channels are present in the message
             try:
-                handler['action']([message.analog[x] for x in handler['channels']])
+                current = [message.analog[x] for x in handler['channels']]
+                try:
+                    previous = [self._previousAnalogStates[x] for x in handler['channels']]
+                except IndexError:
+                    previous = []
+                if current != [127] * len(current) or current != previous:
+                    handler['action'](current)
             except IndexError:
                 print('Skip analog handler for channels {}'.format(", ".join(map(str, handler['channels']))))
 
