@@ -45,6 +45,7 @@ class PortInstance:
         self._interface = interface
         self._driver = None
         self._config_changed_callback = lambda port, cfg_name: None
+        self._configuration = "NotConfigured"
 
     def on_config_changed(self, callback):
         self._config_changed_callback = callback
@@ -53,9 +54,11 @@ class PortInstance:
         self._config_changed_callback(self, config_name)
 
     def configure(self, config_name):
-        self._notify_config_changed("NotConfigured")  # temporarily disable reading port
-        self._driver = self._owner.configure_port(self, config_name)
-        self._notify_config_changed(config_name)
+        if not (self._configuration == "NotConfigured" and config_name == "NotConfigured"):
+            self._configuration = config_name
+            self._notify_config_changed("NotConfigured")  # temporarily disable reading port
+            self._driver = self._owner.configure_port(self, config_name)
+            self._notify_config_changed(config_name)
 
         return self._driver
 
