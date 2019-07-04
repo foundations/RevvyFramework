@@ -107,3 +107,19 @@ def b64_decode_str(to_decode):
     'hello'
     """
     return a2b_base64(to_decode.encode("utf-8")).decode("utf-8")
+
+
+def bits_to_bool_list(byte_list):
+    """
+    >>> bits_to_bool_list([0xFF])
+    [True, True, True, True, True, True, True, True]
+    >>> bits_to_bool_list([0x01, 0x00])
+    [True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
+    >>> bits_to_bool_list([0x00, 0x80])
+    [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True]
+    """
+
+    def expand_byte(byte):
+        return [(byte & (1 << x)) != 0 for x in range(8)]
+
+    return [j for i in [expand_byte(byte) for byte in byte_list] for j in i]

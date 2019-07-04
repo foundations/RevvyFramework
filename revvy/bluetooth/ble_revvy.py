@@ -3,11 +3,11 @@ import os
 import struct
 import traceback
 
-from functools import reduce
 from json import JSONDecodeError
 
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 from revvy.bluetooth.longmessage import hexdigest2bytes, bytes2hexdigest, MessageType, LongMessageError
+from revvy.functions import bits_to_bool_list
 
 
 class BleService(BlenoPrimaryService):
@@ -254,17 +254,7 @@ class LiveMessageService(BlenoPrimaryService):
 
     @staticmethod
     def extract_button_states(data):
-        def nth_bit(byte, bit):
-            return (byte & (1 << bit)) != 0
-
-        def expand_byte(byte):
-            return [nth_bit(byte, x) for x in range(8)]
-
-        return reduce(
-            lambda x, y: x + y,
-            map(expand_byte, data),
-            []
-        )
+        return bits_to_bool_list(data)
 # Device Information Service
 
 
