@@ -1,8 +1,13 @@
+from collections import namedtuple
+
 import math
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
 import struct
+
+
+DcMotorStatus = namedtuple("DcMotorStatus", ['position', 'speed', 'power'])
 
 
 def create_motor_port_handler(interface: RevvyControl, configs: dict):
@@ -109,4 +114,4 @@ class DcMotorController:
         self._power = power
         self._pos_reached = pos_reached
 
-        return {'position': pos, 'speed': speed, 'power': power}
+        return DcMotorStatus(position=pos, speed=speed, power=power)

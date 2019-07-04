@@ -1,7 +1,11 @@
+from collections import namedtuple
 from threading import Lock, Event
 
 from revvy.activation import EdgeTrigger
 from revvy.thread_wrapper import ThreadWrapper, ThreadContext
+
+
+RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons'])
 
 
 class RemoteController:
@@ -55,23 +59,23 @@ class RemoteController:
 
             self._buttonStates = [False] * 32
 
-    def tick(self, message):
+    def tick(self, message: RemoteControllerCommand):
         # copy states
         with self._button_mutex:
-            self._analogStates = message['analog']
+            self._analogStates = message.analog
 
         # handle analog channels
         for handler in self._analogActions:
             # check if all channels are present in the message
             try:
-                handler['action']([message['analog'][x] for x in handler['channels']])
+                handler['action']([message.analog[x] for x in handler['channels']])
             except IndexError:
                 print('Skip analog handler for channels {}'.format(", ".join(map(str, handler['channels']))))
 
         # handle button presses
         for idx in range(len(self._buttonHandlers)):
             with self._button_mutex:
-                self._buttonHandlers[idx].handle(message['buttons'][idx])
+                self._buttonHandlers[idx].handle(message.buttons[idx])
 
     def on_button_pressed(self, button, action):
         self._buttonHandlers[button].on_rising_edge(action)
@@ -96,7 +100,7 @@ class RemoteControllerScheduler:
         self._data_mutex = Lock()
         self._message = None
 
-    def data_ready(self, message):
+    def data_ready(self, message: RemoteControllerCommand):
         with self._data_mutex:
             self._message = message
         self._data_ready_event.set()

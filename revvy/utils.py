@@ -107,7 +107,7 @@ class RobotManager:
             if config_name != 'NotConfigured':
                 def _update_motor():
                     value = motor.get_status()
-                    self._ble['live_message_service'].update_motor(motor.id, value['power'], value['speed'], value['position'])
+                    self._ble['live_message_service'].update_motor(motor.id, value.power, value.speed, value.position)
 
                 self._reader.add(port_name, _update_motor)
             else:
@@ -118,7 +118,7 @@ class RobotManager:
             if config_name != 'NotConfigured':
                 def _update_sensor():
                     value = sensor.read()
-                    self._ble['live_message_service'].update_sensor(sensor.id, value['raw'])
+                    self._ble['live_message_service'].update_sensor(sensor.id, value.raw)
 
                 self._reader.add(port_name, _update_sensor)
             else:
@@ -243,8 +243,8 @@ class RobotManager:
 
         def _update_battery():
             battery = self._robot.get_battery_status()
-            self._ble['battery_service'].characteristic('main_battery').update_value(battery['main'])
-            self._ble['battery_service'].characteristic('motor_battery').update_value(battery['motor'])
+            self._ble['battery_service'].characteristic('main_battery').update_value(battery.main)
+            self._ble['battery_service'].characteristic('motor_battery').update_value(battery.motor)
 
         self._reader.add('battery', _update_battery)
 

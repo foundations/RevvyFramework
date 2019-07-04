@@ -117,9 +117,9 @@ class TestCommandTypes(unittest.TestCase):
         self.assertRaises(AssertionError, battery)
 
         result = battery()
-        self.assertEqual(1, result['chargerStatus'])  # TODO make this not an int?
-        self.assertEqual(30, result['main'])
-        self.assertEqual(50, result['motor'])
+        self.assertEqual(1, result.chargerStatus)  # TODO make this not an int?
+        self.assertEqual(30, result.main)
+        self.assertEqual(50, result.motor)
 
     def test_set_master_status_payload_is_one_byte(self):
         mock_transport = MockTransport([

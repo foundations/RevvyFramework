@@ -1,7 +1,11 @@
 import struct
+from collections import namedtuple
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
+
+
+SensorValue = namedtuple('SensorValue', ['raw', 'converted'])
 
 
 def create_sensor_port_handler(interface: RevvyControl, configs: dict):
@@ -35,7 +39,7 @@ class BaseSensorPortDriver:
         if converted is not None:
             self._value = converted
 
-        return {'raw': raw, 'converted': self._value}
+        return SensorValue(raw=raw, converted=self._value)
 
     @property
     def value(self):

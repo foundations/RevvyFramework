@@ -1,5 +1,6 @@
 import struct
 from abc import ABC
+from collections import namedtuple
 
 from revvy.version import Version
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
@@ -67,17 +68,20 @@ class ReadFirmwareVersionCommand(ReadVersionCommand):
     def command_id(self): return 0x02
 
 
+BatteryStatus = namedtuple('BatteryStatus', ['chargerStatus', 'main', 'motor'])
+
+
 class ReadBatteryStatusCommand(Command):
     @property
     def command_id(self): return 0x03
 
     def parse_response(self, payload):
         assert len(payload) == 3
-        return {
-            'chargerStatus': int(payload[0]),
-            'main': int(payload[1]),
-            'motor': int(payload[2])
-        }
+        return BatteryStatus(
+            chargerStatus=int(payload[0]),
+            main=int(payload[1]),
+            motor=int(payload[2])
+        )
 
 
 class SetMasterStatusCommand(Command):

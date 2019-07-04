@@ -8,6 +8,7 @@ from json import JSONDecodeError
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 from revvy.bluetooth.longmessage import hexdigest2bytes, bytes2hexdigest, MessageType, LongMessageError
 from revvy.functions import bits_to_bool_list
+from revvy.robot.remote_controller import RemoteControllerCommand
 
 
 class BleService(BlenoPrimaryService):
@@ -236,11 +237,11 @@ class LiveMessageService(BlenoPrimaryService):
 
     def simple_control_callback(self, data):
         # print(repr(data))
-        counter = data[0]
+        # counter = data[0]
         analog_values = data[1:11]
         button_values = self.extract_button_states(data[11:15])
 
-        self._message_handler({'counter': counter, 'analog': analog_values, 'buttons': button_values})
+        self._message_handler(RemoteControllerCommand(analog=analog_values, buttons=button_values))
         return True
 
     def update_sensor(self, sensor, value):

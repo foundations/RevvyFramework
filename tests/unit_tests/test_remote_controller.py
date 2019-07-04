@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from revvy.robot.remote_controller import RemoteController
+from revvy.robot.remote_controller import RemoteController, RemoteControllerCommand
 
 
 class TestRemoteController(unittest.TestCase):
@@ -16,14 +16,14 @@ class TestRemoteController(unittest.TestCase):
         for i in range(32):
             buttons = [False] * 32
 
-            rc.tick({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick(RemoteControllerCommand(buttons=buttons, analog=[0] * 10))
 
             # ith button is pressed
             buttons[i] = True
-            rc.tick({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick(RemoteControllerCommand(buttons=buttons, analog=[0] * 10))
 
             # button is kept pressed
-            rc.tick({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick(RemoteControllerCommand(buttons=buttons, analog=[0] * 10))
 
             for j in range(32):
                 self.assertEqual(mocks[j].call_count, 1 if i == j else 0)
@@ -31,14 +31,14 @@ class TestRemoteController(unittest.TestCase):
 
     def test_last_button_pressed_state_can_be_read(self):
         rc = RemoteController()
-        rc.tick({'buttons': [False] * 32, 'analog': []})
+        rc.tick(RemoteControllerCommand(buttons=[False] * 32, analog=[0] * 10))
 
         for i in range(32):
             buttons = [False] * 32
             # ith button is pressed
             buttons[i] = True
 
-            rc.tick({'buttons': buttons, 'analog': [0] * 10})
+            rc.tick(RemoteControllerCommand(buttons=buttons, analog=[0] * 10))
 
             for j in range(32):
                 self.assertEqual(buttons[i], rc.is_button_pressed(i))
@@ -51,7 +51,7 @@ class TestRemoteController(unittest.TestCase):
             # ith button is pressed
             analog[i] = 255
 
-            rc.tick({'buttons': [False] * 32, 'analog': analog})
+            rc.tick(RemoteControllerCommand(buttons=[False]*32, analog=analog))
 
             for j in range(10):
                 self.assertEqual(analog[i], rc.analog_value(i))
@@ -66,7 +66,7 @@ class TestRemoteController(unittest.TestCase):
         rc.on_analog_values([3], mock3)
         rc.on_analog_values([3, 11], mock_invalid)
 
-        rc.tick({'buttons': [False] * 32, 'analog': [255, 254, 253, 123, 43, 65, 45, 42]})
+        rc.tick(RemoteControllerCommand(buttons=[False] * 32, analog=[255, 254, 253, 123, 43, 65, 45, 42]))
 
         self.assertEqual(mock24.call_count, 1)
         self.assertEqual(mock3.call_count, 1)
@@ -84,14 +84,14 @@ class TestRemoteController(unittest.TestCase):
     def test_reset_removed_button_and_analog_handlers_and_clears_stored_data(self):
         mock = Mock()
         rc = RemoteController()
-        rc.tick({'buttons': [False] * 32, 'analog': []})
+        rc.tick(RemoteControllerCommand(buttons=[False] * 32, analog=[]))
 
         rc.on_analog_values([2, 4], mock)
         rc.on_analog_values([3], mock)
 
         rc.on_button_pressed(5, mock)
 
-        rc.tick({'buttons': [True] * 32, 'analog': [255, 254, 253, 123, 43, 65, 45, 42]})
+        rc.tick(RemoteControllerCommand(buttons=[True] * 32, analog=[255, 254, 253, 123, 43, 65, 45, 42]))
 
         self.assertEqual(3, mock.call_count)
         self.assertEqual(254, rc.analog_value(1))
@@ -104,7 +104,7 @@ class TestRemoteController(unittest.TestCase):
         self.assertEqual(0, rc.analog_value(1))
         self.assertFalse(rc.is_button_pressed(1))
 
-        rc.tick({'buttons': [True] * 32, 'analog': [255, 254, 253, 123, 43, 65, 45, 42]})
+        rc.tick(RemoteControllerCommand(buttons=[True] * 32, analog=[255, 254, 253, 123, 43, 65, 45, 42]))
 
         self.assertEqual(0, mock.call_count)
 
@@ -114,23 +114,23 @@ class TestRemoteController(unittest.TestCase):
 
         rc.on_button_pressed(5, mock)
 
-        rc.tick({'buttons': [True] * 32, 'analog': []})
+        rc.tick(RemoteControllerCommand(buttons=[True] * 32, analog=[]))
 
         self.assertEqual(0, mock.call_count)
         self.assertFalse(rc.is_button_pressed(1))
 
-        rc.tick({'buttons': [False] * 32, 'analog': []})
-        rc.tick({'buttons': [True] * 32, 'analog': []})
+        rc.tick(RemoteControllerCommand(buttons=[False] * 32, analog=[]))
+        rc.tick(RemoteControllerCommand(buttons=[True] * 32, analog=[]))
 
         self.assertEqual(1, mock.call_count)
         self.assertTrue(rc.is_button_pressed(1))
 
-        rc.tick({'buttons': [False] * 32, 'analog': []})
+        rc.tick(RemoteControllerCommand(buttons=[False] * 32, analog=[]))
         mock.reset_mock()
         rc.reset()
 
-        rc.tick({'buttons': [True] * 32, 'analog': []})
-        rc.tick({'buttons': [True] * 32, 'analog': []})
+        rc.tick(RemoteControllerCommand(buttons=[True] * 32, analog=[]))
+        rc.tick(RemoteControllerCommand(buttons=[True] * 32, analog=[]))
 
         self.assertEqual(0, mock.call_count)
         self.assertFalse(rc.is_button_pressed(1))
