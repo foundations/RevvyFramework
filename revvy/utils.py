@@ -17,65 +17,135 @@ from revvy.mcu.rrrc_transport import *
 from revvy.fw_version import *
 
 
-class Motors:
-    types = {
-        'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
-        'RevvyMotor':    {
-            'driver': 'DcMotor',
-            'config': {
-                'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -900, 900],
-                'position_limits':     [0, 0],
-                'encoder_resolution':  1168
-            }
-        },
-        'RevvyMotor_CCW':    {
-            'driver': 'DcMotor',
-            'config': {
-                'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -900, 900],
-                'position_limits':     [0, 0],
-                'encoder_resolution': -1168
-            }
-        },
-        'RevvyMotor_Dexter':    {
-            'driver': 'DcMotor',
-            'config': {
-                'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -900, 900],
-                'position_limits':     [0, 0],
-                'encoder_resolution':  292
-            }
-        },
-        'RevvyMotor_Dexter_CCW':    {
-            'driver': 'DcMotor',
-            'config': {
-                'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-                'position_controller': [10, 0, 0, -900, 900],
-                'position_limits':     [0, 0],
-                'encoder_resolution': -292
-            }
+Motors = {
+    'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
+    'RevvyMotor':    {
+        'driver': 'DcMotor',
+        'config': {
+            'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
+            'position_controller': [10, 0, 0, -900, 900],
+            'position_limits':     [0, 0],
+            'encoder_resolution':  1168
+        }
+    },
+    'RevvyMotor_CCW': {
+        'driver': 'DcMotor',
+        'config': {
+            'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
+            'position_controller': [10, 0, 0, -900, 900],
+            'position_limits':     [0, 0],
+            'encoder_resolution':  -1168
+        }
+    },
+    'RevvyMotor_Dexter': {
+        'driver': 'DcMotor',
+        'config': {
+            'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
+            'position_controller': [10, 0, 0, -900, 900],
+            'position_limits':     [0, 0],
+            'encoder_resolution':  292
+        }
+    },
+    'RevvyMotor_Dexter_CCW': {
+        'driver': 'DcMotor',
+        'config': {
+            'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
+            'position_controller': [10, 0, 0, -900, 900],
+            'position_limits':     [0, 0],
+            'encoder_resolution':  -292
         }
     }
+}
 
 
-class Sensors:
-    types = {
-        'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
-        'HC_SR04': {'driver': 'HC_SR04', 'config': {}},
-        'BumperSwitch': {'driver': 'BumperSwitch', 'config': {}},
-    }
+Sensors = {
+    'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
+    'HC_SR04':       {'driver': 'HC_SR04', 'config': {}},
+    'BumperSwitch':  {'driver': 'BumperSwitch', 'config': {}},
+}
+
+
+class RobotStatus:
+    StartingUp = 0
+    NotConfigured = 1
+    Configured = 2
+    Stopped = 3
+
+
+class RemoteControllerStatus:
+    NotConnected = 0
+    ConnectedNoControl = 1
+    Controlled = 2
+
+
+class RobotStatusIndicator:
+    master_led_not_configured = 0
+    master_led_configured = 1
+    master_led_controlled = 2
+
+    bluetooth_led_not_connected = 0
+    bluetooth_led_connected = 1
+
+    def __init__(self, interface: RevvyControl):
+        self._interface = interface
+
+        self._robot_status = RobotStatus.StartingUp
+        self._controller_status = RemoteControllerStatus.NotConnected
+
+        self._master_led = None
+        self._bluetooth_led = None
+
+        self._update_leds()
+
+    def _set_master_led(self, value):
+        if value != self._master_led:
+            self._master_led = value
+            self._interface.set_master_status(self._master_led)
+
+    def _set_bluetooth_led(self, value):
+        if value != self._bluetooth_led:
+            self._bluetooth_led = value
+            self._interface.set_bluetooth_connection_status(self._bluetooth_led == self.bluetooth_led_connected)
+
+    def update(self):
+        self._interface.set_master_status(self._master_led)
+        self._interface.set_bluetooth_connection_status(self._bluetooth_led == self.bluetooth_led_connected)
+
+    def _update_leds(self):
+        if self._robot_status == RobotStatus.Configured:
+            if self._controller_status == RemoteControllerStatus.Controlled:
+                self._set_master_led(self.master_led_controlled)
+            else:
+                self._set_master_led(self.master_led_configured)
+        else:
+            self._set_master_led(self.master_led_not_configured)
+
+        if self._controller_status == RemoteControllerStatus.NotConnected:
+            self._set_bluetooth_led(self.bluetooth_led_not_connected)
+        else:
+            self._set_bluetooth_led(self.bluetooth_led_connected)
+
+    @property
+    def robot_status(self):
+        return self._robot_status
+
+    @robot_status.setter
+    def robot_status(self, value):
+        if self._robot_status != RobotStatus.Stopped:
+            self._robot_status = value
+            self._update_leds()
+
+    @property
+    def controller_status(self):
+        return self._controller_status
+
+    @controller_status.setter
+    def controller_status(self, value):
+        self._controller_status = value
+        self._update_leds()
 
 
 class RobotManager:
-    StatusStartingUp = 0
-    StatusNotConfigured = 1
-    StatusConfigured = 2
-    StatusStopped = 3
-
-    status_led_not_configured = 0
-    status_led_configured = 1
-    status_led_controlled = 2
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
     def __init__(self, robot: RevvyControl, revvy, sound, default_config=None):
@@ -86,6 +156,7 @@ class RobotManager:
         self._is_connected = False
         self._default_configuration = default_config if default_config is not None else RobotConfig()
         self._sound = sound
+        self._status = RobotStatusIndicator(robot)
 
         self._reader = FunctionSerializer(self._robot.ping)
         self._data_dispatcher = DataDispatcher()
@@ -107,16 +178,16 @@ class RobotManager:
         self._ring_led = RingLed(self._robot)
 
         self._resources = {
-            'led_ring': Resource(),
+            'led_ring':   Resource(),
             'drivetrain': Resource(),
-            'sound': Resource()
+            'sound':      Resource()
         }
-        self._motor_ports = create_motor_port_handler(self._robot, Motors.types)
+        self._motor_ports = create_motor_port_handler(self._robot, Motors)
         for port in self._motor_ports:
             port.on_config_changed(self._motor_config_changed)
             self._resources['motor_{}'.format(port.id)] = Resource()
 
-        self._sensor_ports = create_sensor_port_handler(self._robot, Sensors.types)
+        self._sensor_ports = create_sensor_port_handler(self._robot, Sensors)
         for port in self._sensor_ports:
             port.on_config_changed(self._sensor_config_changed)
             self._resources['sensor_{}'.format(port.id)] = Resource()
@@ -130,7 +201,6 @@ class RobotManager:
         self._config = self._default_configuration
 
         self._update_requested = False
-        self._status = self.StatusStartingUp
 
     @property
     def start_time(self):
@@ -157,31 +227,28 @@ class RobotManager:
 
     def start(self):
         print("RobotManager: start()")
-        if self._status != self.StatusStartingUp:
-            return
+        if self._status.robot_status == RobotStatus.StartingUp:
+            print("Waiting for MCU")
+            # TODO if we are getting stuck here (> ~3s), firmware is probably not valid
+            self._ping_robot()
 
-        print("Waiting for MCU")
-        # TODO if we are getting stuck here (> ~3s), firmware is probably not valid
-        self._ping_robot()
+            # read versions
+            hw = self._robot.get_hardware_version()
+            fw = self._robot.get_firmware_version()
+            sw = FRAMEWORK_VERSION
 
-        # read versions
-        hw = self._robot.get_hardware_version()
-        fw = self._robot.get_firmware_version()
-        sw = FRAMEWORK_VERSION
+            print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
-        print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
+            self._ble['device_information_service'].characteristic('hw_version').update(str(hw))
+            self._ble['device_information_service'].characteristic('fw_version').update(str(fw))
+            self._ble['device_information_service'].characteristic('sw_version').update(sw)
 
-        self._ble['device_information_service'].characteristic('hw_version').update(str(hw))
-        self._ble['device_information_service'].characteristic('fw_version').update(str(fw))
-        self._ble['device_information_service'].characteristic('sw_version').update(sw)
+            # start reader thread
+            self._status_update_thread.start()
 
-        # start reader thread
-        self._status_update_thread.start()
-        self._robot.set_bluetooth_connection_status(False)
-
-        self._ble.start()
-
-        self.configure(None)
+            self._ble.start()
+            self._status.robot_status = RobotStatus.NotConfigured
+            self.configure(None)
 
     def _motor_config_changed(self, motor: PortInstance, config_name):
         motor_name = 'motor_{}'.format(motor.id)
@@ -227,19 +294,21 @@ class RobotManager:
 
     def _on_connection_changed(self, is_connected):
         print('Phone connected' if is_connected else 'Phone disconnected')
-        self._is_connected = is_connected
-        self._robot.set_bluetooth_connection_status(is_connected)
         if not is_connected:
+            self._status.controller_status = RemoteControllerStatus.NotConnected
             self.configure(None)
+        else:
+            self._status.controller_status = RemoteControllerStatus.ConnectedNoControl
 
     def _on_controller_detected(self):
         print('Controller detected')
-        if self._status == self.StatusConfigured:
-            self._robot.set_master_status(self.status_led_controlled)
+        self._status.controller_status = RemoteControllerStatus.Controlled
 
     def _on_controller_lost(self):
         print('Controller lost')
-        self.configure(None)
+        if self._status.controller_status == RemoteControllerStatus.Controlled:
+            self._status.controller_status = RemoteControllerStatus.ConnectedNoControl
+            self.configure(None)
 
     def _update_sensor(self, sid, value):
         self._ble['live_message_service'].update_sensor(sid, value['raw'])
@@ -253,17 +322,14 @@ class RobotManager:
 
     def configure(self, config):
         print('RobotManager: configure()')
-        if self._status != self.StatusStopped:
+        if self._status.robot_status != RobotStatus.Stopped:
             self.run_in_background(lambda: self._configure(config))
 
     def _configure(self, config):
         with self._config_lock:
-            if not config:
-                status = self.status_led_not_configured
-            else:
-                status = self.status_led_configured
+            is_configured = True if config else False
 
-            if not config and self._status != self.StatusStopped:
+            if not config and self._status.robot_status != RobotStatus.Stopped:
                 config = self._default_configuration
             self._config = config
 
@@ -275,7 +341,6 @@ class RobotManager:
             self._ping_robot()
 
             self._ring_led.set_scenario(RingLed.BreathingGreen)
-            self._robot.set_bluetooth_connection_status(self._is_connected)
 
             # set up status reader, data dispatcher
             self._reader.reset()
@@ -290,7 +355,8 @@ class RobotManager:
             self._motor_ports.reset()
             self._sensor_ports.reset()
 
-            self._set_status(self.StatusNotConfigured)
+            self._status.robot_status = RobotStatus.NotConfigured
+            self._status.update()
 
             if config:
                 # apply new configuration
@@ -331,25 +397,23 @@ class RobotManager:
                 self._remote_controller_thread.start()
 
                 print('Robot configured')
-                self._set_status(self.StatusConfigured)
 
                 # start background scripts
                 for script in config.background_scripts:
                     self._scripts[script].start()
 
-            self._robot.set_master_status(status)
+            if is_configured:
+                self._status.robot_status = RobotStatus.Configured
+            else:
+                self._status.robot_status = RobotStatus.NotConfigured
 
     def stop(self):
         print("Stopping robot manager")
-        self._status = self.StatusStopped
+        self._status.robot_status = RobotStatus.Stopped
         self._remote_controller_thread.exit()
         self._ble.stop()
         self._scripts.reset()
         self._status_update_thread.exit()
-
-    def _set_status(self, status):
-        if self._status != self.StatusStopped:
-            self._status = status
 
     def _ping_robot(self):
         retry_ping = True
