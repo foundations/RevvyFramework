@@ -233,6 +233,9 @@ class RobotManager:
         self._scripts.assign('Motor', MotorConstants)
         self._scripts.assign('RingLed', RingLed)
 
+        for res in self._resources:
+            self._resources[res].reset()
+
         # ping robot, because robot may reset after stopping scripts
         self._ping_robot()
 

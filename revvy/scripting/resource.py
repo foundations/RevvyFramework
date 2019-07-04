@@ -27,14 +27,21 @@ class ResourceHandle:
 class Resource:
     def __init__(self):
         self._lock = Lock()
-        self._current_priority = 0
+        self._current_priority = -1
         self._active_handle = None
+
+    def reset(self):
+        with self._lock:
+            self._current_priority = -1
+            self._active_handle = None
 
     def request(self, with_priority=0, on_taken_away=lambda: None):
         with self._lock:
             if self._active_handle is None:
                 self._current_priority = with_priority
                 self._active_handle = ResourceHandle(self, on_taken_away)
+                return self._active_handle
+            elif self._current_priority == with_priority:
                 return self._active_handle
             elif self._current_priority > with_priority:
                 self._active_handle.interrupt()
