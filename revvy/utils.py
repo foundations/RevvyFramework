@@ -7,6 +7,7 @@ from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import create_motor_port_handler
 from revvy.robot.ports.sensor import create_sensor_port_handler
+from revvy.robot.status import RobotStatus, RemoteControllerStatus, RobotStatusIndicator
 from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
@@ -63,86 +64,6 @@ Sensors = {
     'HC_SR04':       {'driver': 'HC_SR04', 'config': {}},
     'BumperSwitch':  {'driver': 'BumperSwitch', 'config': {}},
 }
-
-
-class RobotStatus:
-    StartingUp = 0
-    NotConfigured = 1
-    Configured = 2
-    Stopped = 3
-
-
-class RemoteControllerStatus:
-    NotConnected = 0
-    ConnectedNoControl = 1
-    Controlled = 2
-
-
-class RobotStatusIndicator:
-    master_led_not_configured = 0
-    master_led_configured = 1
-    master_led_controlled = 2
-
-    bluetooth_led_not_connected = 0
-    bluetooth_led_connected = 1
-
-    def __init__(self, interface: RevvyControl):
-        self._interface = interface
-
-        self._robot_status = RobotStatus.StartingUp
-        self._controller_status = RemoteControllerStatus.NotConnected
-
-        self._master_led = None
-        self._bluetooth_led = None
-
-        self._update_leds()
-
-    def _set_master_led(self, value):
-        if value != self._master_led:
-            self._master_led = value
-            self._interface.set_master_status(self._master_led)
-
-    def _set_bluetooth_led(self, value):
-        if value != self._bluetooth_led:
-            self._bluetooth_led = value
-            self._interface.set_bluetooth_connection_status(self._bluetooth_led == self.bluetooth_led_connected)
-
-    def update(self):
-        self._interface.set_master_status(self._master_led)
-        self._interface.set_bluetooth_connection_status(self._bluetooth_led == self.bluetooth_led_connected)
-
-    def _update_leds(self):
-        if self._robot_status == RobotStatus.Configured:
-            if self._controller_status == RemoteControllerStatus.Controlled:
-                self._set_master_led(self.master_led_controlled)
-            else:
-                self._set_master_led(self.master_led_configured)
-        else:
-            self._set_master_led(self.master_led_not_configured)
-
-        if self._controller_status == RemoteControllerStatus.NotConnected:
-            self._set_bluetooth_led(self.bluetooth_led_not_connected)
-        else:
-            self._set_bluetooth_led(self.bluetooth_led_connected)
-
-    @property
-    def robot_status(self):
-        return self._robot_status
-
-    @robot_status.setter
-    def robot_status(self, value):
-        if self._robot_status != RobotStatus.Stopped:
-            self._robot_status = value
-            self._update_leds()
-
-    @property
-    def controller_status(self):
-        return self._controller_status
-
-    @controller_status.setter
-    def controller_status(self, value):
-        self._controller_status = value
-        self._update_leds()
 
 
 class RobotManager:
@@ -301,11 +222,9 @@ class RobotManager:
             self._status.controller_status = RemoteControllerStatus.ConnectedNoControl
 
     def _on_controller_detected(self):
-        print('Controller detected')
         self._status.controller_status = RemoteControllerStatus.Controlled
 
     def _on_controller_lost(self):
-        print('Controller lost')
         if self._status.controller_status == RemoteControllerStatus.Controlled:
             self._status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.configure(None)
@@ -408,7 +327,6 @@ class RobotManager:
                 self._status.robot_status = RobotStatus.NotConfigured
 
     def stop(self):
-        print("Stopping robot manager")
         self._status.robot_status = RobotStatus.Stopped
         self._remote_controller_thread.exit()
         self._ble.stop()
