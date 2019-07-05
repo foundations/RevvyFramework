@@ -1,6 +1,25 @@
 from revvy.mcu.rrrc_control import RevvyControl
 
 
+class PortCollection:
+    def __init__(self, ports):
+        self._ports = list(ports)
+        self._alias_map = {}
+
+    @property
+    def aliases(self):
+        return self._alias_map
+
+    def __getitem__(self, item):
+        if type(item) is str:
+            item = self._alias_map[item]
+
+        return self._ports[item - 1]
+
+    def __iter__(self):
+        return self._ports.__iter__()
+
+
 class PortHandler:
     def __init__(self, interface: RevvyControl, configs: dict, drivers: dict, amount: int, supported: dict):
         self._drivers = drivers

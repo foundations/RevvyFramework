@@ -1,7 +1,7 @@
 import time
 
 from revvy.functions import hex2rgb
-from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.common import PortInstance, PortCollection
 
 
 class ResourceWrapper:
@@ -95,21 +95,6 @@ class RingLedWrapper(Wrapper):
             self._user_leds[idx - 1] = rgb
 
         self.using_resource(lambda: self._ring_led.display_user_frame(self._user_leds))
-
-
-class PortCollection:
-    def __init__(self, ports, names: dict):
-        self._ports = list(ports)
-        self._portNameMap = names
-
-    def __getitem__(self, item):
-        if type(item) is str:
-            item = self._portNameMap[item]
-
-        return self._ports[item - 1]
-
-    def __iter__(self):
-        return self._ports.__iter__()
 
 
 class MotorConstants:
@@ -341,8 +326,10 @@ class RobotInterface:
 
         motor_wrappers = [MotorPortWrapper(script, port, resources['motor_{}'.format(port.id)]) for port in robot._motor_ports]
         sensor_wrappers = [SensorPortWrapper(script, port, resources['sensor_{}'.format(port.id)]) for port in robot._sensor_ports]
-        self._motors = PortCollection(motor_wrappers, robot.config.motors.names)
-        self._sensors = PortCollection(sensor_wrappers, robot.config.sensors.names)
+        self._motors = PortCollection(motor_wrappers)
+        self._sensors = PortCollection(sensor_wrappers)
+        self._motors.aliases.update(robot.config.motors.names)
+        self._sensors.aliases.update(robot.config.sensors.names)
         self._sound = SoundWrapper(script, robot.sound, resources['sound'])
         self._ring_led = RingLedWrapper(script, robot._ring_led, resources['led_ring'])
         self._drivetrain = DriveTrainWrapper(script, robot._drivetrain, resources['drivetrain'])
