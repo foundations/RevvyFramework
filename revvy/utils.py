@@ -74,7 +74,6 @@ class RobotManager:
         self._start_time = time.time()
         self._robot = robot
         self._ble = revvy
-        self._is_connected = False
         self._default_configuration = default_config if default_config is not None else RobotConfig()
         self._sound = sound
         self._status = RobotStatusIndicator(robot)
