@@ -298,14 +298,6 @@ class DriveTrainWrapper(Wrapper):
                     resource.release()
 
 
-class RemoteControllerWrapper:
-    def __init__(self, remote_controller):
-        self._remote_controller = remote_controller
-
-        self.is_button_pressed = remote_controller.is_button_pressed
-        self.analog_value = remote_controller.analog_value
-
-
 class SoundWrapper(Wrapper):
     def __init__(self, script, sound, resource):
         super().__init__(script, resource)
@@ -319,21 +311,20 @@ class SoundWrapper(Wrapper):
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
 
-    def __init__(self, script, robot, priority=0):
+    def __init__(self, script, robot, config, res, priority=0):
         self._start_time = robot.start_time
 
-        resources = {name: ResourceWrapper(robot.resources[name], priority) for name in robot.resources}
+        resources = {name: ResourceWrapper(res[name], priority) for name in res}
 
-        motor_wrappers = [MotorPortWrapper(script, port, resources['motor_{}'.format(port.id)]) for port in robot._motor_ports]
-        sensor_wrappers = [SensorPortWrapper(script, port, resources['sensor_{}'.format(port.id)]) for port in robot._sensor_ports]
+        motor_wrappers = [MotorPortWrapper(script, port, resources['motor_{}'.format(port.id)]) for port in robot.motors]
+        sensor_wrappers = [SensorPortWrapper(script, port, resources['sensor_{}'.format(port.id)]) for port in robot.sensors]
         self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
-        self._motors.aliases.update(robot.config.motors.names)
-        self._sensors.aliases.update(robot.config.sensors.names)
+        self._motors.aliases.update(config.motors.names)
+        self._sensors.aliases.update(config.sensors.names)
         self._sound = SoundWrapper(script, robot.sound, resources['sound'])
-        self._ring_led = RingLedWrapper(script, robot._ring_led, resources['led_ring'])
-        self._drivetrain = DriveTrainWrapper(script, robot._drivetrain, resources['drivetrain'])
-        self._remote_controller = RemoteControllerWrapper(robot._remote_controller)
+        self._ring_led = RingLedWrapper(script, robot.led_ring, resources['led_ring'])
+        self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, resources['drivetrain'])
 
         self._script = script
 
@@ -360,10 +351,6 @@ class RobotInterface:
     @property
     def drivetrain(self):
         return self._drivetrain
-
-    @property
-    def controller(self):
-        return self._remote_controller
 
     def play_note(self): pass  # TODO
 

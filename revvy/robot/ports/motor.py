@@ -15,13 +15,18 @@ def create_motor_port_handler(interface: RevvyControl, configs: dict):
     port_types = interface.get_motor_port_types()
 
     drivers = {
-        'NotConfigured': lambda port, cfg: None,
+        'NotConfigured': lambda port, cfg: NullMotor(),
         'DcMotor':       lambda port, cfg: DcMotorController(port, cfg)
     }
     handler = PortHandler(interface, configs, drivers, port_amount, port_types)
     handler._set_port_type = interface.set_motor_port_type
 
     return handler
+
+
+class NullMotor:
+    def on_status_changed(self, cb):
+        pass
 
 
 class DcMotorController:
@@ -50,6 +55,16 @@ class DcMotorController:
         print('{}: Sending configuration: {}'.format(self._name, config))
 
         self._configure(config)
+        self._status_changed_callback = lambda p: None
+
+    def on_status_changed(self, cb):
+        if not callable(cb):
+            cb = lambda p: None
+
+        self._status_changed_callback = cb
+
+    def _raise_status_changed_callback(self):
+        self._status_changed_callback(self)
 
     @property
     def speed(self):
@@ -114,4 +129,5 @@ class DcMotorController:
         self._power = power
         self._pos_reached = pos_reached
 
+        self._raise_status_changed_callback()
         return DcMotorStatus(position=pos, speed=speed, power=power)

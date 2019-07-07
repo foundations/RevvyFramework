@@ -6,19 +6,36 @@ from revvy.scripting.robot_interface import RobotInterface
 from revvy.scripting.runtime import ScriptManager, Event
 
 
+class mockobj:
+    pass
+
+
 def create_robot_mock():
-    robot_mock = Mock()
-    robot_mock._ring_led = Mock()
-    robot_mock._ring_led.count = 6
+
+    robot_mock = mockobj()
     robot_mock.resources = {
         'led_ring': Resource(),
         'drivetrain': Resource(),
         'sound': Resource()
     }
-    robot_mock._motor_ports = []
-    robot_mock._sensor_ports = []
-    robot_mock._remote_controller = Mock()
-    robot_mock._remote_controller.is_button_pressed = Mock(return_value=False)
+    robot_mock.robot = mockobj()
+    robot_mock.robot.start_time = 0
+    robot_mock.robot.motors = []
+    robot_mock.robot.sensors = []
+
+    robot_mock.config = mockobj()
+    robot_mock.config.motors = mockobj()
+    robot_mock.config.motors.__iter__ = lambda: []
+    robot_mock.config.motors.names = {}
+
+    robot_mock.config.sensors = mockobj()
+    robot_mock.config.sensors.__iter__ = lambda: []
+    robot_mock.config.sensors.names = {}
+
+    robot_mock.robot.drivetrain = mockobj()
+    robot_mock.robot.sound = mockobj()
+    robot_mock.robot.led_ring = mockobj()
+    robot_mock.robot.led_ring.count = 0
 
     return robot_mock
 

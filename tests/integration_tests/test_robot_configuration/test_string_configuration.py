@@ -45,8 +45,12 @@ class TestPortConfiguration(unittest.TestCase):
             "blocklyList": []
         }'''
         config = RobotConfig.from_string(config_str)
-        motors = PortCollection([2, 3, 5, 7], config.motors.names)
-        sensors = PortCollection([3, 5, 7, 9], config.sensors.names)
+
+        motors = PortCollection([2, 3, 5, 7])
+        motors.aliases.update(config.motors.names)
+
+        sensors = PortCollection([3, 5, 7, 9])
+        sensors.aliases.update(config.sensors.names)
 
         self.assertEqual(3, motors["M2"])
         self.assertEqual(9, sensors["S4"])

@@ -62,7 +62,7 @@ class PortInstance:
         self._port_idx = port_idx
         self._owner = owner
         self._interface = interface
-        self._driver = None
+        self._driver = owner._drivers["NotConfigured"](self, None)
         self._config_changed_callback = lambda port, cfg_name: None
         self._configuration = "NotConfigured"
 
