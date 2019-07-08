@@ -46,10 +46,12 @@ if __name__ == "__main__":
         'tools/',
         'manifest.json'
     ]
-    # package_path = 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION)
-    package_path = 'install/framework.data'
+    package_path = 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION)
+    data_path = 'install/framework.data'
     meta_file = 'install/framework.meta'
     create_package(package_sources, package_path)
+
+    shutil.copy(package_path, data_path)
 
     print('Remove downloaded packages')
     shutil.rmtree('install/packages')
