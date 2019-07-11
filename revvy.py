@@ -95,6 +95,7 @@ def start_revvy(config: RobotConfig = None):
             robot.robot.led_ring.set_scenario(RingLed.ColorWheel)
 
         def on_message_updated(storage, message_type):
+            robot.robot.led_ring.set_scenario(RingLed.BreathingGreen)
             print('Received message: {}'.format(message_type))
 
             if message_type == LongMessageType.TEST_KIT:
