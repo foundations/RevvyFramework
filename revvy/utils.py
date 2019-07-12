@@ -206,11 +206,9 @@ class RobotManager:
 
         for port in self._robot.motors:
             self._resources['motor_{}'.format(port.id)] = Resource()
-            port.on_status_changed(lambda p: self._ble['live_message_service'].update_motor(p.id, p.power, p.speed, p.position))
 
         for port in self._robot.sensors:
             self._resources['sensor_{}'.format(port.id)] = Resource()
-            port.on_value_changed(lambda p: self._ble['live_message_service'].update_sensor(p.id, p.raw_value))
 
         revvy['live_message_service'].register_message_handler(self._remote_controller_scheduler.data_ready)
         revvy.on_connection_changed(self._on_connection_changed)
@@ -324,6 +322,7 @@ class RobotManager:
         # set up motors
         for motor in self._robot.motors:
             motor.configure(config.motors[motor.id])
+            motor.on_status_changed(lambda p: self._ble['live_message_service'].update_motor(p.id, p.power, p.speed, p.position))
 
         for motor_id in config.drivetrain['left']:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
@@ -336,6 +335,7 @@ class RobotManager:
         # set up sensors
         for sensor in self._robot.sensors:
             sensor.configure(config.sensors[sensor.id])
+            sensor.on_value_changed(lambda p: self._ble['live_message_service'].update_sensor(p.id, p.raw_value))
 
         # set up scripts
         for name in config.scripts:

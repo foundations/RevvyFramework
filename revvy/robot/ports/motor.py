@@ -33,6 +33,7 @@ class DcMotorController:
     """Generic driver for dc motors"""
     def __init__(self, port: PortInstance, port_config):
         self._name = 'Motor {}'.format(port.id)
+        self._port = port
 
         self._configure = lambda cfg: port.interface.set_motor_port_config(port.id, cfg)
         self._control = lambda ctrl, value: port.interface.set_motor_port_control_value(port.id, [ctrl] + value)
@@ -64,7 +65,7 @@ class DcMotorController:
         self._status_changed_callback = cb
 
     def _raise_status_changed_callback(self):
-        self._status_changed_callback(self)
+        self._status_changed_callback(self._port)
 
     @property
     def speed(self):

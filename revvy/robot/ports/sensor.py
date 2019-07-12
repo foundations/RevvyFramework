@@ -69,7 +69,7 @@ class BaseSensorPortDriver:
         self._value_changed_callback = cb
 
     def _raise_value_changed_callback(self):
-        self._value_changed_callback(self)
+        self._value_changed_callback(self._port)
 
     def convert_sensor_value(self, raw): raise NotImplementedError
 
