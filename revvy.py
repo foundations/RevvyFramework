@@ -94,8 +94,10 @@ def start_revvy(config: RobotConfig = None):
         def on_upload_started():
             robot.robot.led_ring.set_scenario(RingLed.ColorWheel)
 
-        def on_message_updated(storage, message_type):
+        def on_transmission_finished():
             robot.robot.led_ring.set_scenario(RingLed.BreathingGreen)
+
+        def on_message_updated(storage, message_type):
             print('Received message: {}'.format(message_type))
 
             if message_type == LongMessageType.TEST_KIT:
@@ -118,6 +120,7 @@ def start_revvy(config: RobotConfig = None):
 
         device_name.subscribe(on_device_name_changed)
         long_message_handler.on_upload_started(on_upload_started)
+        long_message_handler.on_upload_finished(on_transmission_finished)
         long_message_handler.on_message_updated(on_message_updated)
 
         # noinspection PyBroadException

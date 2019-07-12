@@ -136,12 +136,16 @@ class LongMessageHandler:
         self._aggregator = None
         self._callback = lambda x, y: None
         self._upload_started_callback = lambda: None
+        self._upload_finished_callback = lambda: None
 
     def on_message_updated(self, callback):
         self._callback = callback
 
     def on_upload_started(self, callback):
         self._upload_started_callback = callback
+
+    def on_upload_finished(self, callback):
+        self._upload_finished_callback = callback
 
     def read_status(self):
         print("LongMessageHandler:read_status")
@@ -155,6 +159,9 @@ class LongMessageHandler:
         return LongMessageStatusInfo(LongMessageStatus.UPLOAD, self._aggregator.md5, len(self._aggregator.data))
 
     def select_long_message_type(self, long_message_type):
+        if self._status == "WRITE":
+            self._upload_finished_callback()
+
         print("LongMessageHandler:select_long_message_type")
         LongMessageType.validate(long_message_type)
         self._long_message_type = long_message_type
@@ -162,6 +169,10 @@ class LongMessageHandler:
 
     def init_transfer(self, md5):
         print("LongMessageHandler:init_transfer")
+
+        if self._status == "WRITE":
+            self._upload_finished_callback()
+
         if self._long_message_type is None:
             raise LongMessageError("init-transfer needs to be called after select_long_message_type")
         self._status = "WRITE"
@@ -176,13 +187,16 @@ class LongMessageHandler:
 
     def finalize_message(self):
         print("LongMessageHandler:finalize_message")
+
         if self._status == "READ":
+            # shortcut that activates a message which is already on the robot
             if self._long_message_type is None:
                 raise LongMessageError("init-transfer needs to be called before finalize_message")
             # observer must take care of verifying that there is actually a message
             self._callback(self._long_message_storage, self._long_message_type)
 
         elif self._status == "WRITE":
+            self._upload_finished_callback()
             if self._aggregator.finalize():
                 self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data,
                                                             self._aggregator.md5)
