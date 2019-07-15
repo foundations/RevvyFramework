@@ -119,7 +119,7 @@ class TestBumperSwitch(unittest.TestCase):
         self.assertFalse(sensor.value)
 
         sensor.read()
-        self.assertTrue(sensor.value)
+        self.assertFalse(sensor.value)
 
 
 class TestHcSr04(unittest.TestCase):
