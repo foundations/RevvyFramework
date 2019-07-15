@@ -188,7 +188,7 @@ class RobotManager:
         self._ble = revvy
         self._default_configuration = default_config if default_config is not None else RobotConfig()
 
-        self._status_update_thread = periodic(self._update, 0.1, "RobotStatusUpdaterThread")
+        self._status_update_thread = periodic(self._update, 0.02, "RobotStatusUpdaterThread")
         self._background_fn_lock = Lock()
         self._background_fns = []
 

@@ -1,2 +1,2 @@
 # This file is generated before each commit
-FRAMEWORK_VERSION = "0.1-r539-feature/mcu-status-updater"
+FRAMEWORK_VERSION = "0.1-r540-feature/mcu-status-updater"
