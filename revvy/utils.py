@@ -10,6 +10,7 @@ from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import create_motor_port_handler
 from revvy.robot.ports.sensor import create_sensor_port_handler
 from revvy.robot.status import RobotStatus, RemoteControllerStatus, RobotStatusIndicator
+from revvy.robot.status_updater import McuStatusUpdater, mcu_updater_slots
 from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
@@ -84,28 +85,26 @@ class Robot:
 
         print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
-        self._reader = FunctionSerializer(interface.ping)
         self._version = RobotVersion(hw, fw, sw)
 
         self._ring_led = RingLed(interface)
         self._sound = sound
 
         self._status = RobotStatusIndicator(interface)
+        self._status_updater = McuStatusUpdater(interface)
         self._battery = BatteryStatus(0, 0, 0)
 
         def _motor_config_changed(motor: PortInstance, config_name):
-            port_name = 'motor_{}'.format(motor.id)
             if config_name != 'NotConfigured':
-                self._reader.add(port_name, motor.get_status)
+                self._status_updater.set_slot(mcu_updater_slots["motors"][motor.id], motor.update_status)
             else:
-                self._reader.remove(port_name)
+                self._status_updater.set_slot(mcu_updater_slots["motors"][motor.id], None)
 
         def _sensor_config_changed(sensor: PortInstance, config_name):
-            port_name = 'sensor_{}'.format(sensor.id)
             if config_name != 'NotConfigured':
-                self._reader.add(port_name, sensor.read)
+                self._status_updater.set_slot(mcu_updater_slots["sensors"][sensor.id], sensor.update_status)
             else:
-                self._reader.remove(port_name)
+                self._status_updater.set_slot(mcu_updater_slots["sensors"][sensor.id], None)
 
         self._motor_ports = create_motor_port_handler(interface, Motors)
         for port in self._motor_ports:
@@ -154,16 +153,22 @@ class Robot:
         return self._sound
 
     def update_status(self):
-        self._reader.run()
+        self._status_updater.read()
 
     def reset(self):
         self._ring_led.set_scenario(RingLed.BreathingGreen)
-        self._reader.reset()
+        self._status_updater.reset()
 
-        def _update_battery():
-            self._battery = self._interface.get_battery_status()
+        def _process_battery_slot(data):
+            assert len(data) == 4
+            main_status = data[0]
+            main_percentage = data[1]
+            # motor_status = data[2]
+            motor_percentage = data[3]
 
-        self._reader.add('battery', _update_battery)
+            self._battery = BatteryStatus(chargerStatus=main_status, main=main_percentage, motor=motor_percentage)
+
+        self._status_updater.set_slot(mcu_updater_slots["battery"], _process_battery_slot)
 
         self._drivetrain.reset()
         self._motor_ports.reset()
@@ -182,8 +187,6 @@ class RobotManager:
         self._interface = interface
         self._ble = revvy
         self._default_configuration = default_config if default_config is not None else RobotConfig()
-
-        self._reader = FunctionSerializer(self._interface.ping)
 
         self._status_update_thread = periodic(self._update, 0.1, "RobotStatusUpdaterThread")
         self._background_fn_lock = Lock()
@@ -393,37 +396,6 @@ class RobotManager:
                 self._interface.ping()
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
-
-
-class FunctionSerializer:
-    def __init__(self, default_action=lambda: None):
-        self._functions = {}
-        self._fn_lock = Lock()
-        self._default_action = default_action
-
-    def reset(self):
-        with self._fn_lock:
-            self._functions = {}
-
-    def add(self, name, reader):
-        print('FunctionSerializer: new function: {}'.format(name))
-        with self._fn_lock:
-            self._functions[name] = reader
-
-    def remove(self, name):
-        with self._fn_lock:
-            try:
-                del self._functions[name]
-            except KeyError:
-                pass
-
-    def run(self):
-        with self._fn_lock:
-            if not self._functions:
-                self._default_action()
-                return {}
-            else:
-                return {key: self._functions[key]() for key in self._functions}
 
 
 class DeviceNameProvider:

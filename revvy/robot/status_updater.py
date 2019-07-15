@@ -2,9 +2,9 @@ from revvy.mcu.rrrc_control import RevvyControl
 
 
 mcu_updater_slots = {
-    "motors": {i: i for i in range(1, 7)},
-    "sensors": {i: i+6 for i in range(1, 5)},
-    "battery": 11
+    "motors": {i: i-1 for i in range(1, 7)},
+    "sensors": {i: i-1+6 for i in range(1, 5)},
+    "battery": 10
 }
 
 
@@ -52,7 +52,7 @@ class McuStatusUpdater:
             data_start = idx + 2
             data_end = idx + 2 + slot_length
 
-            if data_end < len(data):
+            if data_end <= len(data):
                 self._handlers[slot](data[data_start:data_end])
             else:
                 print('McuStatusUpdater: invalid slot length')
