@@ -57,6 +57,10 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(SetRingLedScenarioCommand, type(control.ring_led_set_scenario))
         self.assertIs(SendRingLedUserFrameCommand, type(control.ring_led_set_user_frame))
 
+        self.assertIs(McuStatusUpdater_ResetCommand, type(control.status_updater_reset))
+        self.assertIs(McuStatusUpdater_ControlCommand, type(control.status_updater_control))
+        self.assertIs(McuStatusUpdater_ReadCommand, type(control.status_updater_read))
+
     def test_revvy_command_ids(self):
         # noinspection PyTypeChecker
         control = RevvyControl(None)
@@ -92,6 +96,10 @@ class TestControlCommands(unittest.TestCase):
         self.assertEqual(0x32, control.ring_led_get_led_amount.command_id)
         self.assertEqual(0x31, control.ring_led_set_scenario.command_id)
         self.assertEqual(0x33, control.ring_led_set_user_frame.command_id)
+
+        self.assertEqual(0x3A, control.status_updater_reset.command_id)
+        self.assertEqual(0x3B, control.status_updater_control.command_id)
+        self.assertEqual(0x3C, control.status_updater_read.command_id)
 
     def test_bootloader_command_instances(self):
         # noinspection PyTypeChecker
