@@ -113,9 +113,7 @@ class DcMotorController:
         print('{}::set_power'.format(self._name))
         self._control(0, [power])
 
-    def get_status(self):
-        data = self._read()
-
+    def update_status(self, data):
         if len(data) == 9:
             (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
             pos_reached = None
@@ -131,4 +129,9 @@ class DcMotorController:
         self._pos_reached = pos_reached
 
         self._raise_status_changed_callback()
-        return DcMotorStatus(position=pos, speed=speed, power=power)
+
+    def get_status(self):
+        data = self._read()
+
+        self.update_status(data)
+        return DcMotorStatus(position=self._pos, speed=self._speed, power=self._power)

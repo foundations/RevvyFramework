@@ -39,18 +39,20 @@ class BaseSensorPortDriver:
     def has_data(self):
         return self._value is not None
 
-    def read(self):
+    def update_status(self, data):
         old_raw = self._raw_value
-        raw = self._interface.get_sensor_port_value(self._port.id)
+        if old_raw != data:
+            converted = self.convert_sensor_value(data)
 
-        if old_raw != raw:
-            converted = self.convert_sensor_value(raw)
-
-            self._raw_value = raw
+            self._raw_value = data
             if converted is not None:
                 self._value = converted
 
             self._raise_value_changed_callback()
+
+    def read(self):
+        data = self._interface.get_sensor_port_value(self._port.id)
+        self.update_status(data)
 
         return SensorValue(raw=self._raw_value, converted=self._value)
 
