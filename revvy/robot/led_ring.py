@@ -27,7 +27,6 @@ class RingLed:
         self._interface.ring_led_set_scenario(scenario)
 
     def upload_user_frame(self, frame):
-        print("Sending user LEDs: {}".format(repr(frame)))
         self._interface.ring_led_set_user_frame(frame)
 
     def display_user_frame(self, frame):
