@@ -82,7 +82,7 @@ def bumper_switch(port: PortInstance, cfg):
 
     def process_bumper(raw):
         assert len(raw) == 2
-        return raw[1] == 1
+        return raw[0] == 1
 
     sensor.convert_sensor_value = process_bumper
     return sensor
