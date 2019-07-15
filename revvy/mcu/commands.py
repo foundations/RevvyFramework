@@ -266,6 +266,28 @@ class ReadSensorPortStatusCommand(ReadPortStatusCommand):
     def command_id(self): return 0x24
 
 
+class McuStatusUpdater_ResetCommand(Command):
+    @property
+    def command_id(self): return 0x3A
+
+
+class McuStatusUpdater_ControlCommand(Command):
+    @property
+    def command_id(self): return 0x3B
+
+    def __call__(self, slot, is_enabled: bool):
+        return self._send([slot, is_enabled])
+
+
+class McuStatusUpdater_ReadCommand(Command):
+    @property
+    def command_id(self): return 0x3C
+
+    def parse_response(self, payload):
+        """Return the raw response"""
+        return payload
+
+
 # Bootloader-specific commands:
 class InitializeUpdateCommand(Command):
     @property

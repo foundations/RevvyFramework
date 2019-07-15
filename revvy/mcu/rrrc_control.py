@@ -43,3 +43,7 @@ class RevvyControl:
         self.ring_led_get_led_amount = GetRingLedAmountCommand(transport)
         self.ring_led_set_scenario = SetRingLedScenarioCommand(transport)
         self.ring_led_set_user_frame = SendRingLedUserFrameCommand(transport)
+
+        self.status_updater_reset = McuStatusUpdater_ResetCommand(transport)
+        self.status_updater_control = McuStatusUpdater_ControlCommand(transport)
+        self.status_updater_read = McuStatusUpdater_ReadCommand(transport)
