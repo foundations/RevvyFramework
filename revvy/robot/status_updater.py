@@ -1,6 +1,13 @@
 from revvy.mcu.rrrc_control import RevvyControl
 
 
+mcu_updater_slots = {
+    "motors": {i: i for i in range(1, 7)},
+    "sensors": {i: i+6 for i in range(1, 5)},
+    "battery": 11
+}
+
+
 class McuStatusUpdater:
     """Class to read status from the MCU
 
