@@ -204,14 +204,11 @@ class RobotManager:
         self._resources = {
             'led_ring':   Resource(),
             'drivetrain': Resource(),
-            'sound':      Resource()
+            'sound':      Resource(),
+
+            **{'motor_{}'.format(port.id): Resource() for port in self._robot.motors},
+            **{'sensor_{}'.format(port.id): Resource() for port in self._robot.sensors}
         }
-
-        for port in self._robot.motors:
-            self._resources['motor_{}'.format(port.id)] = Resource()
-
-        for port in self._robot.sensors:
-            self._resources['sensor_{}'.format(port.id)] = Resource()
 
         revvy['live_message_service'].register_message_handler(self._remote_controller_scheduler.data_ready)
         revvy.on_connection_changed(self._on_connection_changed)
