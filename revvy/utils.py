@@ -229,8 +229,7 @@ class RobotManager:
             self._background_fns = []
 
         for fn in fns:
-            if callable(fn):
-                fn()
+            fn()
 
     @property
     def resources(self):
@@ -278,8 +277,9 @@ class RobotManager:
             self.configure(None)
 
     def run_in_background(self, callback):
-        with self._background_fn_lock:
-            self._background_fns.append(callback)
+        if callable(callback):
+            with self._background_fn_lock:
+                self._background_fns.append(callback)
 
     def _on_connection_changed(self, is_connected):
         print('Phone connected' if is_connected else 'Phone disconnected')
