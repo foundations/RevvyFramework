@@ -103,9 +103,23 @@ def start_revvy(config: RobotConfig = None):
             if message_type == LongMessageType.TEST_KIT:
                 message_data = storage.get_long_message(message_type).decode()
                 print('Running test script: {}'.format(message_data))
-                robot._scripts.add_script("test_kit", message_data, 0)
-                robot._scripts["test_kit"].on_stopped(lambda: robot.configure(None))
-                robot._scripts["test_kit"].start()
+
+                def start_script():
+                    print("Starting new test script")
+                    robot._scripts.add_script("test_kit", message_data, 0)
+                    robot._scripts["test_kit"].on_stopped(lambda: robot.configure(None))
+
+                    # start can't run in on_stopped handler because overwriting script causes deadlock
+                    robot.run_in_background(lambda: robot._scripts["test_kit"].start())
+
+                try:
+                    script = robot._scripts["test_kit"]
+                    script.on_stopped(lambda: robot.run_in_background(start_script))
+                    print("Stop running test script")
+                    script.stop()
+                except KeyError:
+                    start_script()
+
             elif message_type == LongMessageType.CONFIGURATION_DATA:
                 message_data = storage.get_long_message(message_type).decode()
                 print('New configuration: {}'.format(message_data))

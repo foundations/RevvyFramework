@@ -227,10 +227,11 @@ class RobotManager:
             self._ble['battery_service'].characteristic('motor_battery').update_value(self._robot.battery.motor)
 
             with self._background_fn_lock:
-                fns = self._background_fns
-                self._background_fns = []
+                fns = list(self._background_fns)
+                self._background_fns.clear()
 
             for fn in fns:
+                print("Running background function")
                 fn()
         except Exception:
             print(traceback.format_exc())
@@ -283,6 +284,7 @@ class RobotManager:
     def run_in_background(self, callback):
         if callable(callback):
             with self._background_fn_lock:
+                print("Registering new background function")
                 self._background_fns.append(callback)
 
     def _on_connection_changed(self, is_connected):
