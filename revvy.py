@@ -92,10 +92,10 @@ def start_revvy(config: RobotConfig = None):
             dnp.update_device_name(new_name)
 
         def on_upload_started():
-            robot.robot.led_ring.set_scenario(RingLed.ColorWheel)
+            robot.run_in_background(lambda: robot.robot.led_ring.set_scenario(RingLed.ColorWheel))
 
         def on_transmission_finished():
-            robot.robot.led_ring.set_scenario(RingLed.BreathingGreen)
+            robot.run_in_background(lambda: robot.robot.led_ring.set_scenario(RingLed.BreathingGreen))
 
         def on_message_updated(storage, message_type):
             print('Received message: {}'.format(message_type))
