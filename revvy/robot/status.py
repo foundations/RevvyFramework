@@ -49,10 +49,8 @@ class RobotStatusIndicator:
         self._robot_status = RobotStatus.StartingUp
         self._controller_status = RemoteControllerStatus.NotConnected
 
-        self._master_led = None
-        self._bluetooth_led = None
-
-        self._update_leds()
+        self._master_led = self.master_led_not_configured
+        self._bluetooth_led = self.bluetooth_led_not_connected
 
     def _set_master_led(self, value):
         if value != self._master_led:
