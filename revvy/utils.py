@@ -219,17 +219,21 @@ class RobotManager:
         self._update_requested = False
 
     def _update(self):
-        self._robot.update_status()
+        # noinspection PyBroadException
+        try:
+            self._robot.update_status()
 
-        self._ble['battery_service'].characteristic('main_battery').update_value(self._robot.battery.main)
-        self._ble['battery_service'].characteristic('motor_battery').update_value(self._robot.battery.motor)
+            self._ble['battery_service'].characteristic('main_battery').update_value(self._robot.battery.main)
+            self._ble['battery_service'].characteristic('motor_battery').update_value(self._robot.battery.motor)
 
-        with self._background_fn_lock:
-            fns = self._background_fns
-            self._background_fns = []
+            with self._background_fn_lock:
+                fns = self._background_fns
+                self._background_fns = []
 
-        for fn in fns:
-            fn()
+            for fn in fns:
+                fn()
+        except Exception:
+            print(traceback.format_exc())
 
     @property
     def resources(self):
