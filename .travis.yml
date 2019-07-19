@@ -12,7 +12,7 @@ install:
   - pip install -r install/requirements.txt
   - pip install -r install/requirements_test.txt
 # command to run tests
-script: nose2 -v
+script: nose2
 
 # Push the results back to codecov
 after_success:
