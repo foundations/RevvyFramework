@@ -2,6 +2,7 @@ import struct
 from abc import ABC
 from collections import namedtuple
 
+from revvy.functions import split
 from revvy.version import Version
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
@@ -286,6 +287,36 @@ class McuStatusUpdater_ReadCommand(Command):
     def parse_response(self, payload):
         """Return the raw response"""
         return payload
+
+
+class ErrorMemory_ReadCount(Command):
+    @property
+    def command_id(self): return 0x3D
+
+    def parse_response(self, payload):
+        assert len(payload) == 4
+        return int.from_bytes(payload, byteorder='little')
+
+
+class ErrorMemory_ReadErrors(Command):
+    @property
+    def command_id(self): return 0x3E
+
+    def __call__(self, start_idx=0):
+        return self._send(start_idx.to_bytes(4, byteorder='little'))
+
+    def parse_response(self, payload):
+        return list(split(payload, 32))
+
+
+class ErrorMemory_Clear(Command):
+    @property
+    def command_id(self): return 0x3F
+
+
+class ErrorMemory_TestError(Command):
+    @property
+    def command_id(self): return 0x40
 
 
 # Bootloader-specific commands:

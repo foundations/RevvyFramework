@@ -47,3 +47,8 @@ class RevvyControl:
         self.status_updater_reset = McuStatusUpdater_ResetCommand(transport)
         self.status_updater_control = McuStatusUpdater_ControlCommand(transport)
         self.status_updater_read = McuStatusUpdater_ReadCommand(transport)
+
+        self.error_memory_read_count = ErrorMemory_ReadCount(transport)
+        self.error_memory_read_errors = ErrorMemory_ReadErrors(transport)
+        self.error_memory_clear = ErrorMemory_Clear(transport)
+        self.error_memory_test = ErrorMemory_TestError(transport)

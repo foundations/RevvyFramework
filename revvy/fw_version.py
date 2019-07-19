@@ -1,2 +1,2 @@
 # This file is generated before each commit
-FRAMEWORK_VERSION = "0.1-r548"
+FRAMEWORK_VERSION = "0.1-r549-feature/error-logging"
