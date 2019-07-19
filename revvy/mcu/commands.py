@@ -306,7 +306,7 @@ class ErrorMemory_ReadErrors(Command):
         return self._send(start_idx.to_bytes(4, byteorder='little'))
 
     def parse_response(self, payload):
-        return list(split(payload, 32))
+        return list(split(payload, 31))
 
 
 class ErrorMemory_Clear(Command):
