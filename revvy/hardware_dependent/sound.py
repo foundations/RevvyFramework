@@ -11,18 +11,36 @@ def _run_command(commands):
     return process.returncode
 
 
-def setup_sound():
+def setup_sound_v1():
     _run_command([
         'gpio -g mode 13 alt0',
         'gpio -g mode 22 out'
     ])
 
 
-def play_sound(sound):
+def setup_sound_v2():
+    _run_command([
+        'gpio -g mode 13 alt0',
+        'gpio -g mode 22 out',
+        'gpio write 3 1'
+    ])
+
+
+def play_sound_v1(sound):
     print('Playing sound: {}'.format(sound))
 
     _run_command([
         "gpio write 3 1",
         "mpg123 {}".format(sound),
         "gpio write 3 0"
+    ])
+
+
+def play_sound_v2(sound):
+    print('Playing sound: {}'.format(sound))
+
+    _run_command([
+        "gpio write 3 0",
+        "mpg123 {}".format(sound),
+        "gpio write 3 1"
     ])

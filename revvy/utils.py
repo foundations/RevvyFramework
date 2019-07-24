@@ -2,13 +2,15 @@
 from collections import namedtuple
 
 from revvy.file_storage import StorageInterface, StorageError
-from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus
+from revvy.hardware_dependent.sound import setup_sound_v1, play_sound_v1, setup_sound_v2, play_sound_v2
+from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import create_motor_port_handler
 from revvy.robot.ports.sensor import create_sensor_port_handler
+from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatus, RemoteControllerStatus, RobotStatusIndicator
 from revvy.robot.status_updater import McuStatusUpdater, mcu_updater_slots
 from revvy.robot_config import RobotConfig
@@ -73,7 +75,7 @@ RobotVersion = namedtuple("RobotVersion", ['hw', 'fw', 'sw'])
 
 
 class Robot:
-    def __init__(self, interface: RevvyControl, sound):
+    def __init__(self, interface: RevvyControl, sound_paths):
         self._interface = interface
 
         self._start_time = time.time()
@@ -87,8 +89,19 @@ class Robot:
 
         self._version = RobotVersion(hw, fw, sw)
 
+        setup = {
+            Version('1.0'): setup_sound_v1,
+            Version('1.1'): setup_sound_v1,
+            Version('2.0'): setup_sound_v2,
+        }
+        play = {
+            Version('1.0'): play_sound_v1,
+            Version('1.1'): play_sound_v1,
+            Version('2.0'): play_sound_v2,
+        }
+
         self._ring_led = RingLed(interface)
-        self._sound = sound
+        self._sound = Sound(setup[hw], play[hw], sound_paths)
 
         self._status = RobotStatusIndicator(interface)
         self._status_updater = McuStatusUpdater(interface)
@@ -181,9 +194,9 @@ class Robot:
 class RobotManager:
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, interface: RevvyControl, revvy, sound, default_config=None):
+    def __init__(self, interface: RevvyControl, revvy, sound_paths, default_config=None):
         print("RobotManager: __init__()")
-        self._robot = Robot(interface, sound)
+        self._robot = Robot(interface, sound_paths)
         self._interface = interface
         self._ble = revvy
         self._default_configuration = default_config if default_config is not None else RobotConfig()

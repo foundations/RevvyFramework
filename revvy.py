@@ -11,10 +11,8 @@ from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage, StorageElementNotFoundError
 from revvy.firmware_updater import McuUpdater
 from revvy.functions import getserial
-from revvy.hardware_dependent.sound import play_sound, setup_sound
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.robot.sound import Sound
 from revvy.utils import *
 from revvy.mcu.rrrc_transport import *
 from revvy.mcu.rrrc_control import *
@@ -63,7 +61,6 @@ def start_revvy(config: RobotConfig = None):
         'yee_haw':        'yee-haw.mp3',
     }
     sound_paths = {key: os.path.join(package_data_dir, 'assets', sound_files[key]) for key in sound_files}
-    sound = Sound(setup_sound, play_sound, sound_paths)
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
@@ -85,7 +82,7 @@ def start_revvy(config: RobotConfig = None):
         except StorageElementNotFoundError:
             pass
 
-        robot = RobotManager(robot_control, ble, sound, config)
+        robot = RobotManager(robot_control, ble, sound_paths, config)
 
         def on_device_name_changed(new_name):
             print('Device name changed to {}'.format(new_name))
@@ -139,8 +136,8 @@ def start_revvy(config: RobotConfig = None):
 
         # noinspection PyBroadException
         try:
-            sound.play_tune('robot2')
             robot.start()
+            robot.sound.play_tune('robot2')
             print("Press Ctrl-C to exit")
             while not robot.update_requested:
                 time.sleep(1)
