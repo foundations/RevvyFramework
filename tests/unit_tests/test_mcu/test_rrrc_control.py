@@ -106,6 +106,7 @@ class TestControlCommands(unittest.TestCase):
         control = BootloaderControl(None)
 
         self.assertIs(ReadOperationModeCommand, type(control.read_operation_mode))
+        self.assertIs(ReadHardwareVersionCommand, type(control.get_hardware_version))
         self.assertIs(InitializeUpdateCommand, type(control.send_init_update))
         self.assertIs(SendFirmwareCommand, type(control.send_firmware))
         self.assertIs(FinalizeUpdateCommand, type(control.finalize_update))
@@ -116,6 +117,7 @@ class TestControlCommands(unittest.TestCase):
 
         self.assertEqual(0x06, control.read_operation_mode.command_id)
         # read application crc (0x07) is not implemented
+        self.assertEqual(0x01, control.get_hardware_version.command_id)
         self.assertEqual(0x08, control.send_init_update.command_id)
         self.assertEqual(0x09, control.send_firmware.command_id)
         self.assertEqual(0x0A, control.finalize_update.command_id)

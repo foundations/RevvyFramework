@@ -4,6 +4,7 @@ from revvy.mcu.rrrc_transport import RevvyTransport
 
 class BootloaderControl:
     def __init__(self, transport: RevvyTransport):
+        self.get_hardware_version = ReadHardwareVersionCommand(transport)
         self.read_operation_mode = ReadOperationModeCommand(transport)
         self.send_init_update = InitializeUpdateCommand(transport)
         self.send_firmware = SendFirmwareCommand(transport)
