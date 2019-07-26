@@ -6,28 +6,40 @@ from revvy.mcu.rrrc_control import RevvyControl
 
 def format_error(error):
     error_id = error[0]
-    error_data = error[1:]
+    hw_version = error[1:5]
+    fw_version = error[5:9]
+    error_data = error[9:]
 
     if error_id == 0:
         pc = int.from_bytes(error_data[0:4], byteorder='little')
         psr = int.from_bytes(error_data[4:8], byteorder='little')
         lr = int.from_bytes(error_data[8:12], byteorder='little')
-        return 'Hard fault ({})\nData:\n\tPC: {}\n\tPSR: {}\n\tLR: {}'.format(error_id, pc, psr, lr)
+
+        exception_name = 'Hard fault'
+        details_str = '\n\tPC: {}\n\tPSR: {}\n\tLR: {}'.format(pc, psr, lr)
 
     elif error_id == 1:
         task = bytes(error_data).decode("utf-8")
-        return 'Stack overflow ({})\nTask: {}'.format(error_id, task)
+
+        exception_name = 'Stack overflow'
+        details_str = '\nTask: {}'.format(task)
 
     elif error_id == 2:
         line = int.from_bytes(error_data[0:4], byteorder='little')
         file = bytes(error_data[4:]).decode("utf-8")
-        return 'Assertion failure ({})\nFile: {}, Line: {}'.format(error_id, file, line)
+
+        exception_name = 'Assertion failure'
+        details_str = '\nFile: {}, Line: {}'.format(file, line)
 
     elif error_id == 3:
-        return 'Test error ({})\nData: {}'.format(error_id, error_data)
+        exception_name = 'Test error'
+        details_str = '\nData: {}'.format(error_data)
 
     else:
-        return 'Unknown error id ({})\nData: {}'.format(error_id, error_data)
+        exception_name = 'Unknown error'
+        details_str = '\nData: {}'.format(error_data)
+
+    return '{} ({}, HW: {}, FW: {})\nDetails: {}'.format(exception_name, error_id, hw_version, fw_version, details_str)
 
 
 if __name__ == "__main__":
