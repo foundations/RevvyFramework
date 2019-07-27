@@ -1,3 +1,4 @@
+import time
 from collections import namedtuple
 from threading import Lock, Event
 
@@ -123,11 +124,14 @@ class RemoteControllerScheduler:
 
         # wait for first message
         first = True
+
+        start_time = time.time()
         while self._data_ready_event.wait(None if first else 0.5):
             if ctx.stop_requested:
                 break
 
             if first:
+                print("Time to first message: {}s".format(time.time() - start_time))
                 self._controller_detected_callback()
                 first = False
 
