@@ -193,7 +193,7 @@ while not ctx.stop_requested:
         sm.assign('mock', mock)
 
         # first call, make sure the script runs
-        sm['test'].start()
+        sm['test'].start().wait()
         sm.reset()
         self.assertEqual(1, mock.call_count)
 
