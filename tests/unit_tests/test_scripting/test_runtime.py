@@ -181,6 +181,7 @@ while not ctx.stop_requested:
     def test_script_can_stop_itself(self):
         robot_mock = create_robot_mock()
 
+        cont = Event()
         mock = Mock()
 
         sm = ScriptManager(robot_mock)
@@ -191,9 +192,13 @@ while not ctx.stop_requested:
     mock()
 ''')
         sm.assign('mock', mock)
+        sm['test'].on_stopped(cont.set)
 
         # first call, make sure the script runs
         sm['test'].start().wait()
+        if not cont.wait(2):
+            self.fail()
+
         sm.reset()
         self.assertEqual(1, mock.call_count)
 
