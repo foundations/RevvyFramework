@@ -161,16 +161,20 @@ class Version:
         >>> Version('1.0.0').compare(Version('1.0.1'))
         -1
         """
+
+        def cmp(a, b):
+            return -1 if a < b else 1
+
         if self._version['major'] == other._version['major']:
             if self._version['minor'] == other._version['minor']:
                 if self._version['revision'] == other._version['revision']:
                     return 0
                 else:
-                    return -1 if self._version['revision'] < other._version['revision'] else 1
+                    return cmp(self._version['revision'], other._version['revision'])
             else:
-                return -1 if self._version['minor'] < other._version['minor'] else 1
+                return cmp(self._version['minor'], other._version['minor'])
         else:
-            return -1 if self._version['major'] < other._version['major'] else 1
+            return cmp(self._version['major'], other._version['major'])
 
     def __str__(self) -> str:
         """
