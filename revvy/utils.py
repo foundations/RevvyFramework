@@ -196,6 +196,7 @@ class RobotManager:
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
     def __init__(self, interface: RevvyControl, revvy, sound_paths, default_config=None):
         print("RobotManager: __init__()")
+        self._configuring = False
         self._robot = Robot(interface, sound_paths)
         self._interface = interface
         self._ble = revvy
@@ -319,7 +320,9 @@ class RobotManager:
     def configure(self, config):
         print('RobotManager: configure()')
         if self._robot.status.robot_status != RobotStatus.Stopped:
-            self.run_in_background(lambda: self._configure(config))
+            if not self._configuring:
+                self._configuring = True
+                self.run_in_background(lambda: self._configure(config))
 
     def _reset_configuration(self):
         self._scripts.reset()
@@ -398,6 +401,8 @@ class RobotManager:
                 self._robot.status.robot_status = RobotStatus.Configured
         else:
             self._robot.status.robot_status = RobotStatus.NotConfigured
+
+        self._configuring = False
 
     def stop(self):
         self._robot.status.robot_status = RobotStatus.Stopped

@@ -9,7 +9,7 @@ import json
 import os
 
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
-from revvy.file_storage import FileStorage, MemoryStorage, StorageElementNotFoundError, IntegrityError
+from revvy.file_storage import FileStorage, MemoryStorage, IntegrityError
 from revvy.firmware_updater import McuUpdater
 from revvy.functions import getserial
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
@@ -145,6 +145,7 @@ def start_revvy(config: RobotConfig = None):
                     parsed_config = RobotConfig.from_string(message_data)
                     if parsed_config is not None:
                         robot.configure(parsed_config)
+
             elif message_type == LongMessageType.FRAMEWORK_DATA:
                 robot.request_update()
 
