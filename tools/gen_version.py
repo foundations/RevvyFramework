@@ -4,7 +4,7 @@ import os
 
 def gen_version(out_file):
     template = '# This file is generated before each commit\n' \
-               'FRAMEWORK_VERSION = "0.1-r{{VERSION}}"\n'
+               'FRAMEWORK_VERSION = "0.1.{{VERSION}}"\n'
 
     version = os.popen('git rev-list --count HEAD').read()
     version = version.strip()
