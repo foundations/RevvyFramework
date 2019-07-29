@@ -14,9 +14,48 @@ def format_error(error):
         pc = int.from_bytes(error_data[0:4], byteorder='little')
         psr = int.from_bytes(error_data[4:8], byteorder='little')
         lr = int.from_bytes(error_data[8:12], byteorder='little')
+        cfsr = int.from_bytes(error_data[12:16], byteorder='little')
+        dfsr = int.from_bytes(error_data[16:20], byteorder='little')
+        hfsr = int.from_bytes(error_data[20:24], byteorder='little')
 
         exception_name = 'Hard fault'
-        details_str = '\n\tPC: {}\n\tPSR: {}\n\tLR: {}'.format(pc, psr, lr)
+        details_str = '\n\tPC: 0x{0:X}\tPSR: 0x{1:X}\tLR: 0x{2:X}'.format(pc, psr, lr)
+        details_str += '\n\tCFSR: 0x{0:X}\tDFSR: 0x{1:X}\tHFSR: 0x{2:X}'.format(cfsr, dfsr, hfsr)
+
+        cfsr_reasons = [
+            "The processor has attempted to execute an undefined instruction",
+            "The processor attempted a load or store at a location that does not permit the operation",
+            None,
+            "Unstack for an exception return has caused one or more access violations",
+            "Stacking for an exception entry has caused one or more access violations",
+            "A MemManage fault occurred during floating-point lazy state preservation",
+            None,
+            None,
+            "Instruction bus error",
+            "Data bus error (PC value stacked for the exception return points to the instruction that caused the fault)",
+            "Data bus error (return address in the stack frame is not related to the instruction that caused the error)",
+            "Unstack for an exception return has caused one or more BusFaults",
+            "Stacking for an exception entry has caused one or more BusFaults",
+            "A bus fault occurred during floating-point lazy state preservation",
+            None,
+            None,
+            "The processor has attempted to execute an undefined instruction",
+            "The processor has attempted to execute an instruction that makes illegal use of the EPSR",
+            "The processor has attempted an illegal load of EXC_RETURN to the PC, as a result of an invalid context, or an invalid EXC_RETURN value",
+            "The processor has attempted to access a coprocessor",
+            None,
+            None,
+            None,
+            None,
+            "The processor has made an unaligned memory access",
+            "The processor has executed an SDIV or UDIV instruction with a divisor of 0",
+        ]
+
+        if cfsr != 0:
+            details_str += "\n\tReasons:"
+            for bit in range(0, len(cfsr_reasons)):
+                if (cfsr & 1 << bit) != 0 and cfsr_reasons[bit] is not None:
+                    details_str += "\n\t\t" + cfsr_reasons[bit]
 
     elif error_id == 1:
         task = bytes(error_data).decode("utf-8")
