@@ -14,7 +14,7 @@ def gen_manifest(sources, output):
     prefix = path.join(path.dirname(path.realpath(path.join(__file__, '..'))), '')
 
     hashes = {}
-    extensions = ['.py', '.mp3', '.data', '.meta', '.txt', '.tar.gz']
+    extensions = ['.py', '.mp3', '.data', '.meta', '.txt', '.tar.gz', '.bin', '.json']
 
     for source in sources:
         for file in find_files(source):
