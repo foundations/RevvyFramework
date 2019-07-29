@@ -5,10 +5,11 @@
 # Setup:
 # sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3))
 # # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
+import json
 import os
 
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
-from revvy.file_storage import FileStorage, MemoryStorage, StorageElementNotFoundError
+from revvy.file_storage import FileStorage, MemoryStorage, StorageElementNotFoundError, IntegrityError
 from revvy.firmware_updater import McuUpdater
 from revvy.functions import getserial
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
@@ -19,6 +20,7 @@ from revvy.mcu.rrrc_control import *
 import sys
 
 from tools.check_manifest import check_manifest
+from tools.common import file_hash
 
 
 def start_revvy(config: RobotConfig = None):
@@ -33,12 +35,13 @@ def start_revvy(config: RobotConfig = None):
     # prepare environment
     data_dir = os.path.join(directory, '..', '..', 'data')
     package_data_dir = os.path.join(directory, 'data')
+    fw_dir = os.path.join(directory, 'data', 'firmware')
 
     serial = getserial()
 
     print('Revvy run from {} ({})'.format(directory, __file__))
 
-    package_storage = FileStorage(package_data_dir)
+    # package_storage = FileStorage(package_data_dir)
     device_storage = FileStorage(os.path.join(data_dir, 'device'))
     ble_storage = FileStorage(os.path.join(data_dir, 'ble'))
 
@@ -74,12 +77,27 @@ def start_revvy(config: RobotConfig = None):
 
         updater = McuUpdater(robot_control, bootloader_control)
 
+        # noinspection PyBroadException
         try:
-            fw_metadata = package_storage.read_metadata('firmware')
+            with open(os.path.join(fw_dir, 'catalog.json'), 'r') as cf:
+                fw_metadata = json.loads(cf)
 
-            expected_version = Version(fw_metadata['version'])
-            updater.ensure_firmware_up_to_date(expected_version, lambda: package_storage.read('firmware'))
-        except StorageElementNotFoundError:
+            # hw version -> fw version mapping
+            expected_versions = {version: fw_metadata[version]['version'] for version in fw_metadata}
+
+            def fw_loader(hw_version):
+                filename = fw_metadata[hw_version]['filename']
+                path = os.path.join(fw_dir, filename)
+
+                checksum = file_hash(path)
+                if checksum != fw_metadata[hw_version]['md5']:
+                    raise IntegrityError
+
+                with open(path, "rb") as f:
+                    return f.read()
+
+            updater.ensure_firmware_up_to_date(expected_versions, fw_loader)
+        except Exception:
             pass
 
         robot = RobotManager(robot_control, ble, sound_paths, config)

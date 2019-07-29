@@ -71,29 +71,42 @@ class McuUpdater:
         assert self._read_operation_mode() == op_mode_application
         # todo handle failed update
 
-    def ensure_firmware_up_to_date(self, expected_version: Version, fw_loader):
+    def ensure_firmware_up_to_date(self, expected_versions: dict, fw_loader):
         mode = self._read_operation_mode()
 
         if mode == op_mode_application:
             # do we need to update?
+            hw_version = self._robot.get_hardware_version()
+
+            if hw_version not in expected_versions:
+                print('No firmware for the hardware ({})'.format(hw_version))
+                return
+
             fw = self._robot.get_firmware_version()
-            need_to_update = fw != expected_version  # allow downgrade as well
+            need_to_update = fw != expected_versions[hw_version]  # allow downgrade as well
 
             if not need_to_update:
                 return
 
-            print("Upgrading firmware: {} -> {}".format(fw, expected_version))
+            print("Upgrading firmware: {} -> {}".format(fw, expected_versions[hw_version]))
             self.request_bootloader_mode()
 
             # if we need to update, reboot to bootloader
             mode = self._read_operation_mode()
 
         if mode == op_mode_bootloader:
+            # we can get here without the above check if there is no application installed yet, so read version
+            hw_version = self._bootloader.get_hardware_version()
+
+            if hw_version not in expected_versions:
+                print('No firmware for the hardware ({})'.format(hw_version))
+                return
+
             print("Loading binary to memory")
 
             # noinspection PyBroadException
             try:
-                data = fw_loader()
+                data = fw_loader(hw_version)
             except Exception as e:
                 print(e)
 
