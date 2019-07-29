@@ -126,7 +126,7 @@ class RemoteControllerScheduler:
         first = True
 
         start_time = time.time()
-        while self._data_ready_event.wait(None if first else 0.5):
+        while self._data_ready_event.wait(2 if first else 0.5):
             if ctx.stop_requested:
                 break
 
@@ -145,6 +145,7 @@ class RemoteControllerScheduler:
 
         # reset here, controller was lost or stopped
         self._controller.reset()
+        print('RemoteControllerScheduler: exited')
 
     def on_controller_detected(self, callback):
         print('RemoteControllerScheduler: Register controller found handler')
@@ -157,8 +158,7 @@ class RemoteControllerScheduler:
 
 def create_remote_controller_thread(rcs: RemoteControllerScheduler):
     def _run(ctx: ThreadContext):
-        while not ctx.stop_requested:
-            rcs.handle_controller(ctx)
+        rcs.handle_controller(ctx)
         print('RemoteControllerScheduler: Stopped')
 
     return ThreadWrapper(_run, "RemoteControllerThread")
