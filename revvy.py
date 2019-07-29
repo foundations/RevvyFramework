@@ -80,7 +80,7 @@ def start_revvy(config: RobotConfig = None):
         # noinspection PyBroadException
         try:
             with open(os.path.join(fw_dir, 'catalog.json'), 'r') as cf:
-                fw_metadata = json.loads(cf)
+                fw_metadata = json.load(cf)
 
             # hw version -> fw version mapping
             expected_versions = {version: fw_metadata[version]['version'] for version in fw_metadata}
@@ -97,8 +97,9 @@ def start_revvy(config: RobotConfig = None):
                     return f.read()
 
             updater.ensure_firmware_up_to_date(expected_versions, fw_loader)
-        except Exception:
-            pass
+        except Exception as e:
+            print("Skipping firmware update")
+            print(e)
 
         robot = RobotManager(robot_control, ble, sound_paths, config)
 
