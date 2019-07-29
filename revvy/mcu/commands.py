@@ -24,7 +24,7 @@ class Command:
         if response.status == ResponseHeader.Status_Ok:
             return self.parse_response(response.payload)
         elif response.status == ResponseHeader.Status_Error_UnknownCommand:
-            raise UnknownCommandError
+            raise UnknownCommandError("Command not implemented: {}".format(self._command_byte))
         else:
             raise ValueError(
                 'Command status: {} payload: {}'.format(response.status, repr(response.payload)))
