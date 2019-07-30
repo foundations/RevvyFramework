@@ -78,7 +78,25 @@ def format_error(error):
         exception_name = 'Unknown error'
         details_str = '\nData: {}'.format(error_data)
 
-    return '{} ({}, HW: {}, FW: {})\nDetails: {}'.format(exception_name, error_id, hw_version, fw_version, details_str)
+    hw = int.from_bytes(hw_version, byteorder='little')
+    fw = int.from_bytes(fw_version, byteorder='little')
+
+    hw_formats = {
+        0: '1.0.0',
+        1: '1.0.1',
+        2: '2.0.0'
+    }
+
+    fw_formats = {
+        0: '0.1.{}',
+        1: '0.1.{}',
+        2: '0.2.{}'
+    }
+
+    hw_str = hw_formats[hw]
+    fw_str = fw_formats[hw].format(fw)
+
+    return '{} ({}, HW: {}, FW: {})\nDetails: {}'.format(exception_name, error_id, hw_str, fw_str, details_str)
 
 
 if __name__ == "__main__":

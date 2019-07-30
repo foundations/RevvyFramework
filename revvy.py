@@ -83,9 +83,11 @@ def start_revvy(config: RobotConfig = None):
                 fw_metadata = json.load(cf)
 
             # hw version -> fw version mapping
-            expected_versions = {version: fw_metadata[version]['version'] for version in fw_metadata}
+            expected_versions = {Version(version): Version(fw_metadata[version]['version']) for version in fw_metadata}
 
             def fw_loader(hw_version):
+                hw_version = str(hw_version)
+                print('Loading firmware for HW: {}'.format(hw_version))
                 filename = fw_metadata[hw_version]['filename']
                 path = os.path.join(fw_dir, filename)
 
@@ -97,9 +99,9 @@ def start_revvy(config: RobotConfig = None):
                     return f.read()
 
             updater.ensure_firmware_up_to_date(expected_versions, fw_loader)
-        except Exception as e:
+        except Exception:
             print("Skipping firmware update")
-            print(e)
+            traceback.print_exc()
 
         robot = RobotManager(robot_control, ble, sound_paths, config)
 
