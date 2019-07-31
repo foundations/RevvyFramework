@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import argparse
 import re
 import subprocess
 import sys
@@ -11,10 +12,14 @@ def system(*args, **kwargs):
     return out.decode("utf-8") if out else None
 
 
-def main():
-    modified = re.compile('^[AM]+\\s+(?P<name>.*\\.py)', re.MULTILINE)
-    files = system('git', 'status', '--porcelain')
-    files = modified.findall(files)
+def main(all):
+    if all:
+        files = ['.']
+    else:
+        modified = re.compile('^[AM]+\\s+(?P<name>.*\\.py)', re.MULTILINE)
+        files = system('git', 'status', '--porcelain')
+        files = modified.findall(files)
+
     output = system('pycodestyle', '--max-line-length=120', *files)
 
     if output:
@@ -23,4 +28,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--check-all', help='Run code style check on whole project', action='store_true')
+
+    args = parser.parse_args()
+
+    main(args.check_all)
