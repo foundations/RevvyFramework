@@ -1,12 +1,6 @@
 #!/usr/bin/python3
 
-# Demo of revvy BLE peripheral using python port of bleno, pybleno
-#
-# Setup:
-# sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3))
-# # Enables python3 to open raw sockets. Required by bleno to talk to BT via HCI
 import json
-import os
 
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage, IntegrityError
@@ -63,7 +57,11 @@ def start_revvy(config: RobotConfig = None):
         'uh_oh':          'uh-oh.mp3',
         'yee_haw':        'yee-haw.mp3',
     }
-    sound_paths = {key: os.path.join(package_data_dir, 'assets', sound_files[key]) for key in sound_files}
+
+    def sound_path(file):
+        os.path.join(package_data_dir, 'assets', file)
+
+    sound_paths = {key: sound_path(sound_files[key]) for key in sound_files}
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
@@ -190,118 +188,6 @@ def toggle_ring_led(args):
             args['robot']._ring_led.set_scenario(RingLed.ColorFade)
         else:
             args['robot']._ring_led.set_scenario(RingLed.Off)
-
-
-motor_test = '''
-configs = {
-    'cw': 'RevvyMotor',
-    'ccw': 'RevvyMotor_CCW'
-}
-robot.motors[{MOTOR}].configure(configs["{MOTOR_DIR}"])
-robot.motors[{MOTOR}].move(direction=Motor.DIR_CW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-time.sleep(1)
-robot.motors[{MOTOR}].move(direction=Motor.DIR_CCW, amount=180, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_PWR)
-time.sleep(1)
-robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
-robot.motors[{MOTOR}].configure("NotConfigured")
-'''.replace('{MOTOR}', '1').replace('{MOTOR_DIR}', 'cw')
-
-
-drivetrain_test = '''
-configs = {
-    'left': {
-        'cw': 'RevvyMotor_CCW',
-        'ccw': 'RevvyMotor'
-    },
-    'right': {
-        'cw': 'RevvyMotor',
-        'ccw': 'RevvyMotor_CCW'
-    }
-}
-robot.motors[{MOTOR}].configure(configs["{MOTOR_SIDE}"]["{MOTOR_DIR}"])
-robot.motors[{MOTOR}].spin(direction=Motor.DIR_CW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-time.sleep(3)
-robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
-time.sleep(0.2)
-robot.motors[{MOTOR}].spin(direction=Motor.DIR_CCW, rotation=20, unit_rotation=Motor.UNIT_SPEED_RPM)
-time.sleep(3)
-robot.motors[{MOTOR}].stop(action=Motor.ACTION_RELEASE)
-time.sleep(0.2)
-robot.motors[{MOTOR}].configure("NotConfigured")
-'''.replace('{MOTOR}', '1').replace('{MOTOR_SIDE}', 'left').replace('{MOTOR_DIR}', 'cw')
-
-
-button_light_test = '''
-robot.sensors[{SENSOR}].configure("BumperSwitch")
-test_ok = False
-prev_sec = 12
-robot.led.set(list(range(1, 13)), "#FF0000")
-
-start = time.time()
-while time.time() - start < 12:
-    seconds = 12 - int(round(time.time() - start, 0))
-
-    if seconds != prev_sec:
-        robot.led.set(list(range(1, seconds+1)), "#FF0000")
-        robot.led.set(list(range(seconds+1, 13)), "#000000")
-        prev_sec = seconds
-
-    if robot.sensors[{SENSOR}].read() == 1:
-        test_ok = True
-        break
-
-if test_ok:
-    # draw smiley face
-    robot.led.set(list(range(1, 13)), "#000000")
-    robot.led.set([1, 2, 3, 4, 5, 8, 10], "#00FF00")
-    time.sleep(3)
-
-robot.led.set(list(range(1, 13)), "#000000")
-robot.sensors[{SENSOR}].configure("NotConfigured")
-'''.replace('{SENSOR}', '2')
-
-
-ultrasound_light_test = '''
-robot.sensors[{SENSOR}].configure("HC_SR04")
-test_ok = False
-prev_sec = 12
-robot.led.set(list(range(1, 13)), "#FF0000")
-prev_dist = 48
-
-start = time.time()
-while time.time() - start < 12:
-    seconds = 12 - int(round(time.time() - start, 0))
-
-    dist = robot.sensors[{SENSOR}].read()
-    if dist < 48:
-        nleds = int(round((48 - dist)/4))
-        robot.led.set(list(range(1, nleds+1)), "#0000FF")
-        robot.led.set(list(range(nleds+1, 13)), "#000000")
-        prev_sec = 12
-    elif seconds != prev_sec:
-        dist = 48
-        robot.led.set(list(range(1, seconds+1)), "#FF0000")
-        robot.led.set(list(range(seconds+1, 13)), "#000000")
-        prev_sec = seconds
-        
-robot.sensors[{SENSOR}].configure("NotConfigured")
-robot.led.set(list(range(1, 13)), "#000000")
-'''.replace('{SENSOR}', '1')
-
-
-lift_test = '''
-configs = {
-    'cw': 'RevvyMotor',
-    'ccw': 'RevvyMotor_CCW'
-}
-robot.motors[{MOTOR}].configure(configs["{MOTOR_DIR}"])
-robot.motors[{MOTOR}].move(direction=Motor.DIR_CW, amount=130, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
-time.sleep(3)
-robot.motors[{MOTOR}].move(direction=Motor.DIR_CCW, amount=130, unit_amount=Motor.UNIT_DEG, limit=20, unit_limit=Motor.UNIT_SPEED_RPM)
-time.sleep(1)
-robot.motors[{MOTOR}].stop(action=Motor.ACTION_STOP_AND_HOLD)
-robot.motors[{MOTOR}].configure("NotConfigured")
-'''.replace('{MOTOR}', '6').replace('{MOTOR_DIR}', 'ccw')
 
 
 if __name__ == "__main__":
