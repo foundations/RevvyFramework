@@ -59,7 +59,7 @@ def start_revvy(config: RobotConfig = None):
     }
 
     def sound_path(file):
-        os.path.join(package_data_dir, 'assets', file)
+        return os.path.join(package_data_dir, 'assets', file)
 
     sound_paths = {key: sound_path(sound_files[key]) for key in sound_files}
 
