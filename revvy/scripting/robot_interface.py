@@ -142,14 +142,14 @@ class MotorPortWrapper(Wrapper):
         set_fns = {
             MotorConstants.UNIT_DEG: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(amount, speed_limit=rpm2dps(limit),
-                                                                             pos_type='relative'),
+                    MotorConstants.DIR_CW: lambda: self._motor.set_position(amount, speed_limit=rpm2dps(limit),
+                                                                            pos_type='relative'),
                     MotorConstants.DIR_CCW: lambda: self._motor.set_position(-amount, speed_limit=rpm2dps(limit),
                                                                              pos_type='relative'),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(amount, power_limit=limit,
-                                                                             pos_type='relative'),
+                    MotorConstants.DIR_CW: lambda: self._motor.set_position(amount, power_limit=limit,
+                                                                            pos_type='relative'),
                     MotorConstants.DIR_CCW: lambda: self._motor.set_position(-amount, power_limit=limit,
                                                                              pos_type='relative')
                 }
@@ -157,14 +157,14 @@ class MotorPortWrapper(Wrapper):
 
             MotorConstants.UNIT_ROT: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(360 * amount, speed_limit=rpm2dps(limit),
-                                                                             pos_type='relative'),
+                    MotorConstants.DIR_CW: lambda: self._motor.set_position(360 * amount, speed_limit=rpm2dps(limit),
+                                                                            pos_type='relative'),
                     MotorConstants.DIR_CCW: lambda: self._motor.set_position(-360 * amount, speed_limit=rpm2dps(limit),
                                                                              pos_type='relative'),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_position(360 * amount, power_limit=limit,
-                                                                             pos_type='relative'),
+                    MotorConstants.DIR_CW: lambda: self._motor.set_position(360 * amount, power_limit=limit,
+                                                                            pos_type='relative'),
                     MotorConstants.DIR_CCW: lambda: self._motor.set_position(-360 * amount, power_limit=limit,
                                                                              pos_type='relative')
                 }
@@ -172,11 +172,11 @@ class MotorPortWrapper(Wrapper):
 
             MotorConstants.UNIT_SEC: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(limit)),
+                    MotorConstants.DIR_CW: lambda: self._motor.set_speed(rpm2dps(limit)),
                     MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-limit)),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(self.max_rpm), power_limit=limit),
+                    MotorConstants.DIR_CW: lambda: self._motor.set_speed(rpm2dps(self.max_rpm), power_limit=limit),
                     MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-self.max_rpm), power_limit=limit),
                 }
             }
@@ -204,11 +204,11 @@ class MotorPortWrapper(Wrapper):
         # start moving depending on limits
         set_speed_fns = {
             MotorConstants.UNIT_SPEED_RPM: {
-                MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(rotation)),
+                MotorConstants.DIR_CW: lambda: self._motor.set_speed(rpm2dps(rotation)),
                 MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-rotation))
             },
             MotorConstants.UNIT_SPEED_PWR: {
-                MotorConstants.DIR_CW:  lambda: self._motor.set_speed(rpm2dps(self.max_rpm), power_limit=rotation),
+                MotorConstants.DIR_CW: lambda: self._motor.set_speed(rpm2dps(self.max_rpm), power_limit=rotation),
                 MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-self.max_rpm), power_limit=rotation)
             }
         }
@@ -218,7 +218,7 @@ class MotorPortWrapper(Wrapper):
     def stop(self, action):
         stop_fn = {
             MotorConstants.ACTION_STOP_AND_HOLD: lambda: self._motor.set_speed(0),
-            MotorConstants.ACTION_RELEASE:       lambda: self._motor.set_power(0),
+            MotorConstants.ACTION_RELEASE: lambda: self._motor.set_power(0),
         }
         self.using_resource(stop_fn[action])
 
@@ -233,13 +233,13 @@ class DriveTrainWrapper(Wrapper):
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
         left_multipliers = {
             MotorConstants.DIRECTION_FWD:   1,
-            MotorConstants.DIRECTION_BACK:  -1,
-            MotorConstants.DIRECTION_LEFT:  -1,
+            MotorConstants.DIRECTION_BACK: -1,
+            MotorConstants.DIRECTION_LEFT: -1,
             MotorConstants.DIRECTION_RIGHT: 1,
         }
         right_multipliers = {
             MotorConstants.DIRECTION_FWD:   1,
-            MotorConstants.DIRECTION_BACK:  -1,
+            MotorConstants.DIRECTION_BACK: -1,
             MotorConstants.DIRECTION_LEFT:  1,
             MotorConstants.DIRECTION_RIGHT: -1,
         }
@@ -316,8 +316,14 @@ class RobotInterface:
 
         resources = {name: ResourceWrapper(res[name], priority) for name in res}
 
-        motor_wrappers = [MotorPortWrapper(script, port, resources['motor_{}'.format(port.id)]) for port in robot.motors]
-        sensor_wrappers = [SensorPortWrapper(script, port, resources['sensor_{}'.format(port.id)]) for port in robot.sensors]
+        def motor_name(port):
+            return 'motor_{}'.format(port.id)
+
+        def sensor_name(port):
+            return 'sensor_{}'.format(port.id)
+
+        motor_wrappers = [MotorPortWrapper(script, port, resources[motor_name(port)]) for port in robot.motors]
+        sensor_wrappers = [SensorPortWrapper(script, port, resources[sensor_name(port)]) for port in robot.sensors]
         self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
         self._motors.aliases.update(config.motors.names)

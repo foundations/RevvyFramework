@@ -58,4 +58,3 @@ class McuStatusUpdater:
                 print('McuStatusUpdater: invalid slot length')
 
             idx = data_end
-

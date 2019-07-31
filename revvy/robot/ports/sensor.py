@@ -12,9 +12,9 @@ def create_sensor_port_handler(interface: RevvyControl, configs: dict):
     port_types = interface.get_sensor_port_types()
 
     drivers = {
-        'NotConfigured': lambda port, cfg: NullSensor(),
-        'BumperSwitch':  bumper_switch,
-        'HC_SR04':       hcsr04
+        'NotConfigured': NullSensor,
+        'BumperSwitch': bumper_switch,
+        'HC_SR04': hcsr04
     }
     handler = PortHandler(interface, configs, drivers, port_amount, port_types)
     handler._set_port_type = interface.set_sensor_port_type
@@ -23,6 +23,9 @@ def create_sensor_port_handler(interface: RevvyControl, configs: dict):
 
 
 class NullSensor:
+    def __init__(self, port: PortInstance, port_config):
+        pass
+
     def on_value_changed(self, cb):
         pass
 
@@ -66,7 +69,11 @@ class BaseSensorPortDriver:
 
     def on_value_changed(self, cb):
         if not callable(cb):
-            cb = lambda p: None
+
+            def empty_fn(p):
+                pass
+
+            cb = empty_fn
 
         self._value_changed_callback = cb
 

@@ -195,7 +195,7 @@ class RevvyTransport:
             if not has_valid_response:
                 return False
             return ResponseHeader(header_bytes)
-        
+
         header = retry(_read_response_header_once, retries)
 
         if not header:

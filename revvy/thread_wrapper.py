@@ -141,7 +141,7 @@ class ThreadContext:
 def periodic(fn, period, name="PeriodicThread"):
     """
     Call fn periodically
-    
+
     :param fn: the function to run
     :param period: period time in seconds
     :param name: optional name to prefix the thread log messages
