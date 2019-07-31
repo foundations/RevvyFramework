@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+import _thread
+import os
+import signal
 from collections import namedtuple
 
 from revvy.file_storage import StorageInterface, StorageError
@@ -40,7 +43,7 @@ Motors = {
             'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
             'position_controller': [10, 0, 0, -900, 900],
             'position_limits':     [0, 0],
-            'encoder_resolution':  -1168
+            'encoder_resolution': -1168
         }
     },
     'RevvyMotor_Dexter': {
@@ -58,7 +61,7 @@ Motors = {
             'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
             'position_controller': [10, 0, 0, -900, 900],
             'position_limits':     [0, 0],
-            'encoder_resolution':  -292
+            'encoder_resolution': -292
         }
     }
 }
@@ -275,7 +278,13 @@ class RobotManager:
         return self._remote_controller
 
     def request_update(self):
+        def update():
+            print('Exiting to update')
+            time.sleep(1)
+            os.kill(os.getpid(), signal.SIGINT)
+
         self._update_requested = True
+        self.run_in_background(update)
 
     def start(self):
         print("RobotManager: start()")
@@ -343,10 +352,12 @@ class RobotManager:
         # apply new configuration
         print("Applying new configuration")
 
+        live_service = self._ble['live_message_service']
+
         # set up motors
         for motor in self._robot.motors:
             motor.configure(config.motors[motor.id])
-            motor.on_status_changed(lambda p: self._ble['live_message_service'].update_motor(p.id, p.power, p.speed, p.position))
+            motor.on_status_changed(lambda p: live_service.update_motor(p.id, p.power, p.speed, p.position))
 
         for motor_id in config.drivetrain['left']:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
@@ -359,7 +370,7 @@ class RobotManager:
         # set up sensors
         for sensor in self._robot.sensors:
             sensor.configure(config.sensors[sensor.id])
-            sensor.on_value_changed(lambda p: self._ble['live_message_service'].update_sensor(p.id, p.raw_value))
+            sensor.on_value_changed(lambda p: live_service.update_sensor(p.id, p.raw_value))
 
         # set up scripts
         for name in config.scripts:

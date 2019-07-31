@@ -158,14 +158,18 @@ def start_revvy(config: RobotConfig = None):
         try:
             robot.start()
             robot.sound.play_tune('robot2')
-            print("Press Ctrl-C to exit")
-            while not robot.update_requested:
-                time.sleep(1)
-            # exit due to update request
-            ret_val = 3
-        except KeyboardInterrupt:
+
+            print("Press Enter to exit")
+            input()
             # manual exit
             ret_val = 0
+        except EOFError:
+            while not robot.update_requested:
+                time.sleep(1)
+            ret_val = 3 if robot.update_requested else 0
+        except KeyboardInterrupt:
+            # manual exit or update request
+            ret_val = 3 if robot.update_requested else 0
         except Exception:
             print(traceback.format_exc())
             ret_val = 1
