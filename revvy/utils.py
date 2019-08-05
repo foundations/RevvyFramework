@@ -281,12 +281,12 @@ class RobotManager:
 
     def request_update(self):
         def update():
+            print('Exiting to update')
+            time.sleep(1)
+            self._update_requested = True
             if self.needs_interrupting:
-                print('Exiting to update')
-                time.sleep(1)
                 os.kill(os.getpid(), signal.SIGINT)
 
-        self._update_requested = True
         self.run_in_background(update)
 
     def start(self):
