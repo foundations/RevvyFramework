@@ -164,6 +164,7 @@ def start_revvy(config: RobotConfig = None):
             # manual exit
             ret_val = 0
         except EOFError:
+            robot.needs_interrupting = False
             while not robot.update_requested:
                 time.sleep(1)
             ret_val = 3 if robot.update_requested else 0

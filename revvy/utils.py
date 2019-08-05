@@ -199,6 +199,8 @@ class RobotManager:
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
     def __init__(self, interface: RevvyControl, revvy, sound_paths, default_config=None):
         print("RobotManager: __init__()")
+        self.needs_interrupting = True
+
         self._configuring = False
         self._robot = Robot(interface, sound_paths)
         self._interface = interface
@@ -279,9 +281,10 @@ class RobotManager:
 
     def request_update(self):
         def update():
-            print('Exiting to update')
-            time.sleep(1)
-            os.kill(os.getpid(), signal.SIGINT)
+            if self.needs_interrupting:
+                print('Exiting to update')
+                time.sleep(1)
+                os.kill(os.getpid(), signal.SIGINT)
 
         self._update_requested = True
         self.run_in_background(update)
