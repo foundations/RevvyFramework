@@ -322,7 +322,7 @@ class RobotManager:
         self._robot.status.controller_status = RemoteControllerStatus.Controlled
 
     def _on_controller_lost(self):
-        if self._robot.status.controller_status == RemoteControllerStatus.Controlled:
+        if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.configure(None)
 
