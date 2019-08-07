@@ -11,8 +11,11 @@ python:
 install:
   - pip install -r install/requirements.txt
   - pip install -r install/requirements_test.txt
+
 # command to run tests
-script: nose2
+script:
+  - nose2
+  - python -m tools.precommit_pep8 --check-all
 
 # Push the results back to codecov
 after_success:
