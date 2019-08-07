@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import json
+import enum
 
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage, IntegrityError
@@ -16,6 +17,11 @@ import sys
 from tools.check_manifest import check_manifest
 from tools.common import file_hash
 
+class RevvyStatusCode(enum.IntEnum):
+    OK = 0
+    ERROR = 1
+    INTEGRITY_ERROR = 2
+    UPDATE_REQUEST = 3
 
 def start_revvy(config: RobotConfig = None):
 
@@ -24,7 +30,7 @@ def start_revvy(config: RobotConfig = None):
 
     # self-test
     if not check_manifest(os.path.join(directory, 'manifest.json')):
-        return 2
+        return RevvyStatusCode.INTEGRITY_ERROR
 
     # prepare environment
     data_dir = os.path.join(directory, '..', '..', 'data')
@@ -162,18 +168,18 @@ def start_revvy(config: RobotConfig = None):
             print("Press Enter to exit")
             input()
             # manual exit
-            ret_val = 0
+            ret_val = RevvyStatusCode.OK
         except EOFError:
             robot.needs_interrupting = False
             while not robot.update_requested:
                 time.sleep(1)
-            ret_val = 3 if robot.update_requested else 0
+            ret_val = RevvyStatusCode.UPDATE_REQUEST if robot.update_requested else RevvyStatusCode.OK
         except KeyboardInterrupt:
             # manual exit or update request
-            ret_val = 3 if robot.update_requested else 0
+            ret_val = RevvyStatusCode.UPDATE_REQUEST if robot.update_requested else RevvyStatusCode.OK
         except Exception:
             print(traceback.format_exc())
-            ret_val = 1
+            ret_val = RevvyStatusCode.ERROR
         finally:
             print('stopping')
             robot.stop()
