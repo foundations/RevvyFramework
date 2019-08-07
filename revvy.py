@@ -17,11 +17,13 @@ import sys
 from tools.check_manifest import check_manifest
 from tools.common import file_hash
 
+
 class RevvyStatusCode(enum.IntEnum):
     OK = 0
     ERROR = 1
     INTEGRITY_ERROR = 2
     UPDATE_REQUEST = 3
+
 
 def start_revvy(config: RobotConfig = None):
 
