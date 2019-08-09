@@ -162,7 +162,7 @@ def start_revvy(config: RobotConfig = None):
                 else:
                     parsed_config = RobotConfig.from_string(message_data)
                     if parsed_config is not None:
-                        robot.configure(parsed_config)
+                        robot.configure(parsed_config, robot._remote_controller_thread.start)
 
             elif message_type == LongMessageType.FRAMEWORK_DATA:
                 robot.request_update()

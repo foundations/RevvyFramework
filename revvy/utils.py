@@ -329,12 +329,14 @@ class RobotManager:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.configure(None)
 
-    def configure(self, config):
+    def configure(self, config, after=None):
         print('RobotManager: configure()')
         if self._robot.status.robot_status != RobotStatus.Stopped:
             if not self._configuring:
                 self._configuring = True
                 self.run_in_background(lambda: self._configure(config))
+            if callable(after):
+                self.run_in_background(after)
 
     def _reset_configuration(self):
         reset_volume()
@@ -392,8 +394,6 @@ class RobotManager:
             script = config.controller.buttons[button]
             if script:
                 self._remote_controller.on_button_pressed(button, self._scripts[script].start)
-
-        self._remote_controller_thread.start()
 
         # start background scripts
         for script in config.background_scripts:
