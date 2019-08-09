@@ -7,7 +7,7 @@ from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage, IntegrityError
 from revvy.firmware_updater import McuUpdater
 from revvy.functions import getserial
-from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType
+from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.utils import *
 from revvy.mcu.rrrc_transport import *
@@ -16,6 +16,9 @@ import sys
 
 from tools.check_manifest import check_manifest
 from tools.common import file_hash
+
+
+default_robot_config = None
 
 
 class RevvyStatusCode(enum.IntEnum):
@@ -73,9 +76,16 @@ def start_revvy(config: RobotConfig = None):
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
-    long_message_handler = LongMessageHandler(LongMessageStorage(ble_storage, MemoryStorage()))
+    long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
+    long_message_handler = LongMessageHandler(long_message_storage)
 
     ble = RevvyBLE(device_name, serial, long_message_handler)
+
+    # if the robot has never been configured, set the default configuration for the simple robot
+    if config is None:
+        status = long_message_storage.read_status(LongMessageType.CONFIGURATION_DATA)
+        if status.status != LongMessageStatus.READY:
+            config = default_robot_config
 
     with RevvyTransportI2C() as transport:
         robot_control = RevvyControl(transport.bind(0x2D))
