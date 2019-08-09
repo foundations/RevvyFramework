@@ -5,7 +5,7 @@ import signal
 from collections import namedtuple
 
 from revvy.file_storage import StorageInterface, StorageError
-from revvy.hardware_dependent.sound import setup_sound_v1, play_sound_v1, setup_sound_v2, play_sound_v2
+from revvy.hardware_dependent.sound import setup_sound_v1, play_sound_v1, setup_sound_v2, play_sound_v2, reset_volume
 from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
@@ -337,6 +337,8 @@ class RobotManager:
                 self.run_in_background(lambda: self._configure(config))
 
     def _reset_configuration(self):
+        reset_volume()
+
         self._scripts.reset()
         self._scripts.assign('Motor', MotorConstants)
         self._scripts.assign('RingLed', RingLed)

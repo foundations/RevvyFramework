@@ -1,13 +1,16 @@
 import subprocess
 import threading
 
+from revvy.functions import map_values, clip
+
+default_volume = 75
+
 init_amp = [
     [  # v1
         'gpio -g mode 13 alt0',
         'gpio -g mode 22 out'
     ],
     [  # v2
-        'amixer cset numid=1 -- 0',
         'gpio -g mode 13 alt0',
         'gpio -g mode 22 out',
         'gpio write 3 1'
@@ -89,3 +92,12 @@ def play_sound_v1(sound):
 
 def play_sound_v2(sound):
     _play_sound(1, sound)
+
+
+def set_volume(volume):
+    scaled = map_values(clip(volume, 0, 100), 0, 100, -10239, 400)
+    _run_command('amixer cset numid=1 -- {}'.format(scaled))
+
+
+def reset_volume():
+    set_volume(default_volume)

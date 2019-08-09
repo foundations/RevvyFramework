@@ -1,6 +1,7 @@
 import time
 
 from revvy.functions import hex2rgb
+from revvy.hardware_dependent.sound import set_volume
 from revvy.robot.ports.common import PortInstance, PortCollection
 
 
@@ -337,6 +338,7 @@ class RobotInterface:
         # shorthand functions
         self.drive = self._drivetrain.drive
         self.play_tune = self._sound.play_tune
+        self.set_volume = set_volume
 
     def stop_all_motors(self, action):
         for motor in self._motors:
