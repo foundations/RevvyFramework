@@ -7,6 +7,7 @@ init_amp = [
         'gpio -g mode 22 out'
     ],
     [  # v2
+        'amixer cset numid=1 -- 0',
         'gpio -g mode 13 alt0',
         'gpio -g mode 22 out',
         'gpio write 3 1'
