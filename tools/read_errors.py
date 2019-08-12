@@ -148,8 +148,9 @@ if __name__ == "__main__":
         remaining = error_count
         i = 0
         while remaining > 0:
-            errors = robot_control.error_memory_read_errors(remaining)
+            errors = robot_control.error_memory_read_errors(i)
             if len(errors) == 0:
+                print('0 errors returned, exiting')
                 break
 
             remaining -= len(errors)

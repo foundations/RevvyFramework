@@ -69,6 +69,12 @@ def retry(fn, retries=5):
 
 def split(data, chunk_size):
     """
+    >>> list(split([], 5))
+    []
+    >>> list(split(b'apple', 5))
+    [b'apple']
+    >>> list(split(b'apple', 7))
+    [b'apple']
     >>> list(split([1, 2, 3, 4], 2))
     [[1, 2], [3, 4]]
     >>> list(split([1, 2, 3, 4, 5], 2))
