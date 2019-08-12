@@ -21,6 +21,34 @@ class TestThreadWrapper(unittest.TestCase):
 
         self.assertEqual(1, mock.call_count)
 
+    def test_stop_requested_is_only_true_while_thread_is_running(self):
+        evt = Event()
+
+        tw = ThreadWrapper(lambda x: evt.wait())
+
+        # at first, the thread is not running so it is not stopping
+        self.assertFalse(tw.stopping)
+
+        # the thread is running normally, not stopping
+        tw.start()
+        self.assertFalse(tw.stopping)
+
+        # calling stop() immediately sets stopping to True
+        tw.stop()
+        self.assertTrue(tw.stopping)
+
+        # test that registering a callback while the thread is stopping triggers this callback immediately
+        mock = Mock()
+        tw.on_stop_requested(mock)
+        self.assertEqual(1, mock.call_count)
+
+        # allow exiting
+        evt.set()
+
+        # when the thread ends, stopping is reset to False, since the thread is not running
+        tw.exit()
+        self.assertFalse(tw.stopping)
+
     def test_waiting_for_a_stopped_thread_to_stop_does_nothing(self):
         tw = ThreadWrapper(lambda ctx: None)
         tw.start().wait()
