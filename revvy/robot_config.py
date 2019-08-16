@@ -5,6 +5,25 @@ from json import JSONDecodeError
 from revvy.functions import b64_decode_str
 from revvy.scripting.builtin_scripts import drive_joystick, drive_2sticks
 
+
+def imu_test(args):
+    robot = args['robot']
+
+    prev_angle = 1
+
+    robot.led_ring.set(list(range(1, 13)), "000000")
+    robot.led_ring.set(1, "00ff00")
+
+    while not args['ctx'].stop_requested:
+        angle = (((robot.imu.yaw_angle - 30) % 360) // 30) + 1
+
+        if angle != prev_angle:
+            robot.led_ring.set(angle, "00ff00")
+            robot.led_ring.set(prev_angle, "000000")
+
+            prev_angle = angle
+
+
 motor_types = [
     "NotConfigured",
     # motor
@@ -20,7 +39,8 @@ sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch"]
 
 builtin_scripts = {
     'drive_2sticks': drive_2sticks,
-    'drive_joystick': drive_joystick
+    'drive_joystick': drive_joystick,
+    'imu_test': imu_test
 }
 
 

@@ -18,7 +18,13 @@ from tools.check_manifest import check_manifest
 from tools.common import file_hash
 
 
-default_robot_config = None
+default_robot_config = RobotConfig.from_string('''{
+    "robotConfig":{"motors":[{},{},{},{},{},{}],"sensors":[{},{},{},{}]},
+    "blocklyList":[
+        {"builtinScriptName":"imu_test",
+         "assignments":{"background":0}}
+    ]
+}''')
 
 
 class RevvyStatusCode(enum.IntEnum):
