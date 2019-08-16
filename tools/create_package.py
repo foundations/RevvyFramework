@@ -46,7 +46,7 @@ if __name__ == "__main__":
         'tools/',
         'manifest.json'
     ]
-    package_path = 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION)
+    package_path = 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION.replace('/', '-'))
     data_path = 'install/framework.data'
     meta_file = 'install/framework.meta'
     create_package(package_sources, package_path)

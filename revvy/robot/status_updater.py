@@ -4,7 +4,10 @@ from revvy.mcu.rrrc_control import RevvyControl
 mcu_updater_slots = {
     "motors": {i: i-1 for i in range(1, 7)},
     "sensors": {i: i-1+6 for i in range(1, 5)},
-    "battery": 10
+    "battery": 10,
+    "axl": 11,
+    "gyro": 12,
+    "yaw": 13
 }
 
 
@@ -16,11 +19,13 @@ class McuStatusUpdater:
     communication interface overhead, thus to allow lower latency updates"""
     def __init__(self, robot: RevvyControl):
         self._robot = robot
+        self._is_enabled = [False] * 32
         self._handlers = [lambda x: None] * 32
 
     def reset(self):
         print('McuStatusUpdater: reset all slots')
         self._handlers = [lambda x: None] * 32
+        self._is_enabled = [False] * 32
         self._robot.status_updater_reset()
 
     def _enable_slot(self, slot):
@@ -35,11 +40,15 @@ class McuStatusUpdater:
         assert slot < len(self._handlers)
 
         if callable(cb):
-            self._handlers[slot] = cb
-            self._enable_slot(slot)
+            if not self._is_enabled[slot]:
+                self._is_enabled[slot] = True
+                self._handlers[slot] = cb
+                self._enable_slot(slot)
         else:
-            self._handlers[slot] = lambda x: None
-            self._disable_slot(slot)
+            if self._is_enabled[slot]:
+                self._is_enabled[slot] = False
+                self._handlers[slot] = lambda x: None
+                self._disable_slot(slot)
 
     def read(self):
         data = self._robot.status_updater_read()
