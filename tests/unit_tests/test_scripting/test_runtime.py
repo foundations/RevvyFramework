@@ -37,6 +37,8 @@ def create_robot_mock():
     robot_mock.robot.led_ring = mockobj()
     robot_mock.robot.led_ring.count = 0
 
+    robot_mock.robot.imu = mockobj()
+
     return robot_mock
 
 

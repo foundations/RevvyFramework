@@ -94,9 +94,13 @@ class ScriptManager:
 
         print('ScriptManager: New script: {}'.format(name))
         script = ScriptHandle(self, script, name, self._globals)
-        robot = self._robot
-        script.assign('robot', RobotInterface(script, robot.robot, robot.config, robot.resources, priority))
-        self._scripts[name] = script
+        try:
+            robot = self._robot
+            script.assign('robot', RobotInterface(script, robot.robot, robot.config, robot.resources, priority))
+            self._scripts[name] = script
+        except Exception:
+            script.cleanup()
+            raise
 
     def __getitem__(self, name):
         return self._scripts[name]
