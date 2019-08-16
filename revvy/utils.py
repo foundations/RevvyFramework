@@ -8,6 +8,7 @@ from revvy.file_storage import StorageInterface, StorageError
 from revvy.hardware_dependent.sound import setup_sound_v1, play_sound_v1, setup_sound_v2, play_sound_v2, reset_volume
 from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version
 from revvy.robot.drivetrain import DifferentialDrivetrain
+from revvy.robot.imu import IMU
 from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.common import PortInstance
@@ -110,6 +111,8 @@ class Robot:
         self._status_updater = McuStatusUpdater(interface)
         self._battery = BatteryStatus(0, 0, 0)
 
+        self._imu = IMU()
+
         def _motor_config_changed(motor: PortInstance, config_name):
             if config_name != 'NotConfigured':
                 self._status_updater.set_slot(mcu_updater_slots["motors"][motor.id], motor.update_status)
@@ -143,6 +146,10 @@ class Robot:
     @property
     def battery(self):
         return self._battery
+
+    @property
+    def imu(self):
+        return self._imu
 
     @property
     def status(self):
@@ -185,6 +192,9 @@ class Robot:
             self._battery = BatteryStatus(chargerStatus=main_status, main=main_percentage, motor=motor_percentage)
 
         self._status_updater.set_slot(mcu_updater_slots["battery"], _process_battery_slot)
+        self._status_updater.set_slot(mcu_updater_slots["axl"], self._imu.update_axl_data)
+        self._status_updater.set_slot(mcu_updater_slots["gyro"], self._imu.update_gyro_data)
+        self._status_updater.set_slot(mcu_updater_slots["yaw"], self._imu.update_yaw_angles)
 
         self._drivetrain.reset()
         self._motor_ports.reset()
