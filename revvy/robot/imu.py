@@ -36,7 +36,7 @@ class IMU:
         (self._yaw_angle, self._relative_yaw_angle) = struct.unpack('<ll', bytes(data))
 
     def update_axl_data(self, data):
-        self._acceleration = self._read_vector(data, 0.06103)
+        self._acceleration = self._read_vector(data, 0.061)
 
     def update_gyro_data(self, data):
-        self._rotation = self._read_vector(data, 0.007477)
+        self._rotation = self._read_vector(data, 0.035)
