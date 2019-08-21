@@ -2,7 +2,6 @@ import time
 
 from revvy.functions import hex2rgb
 from revvy.hardware_dependent.sound import set_volume
-from revvy.robot.imu import IMU
 from revvy.robot.ports.common import PortInstance, PortCollection
 
 
@@ -111,6 +110,7 @@ class MotorConstants:
     UNIT_ROT = 0
     UNIT_SEC = 1
     UNIT_DEG = 2
+    UNIT_TURN_ANGLE = 3
 
     UNIT_SPEED_RPM = 0
     UNIT_SPEED_PWR = 1
@@ -268,6 +268,16 @@ class DriveTrainWrapper(Wrapper):
                     rpm2dps(self.max_rpm) * left_multipliers[direction],
                     rpm2dps(self.max_rpm) * right_multipliers[direction],
                     power_limit=speed)
+            },
+            MotorConstants.UNIT_TURN_ANGLE: {
+                MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.turn(
+                    rotation * left_multipliers[direction],
+                    rpm2dps(speed)),
+
+                MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.turn(
+                    rotation * left_multipliers[direction],
+                    rpm2dps(self.max_rpm),
+                    power_limit=speed)
             }
         }
 
@@ -276,7 +286,8 @@ class DriveTrainWrapper(Wrapper):
             try:
                 resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
 
-                if unit_rotation == MotorConstants.UNIT_ROT:
+                if unit_rotation == MotorConstants.UNIT_ROT\
+                        or unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
                     # wait for movement to finish
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._drivetrain.is_moving:

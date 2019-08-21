@@ -45,6 +45,7 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(SetDifferentialDriveTrainMotorsCommand, type(control.set_drivetrain_motors))
         self.assertIs(RequestDifferentialDriveTrainPositionCommand, type(control.set_drivetrain_position))
         self.assertIs(RequestDifferentialDriveTrainSpeedCommand, type(control.set_drivetrain_speed))
+        self.assertIs(RequestDifferentialDriveTrainTurnCommand, type(control.drivetrain_turn))
 
         self.assertIs(ReadSensorPortAmountCommand, type(control.get_sensor_port_amount))
         self.assertIs(ReadSensorPortTypesCommand, type(control.get_sensor_port_types))
@@ -85,6 +86,7 @@ class TestControlCommands(unittest.TestCase):
         self.assertEqual(0x1A, control.set_drivetrain_motors.command_id)
         self.assertEqual(0x1B, control.set_drivetrain_position.command_id)
         self.assertEqual(0x1B, control.set_drivetrain_speed.command_id)
+        self.assertEqual(0x1C, control.drivetrain_turn.command_id)
 
         self.assertEqual(0x20, control.get_sensor_port_amount.command_id)
         self.assertEqual(0x21, control.get_sensor_port_types.command_id)

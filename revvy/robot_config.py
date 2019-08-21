@@ -4,6 +4,7 @@ from json import JSONDecodeError
 
 from revvy.functions import b64_decode_str
 from revvy.scripting.builtin_scripts import drive_joystick, drive_2sticks
+from revvy.scripting.robot_interface import MotorConstants
 
 
 def imu_test(args):

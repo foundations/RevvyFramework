@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-import _thread
 import os
 import signal
 from collections import namedtuple
@@ -114,16 +113,12 @@ class Robot:
         self._imu = IMU()
 
         def _motor_config_changed(motor: PortInstance, config_name):
-            if config_name != 'NotConfigured':
-                self._status_updater.set_slot(mcu_updater_slots["motors"][motor.id], motor.update_status)
-            else:
-                self._status_updater.set_slot(mcu_updater_slots["motors"][motor.id], None)
+            callback = None if config_name == 'NotConfigured' else motor.update_status
+            self._status_updater.set_slot(mcu_updater_slots["motors"][motor.id], callback)
 
         def _sensor_config_changed(sensor: PortInstance, config_name):
-            if config_name != 'NotConfigured':
-                self._status_updater.set_slot(mcu_updater_slots["sensors"][sensor.id], sensor.update_status)
-            else:
-                self._status_updater.set_slot(mcu_updater_slots["sensors"][sensor.id], None)
+            callback = None if config_name == 'NotConfigured' else sensor.update_status
+            self._status_updater.set_slot(mcu_updater_slots["sensors"][sensor.id], callback)
 
         self._motor_ports = create_motor_port_handler(interface, Motors)
         for port in self._motor_ports:

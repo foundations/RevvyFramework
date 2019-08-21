@@ -18,6 +18,7 @@ class DifferentialDrivetrain:
         self._right_motors = []
 
         self.set_speeds = interface.set_drivetrain_speed
+        self.turn = interface.drivetrain_turn
         self.move = interface.set_drivetrain_position
 
     @property

@@ -26,8 +26,12 @@ class Command:
         elif response.status == ResponseHeader.Status_Error_UnknownCommand:
             raise UnknownCommandError("Command not implemented: {}".format(self._command_byte))
         else:
-            raise ValueError(
-                'Command status: {} payload: {}'.format(response.status, repr(response.payload)))
+            try:
+                status = ResponseHeader.StatusStrings[response.status]
+            except KeyError:
+                status = 'Unknown status (code {})'.format(response.status)
+
+            raise ValueError('Command status: {} payload: {}'.format(status, repr(response.payload)))
 
     def _send(self, payload=None):
         """Send the command with the given payload and process the response"""
@@ -223,6 +227,15 @@ class RequestDifferentialDriveTrainPositionCommand(Command):
     def __call__(self, left, right, left_speed=0, right_speed=0, power_limit=0):
         pos_cmd = list(struct.pack('<bllffb', 0, left, right, left_speed, right_speed, power_limit))
         return self._send(pos_cmd)
+
+
+class RequestDifferentialDriveTrainTurnCommand(Command):
+    @property
+    def command_id(self): return 0x1C
+
+    def __call__(self, turn_angle, wheel_speed=0, power_limit=0):
+        turn_cmd = list(struct.pack('<lfb', turn_angle, wheel_speed, power_limit))
+        return self._send(turn_cmd)
 
 
 class SetPortConfigCommand(Command, ABC):
