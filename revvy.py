@@ -88,10 +88,11 @@ def start_revvy(config: RobotConfig = None):
     ble = RevvyBLE(device_name, serial, long_message_handler)
 
     # if the robot has never been configured, set the default configuration for the simple robot
+    initial_config = config
     if config is None:
         status = long_message_storage.read_status(LongMessageType.CONFIGURATION_DATA)
         if status.status != LongMessageStatus.READY:
-            config = default_robot_config
+            initial_config = default_robot_config
 
     with RevvyTransportI2C() as transport:
         robot_control = RevvyControl(transport.bind(0x2D))
@@ -125,7 +126,7 @@ def start_revvy(config: RobotConfig = None):
             print("Skipping firmware update")
             traceback.print_exc()
 
-        robot = RobotManager(robot_control, ble, sound_paths, config)
+        robot = RobotManager(robot_control, ble, sound_paths, initial_config)
 
         def on_device_name_changed(new_name):
             print('Device name changed to {}'.format(new_name))
