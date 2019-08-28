@@ -28,6 +28,7 @@ class ThreadWrapper:
         self._control = Event()
         self._thread_running_event = Event()
         self._ctx = None
+        self._was_started = False
         self._thread = Thread(target=self._thread_func, args=())
         self._thread.start()
 
@@ -42,6 +43,7 @@ class ThreadWrapper:
             try:
                 with self._lock:
                     self._ctx = ThreadContext(self)
+                    self._was_started = True
                     self._thread_running_event.set()
                     self._control.clear()
                 self._func(self._ctx)
@@ -107,7 +109,12 @@ class ThreadWrapper:
 
     def on_stopped(self, callback):
         with self._lock:
-            self._stopped_callbacks.append(callback)
+            call = self._was_started and not self._ctx
+            if not call:
+                self._stopped_callbacks.append(callback)
+
+        if call:
+            callback()
 
     def on_stop_requested(self, callback):
         with self._lock:
