@@ -3,7 +3,7 @@ import threading
 
 from revvy.functions import map_values, clip
 
-default_volume = 75
+default_volume = 90
 
 init_amp = [
     [  # v1
