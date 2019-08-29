@@ -24,6 +24,8 @@ def imu_test(args):
 
             prev_angle = angle
 
+        args['time'].sleep(0.1)
+
 
 motor_types = [
     "NotConfigured",
