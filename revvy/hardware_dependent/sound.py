@@ -70,12 +70,15 @@ def _init_sound(hw):
 
 
 def _play_sound(hw, sound):
-    print('Playing sound: {}'.format(sound))
+    if len(processes) < 10:
+        print('Playing sound: {}'.format(sound))
 
-    _run_command_with_callback([
-        enable_amp[hw],
-        "mpg123 {}".format(sound)
-    ], _disable_amp_callback)
+        _run_command_with_callback([
+            enable_amp[hw],
+            "mpg123 {}".format(sound)
+        ], _disable_amp_callback)
+    else:
+        print('Too many sounds are playing, skip')
 
 
 def setup_sound_v1():
