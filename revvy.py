@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import json
-import enum
 
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage, IntegrityError
@@ -25,13 +24,6 @@ default_robot_config = RobotConfig.from_string('''{
          "assignments":{"background":0}}
     ]
 }''')
-
-
-class RevvyStatusCode(enum.IntEnum):
-    OK = 0
-    ERROR = 1
-    INTEGRITY_ERROR = 2
-    UPDATE_REQUEST = 3
 
 
 def start_revvy(config: RobotConfig = None):
@@ -190,12 +182,12 @@ def start_revvy(config: RobotConfig = None):
             ret_val = RevvyStatusCode.OK
         except EOFError:
             robot.needs_interrupting = False
-            while not robot.update_requested:
+            while not robot.exited:
                 time.sleep(1)
-            ret_val = RevvyStatusCode.UPDATE_REQUEST if robot.update_requested else RevvyStatusCode.OK
+            ret_val = robot.status_code
         except KeyboardInterrupt:
             # manual exit or update request
-            ret_val = RevvyStatusCode.UPDATE_REQUEST if robot.update_requested else RevvyStatusCode.OK
+            ret_val = robot.status_code
         except Exception:
             print(traceback.format_exc())
             ret_val = RevvyStatusCode.ERROR

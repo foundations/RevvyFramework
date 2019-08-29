@@ -1,9 +1,11 @@
 #!/usr/bin/python3
+import enum
 import os
 import signal
 from collections import namedtuple
 
 from revvy.file_storage import StorageInterface, StorageError
+from revvy.hardware_dependent.rrrc_transport_i2c import I2CException
 from revvy.hardware_dependent.sound import setup_sound_v1, play_sound_v1, setup_sound_v2, play_sound_v2, reset_volume
 from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version
 from revvy.robot.drivetrain import DifferentialDrivetrain
@@ -199,6 +201,13 @@ class Robot:
         self._status.update()
 
 
+class RevvyStatusCode(enum.IntEnum):
+    OK = 0
+    ERROR = 1
+    INTEGRITY_ERROR = 2
+    UPDATE_REQUEST = 3
+
+
 class RobotManager:
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
@@ -240,7 +249,8 @@ class RobotManager:
         self._scripts = ScriptManager(self)
         self._config = self._default_configuration
 
-        self._update_requested = False
+        self._status_code = RevvyStatusCode.OK
+        self.exited = False
 
     def _update(self):
         # noinspection PyBroadException
@@ -257,6 +267,8 @@ class RobotManager:
             for fn in fns:
                 print("Running background function")
                 fn()
+        except I2CException:
+            self.exit(RevvyStatusCode.ERROR)
         except Exception:
             print(traceback.format_exc())
 
@@ -273,8 +285,8 @@ class RobotManager:
         return self._robot.sound
 
     @property
-    def update_requested(self):
-        return self._update_requested
+    def status_code(self):
+        return self._status_code
 
     @property
     def robot(self):
@@ -284,13 +296,17 @@ class RobotManager:
     def remote_controller(self):
         return self._remote_controller
 
+    def exit(self, status_code):
+        self._status_code = status_code
+        if self.needs_interrupting:
+            os.kill(os.getpid(), signal.SIGINT)
+        self.exited = True
+
     def request_update(self):
         def update():
             print('Exiting to update')
             time.sleep(1)
-            self._update_requested = True
-            if self.needs_interrupting:
-                os.kill(os.getpid(), signal.SIGINT)
+            self.exit(RevvyStatusCode.UPDATE_REQUEST)
 
         self.run_in_background(update)
 

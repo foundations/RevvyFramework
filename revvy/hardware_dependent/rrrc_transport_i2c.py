@@ -1,5 +1,10 @@
 from smbus2 import i2c_msg, SMBus
 from revvy.mcu.rrrc_transport import RevvyTransportInterface, RevvyTransport
+import traceback
+
+
+class I2CException(Exception):
+    pass
 
 
 class RevvyTransportI2CImpl:
@@ -16,13 +21,21 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
         self._bus = bus
 
     def read(self, length):
-        read_msg = i2c_msg.read(self._address, length)
-        self._bus.i2c_rdwr(read_msg)
+        try:
+            read_msg = i2c_msg.read(self._address, length)
+            self._bus.i2c_rdwr(read_msg)
+        except TypeError:
+            traceback.print_exc()
+            raise I2CException()
         return list(read_msg)
 
     def write(self, data):
-        write_msg = i2c_msg.write(self._address, data)
-        self._bus.i2c_rdwr(write_msg)
+        try:
+            write_msg = i2c_msg.write(self._address, data)
+            self._bus.i2c_rdwr(write_msg)
+        except TypeError:
+            traceback.print_exc()
+            raise I2CException()
 
 
 class RevvyTransportI2C:
