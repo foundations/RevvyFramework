@@ -3,6 +3,7 @@ import threading
 
 from revvy.functions import map_values, clip
 
+max_parallel_sounds = 4
 default_volume = 90
 
 init_amp = [
@@ -70,7 +71,7 @@ def _init_sound(hw):
 
 
 def _play_sound(hw, sound):
-    if len(processes) < 10:
+    if len(processes) <= max_parallel_sounds:
         print('Playing sound: {}'.format(sound))
 
         _run_command_with_callback([
