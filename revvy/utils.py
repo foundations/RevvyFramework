@@ -455,6 +455,7 @@ class RobotManager:
                 self._interface.ping()
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
+                time.sleep(0.1)
 
 
 class DeviceNameProvider:
