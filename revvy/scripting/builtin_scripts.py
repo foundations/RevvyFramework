@@ -35,3 +35,33 @@ def drive_joystick(args):
 
 def drive_2sticks(args):
     drive(args, stick_controller)
+
+
+def imu_test(args):
+    """Simple script that points in the 0° yaw angle direction"""
+    robot = args['robot']
+    time = args['time']
+    ctx = args['ctx']
+
+    prev_angle = 1
+
+    robot.led_ring.set(list(range(1, 13)), "000000")
+    robot.led_ring.set(1, "00ff00")
+
+    while not ctx.stop_requested:
+        angle = (((robot.imu.yaw_angle - 30) % 360) // 30) + 1
+
+        if angle != prev_angle:
+            robot.led_ring.set(angle, "00ff00")
+            robot.led_ring.set(prev_angle, "000000")
+
+            prev_angle = angle
+
+        time.sleep(0.1)
+
+
+builtin_scripts = {
+    'drive_2sticks': drive_2sticks,
+    'drive_joystick': drive_joystick,
+    'imu_test': imu_test  # necessary to allow the default configuration remain simple
+}

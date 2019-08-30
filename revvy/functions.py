@@ -129,3 +129,20 @@ def bits_to_bool_list(byte_list):
         return [(byte & (1 << x)) != 0 for x in range(8)]
 
     return [j for i in [expand_byte(byte) for byte in byte_list] for j in i]
+
+
+def dict_get_first(dictionary: dict, keys: list):
+    """
+    Read a value from a dictionary, using multiple possible keys
+
+    >>> dict_get_first({'a': 'foo', 'b': 'bar', 'c': 'foobar'}, ['b', 'c'])
+    'bar'
+    >>> dict_get_first({'a': 'foo', 'b': 'bar', 'c': 'foobar'}, ['d', 'c'])
+    'foobar'
+    """
+    for key in keys:
+        try:
+            return dictionary[key]
+        except KeyError:
+            pass
+    raise KeyError

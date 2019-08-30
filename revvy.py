@@ -92,7 +92,10 @@ def start_revvy(config: RobotConfig = None):
 
     # self-test
     if not check_manifest(os.path.join(directory, 'manifest.json')):
+        print('Revvy not started because manifest is invalid')
         return RevvyStatusCode.INTEGRITY_ERROR
+
+    print('Revvy run from {} ({})'.format(directory, __file__))
 
     # prepare environment
     data_dir = os.path.join(directory, '..', '..', 'data')
@@ -100,8 +103,6 @@ def start_revvy(config: RobotConfig = None):
     fw_dir = os.path.join(directory, 'data', 'firmware')
 
     serial = getserial()
-
-    print('Revvy run from {} ({})'.format(directory, __file__))
 
     # package_storage = FileStorage(package_data_dir)
     device_storage = FileStorage(os.path.join(data_dir, 'device'))
@@ -133,6 +134,8 @@ def start_revvy(config: RobotConfig = None):
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
     device_name = Observable(dnp.get_device_name())
+    device_name.subscribe(dnp.update_device_name)
+
     long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
     long_message_handler = LongMessageHandler(long_message_storage)
 
@@ -179,12 +182,6 @@ def start_revvy(config: RobotConfig = None):
 
         robot = RobotManager(robot_control, ble, sound_paths, initial_config)
 
-        def on_device_name_changed(new_name):
-            print('Device name changed to {}'.format(new_name))
-            dnp.update_device_name(new_name)
-
-        device_name.subscribe(on_device_name_changed)
-
         lmi = LongMessageImplementation(robot, config is not None)
         long_message_handler.on_upload_started(lmi.on_upload_started)
         long_message_handler.on_upload_finished(lmi.on_transmission_finished)
@@ -193,7 +190,6 @@ def start_revvy(config: RobotConfig = None):
         # noinspection PyBroadException
         try:
             robot.start()
-            robot.sound.play_tune('robot2')
 
             print("Press Enter to exit")
             input()
@@ -216,19 +212,6 @@ def start_revvy(config: RobotConfig = None):
 
         print('terminated.')
         return ret_val
-
-
-# test scripts
-
-
-def toggle_ring_led(args):
-    if args['robot']._ring_led:
-        if args['robot']._ring_led.scenario == RingLed.Off:
-            args['robot']._ring_led.set_scenario(RingLed.ColorWheel)
-        elif args['robot']._ring_led.scenario == RingLed.ColorWheel:
-            args['robot']._ring_led.set_scenario(RingLed.ColorFade)
-        else:
-            args['robot']._ring_led.set_scenario(RingLed.Off)
 
 
 if __name__ == "__main__":

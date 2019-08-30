@@ -2,30 +2,8 @@ import json
 import traceback
 from json import JSONDecodeError
 
-from revvy.functions import b64_decode_str
-from revvy.scripting.builtin_scripts import drive_joystick, drive_2sticks
-from revvy.scripting.robot_interface import MotorConstants
-
-
-def imu_test(args):
-    robot = args['robot']
-
-    prev_angle = 1
-
-    robot.led_ring.set(list(range(1, 13)), "000000")
-    robot.led_ring.set(1, "00ff00")
-
-    while not args['ctx'].stop_requested:
-        angle = (((robot.imu.yaw_angle - 30) % 360) // 30) + 1
-
-        if angle != prev_angle:
-            robot.led_ring.set(angle, "00ff00")
-            robot.led_ring.set(prev_angle, "000000")
-
-            prev_angle = angle
-
-        args['time'].sleep(0.1)
-
+from revvy.functions import b64_decode_str, dict_get_first
+from revvy.scripting.builtin_scripts import drive_joystick, drive_2sticks, imu_test, builtin_scripts
 
 motor_types = [
     "NotConfigured",
@@ -39,12 +17,6 @@ motor_types = [
 motor_sides = ["left", "right"]
 
 sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch"]
-
-builtin_scripts = {
-    'drive_2sticks': drive_2sticks,
-    'drive_joystick': drive_joystick,
-    'imu_test': imu_test
-}
 
 
 class PortConfig:
@@ -67,13 +39,6 @@ class RemoteControlConfig:
     def __init__(self):
         self.analog = []
         self.buttons = [None] * 32
-
-
-def dict_get_first(dictionary, keys):
-    for key in keys:
-        if key in dictionary:
-            return dictionary[key]
-    raise KeyError
 
 
 class RobotConfig:

@@ -8,4 +8,7 @@ class Sound:
         self._sounds = sounds
 
     def play_tune(self, name):
-        self._play(self._sounds[name])
+        try:
+            self._play(self._sounds[name])
+        except KeyError:
+            print('Sound not found: {}'.format(name))

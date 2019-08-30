@@ -326,6 +326,7 @@ class RobotManager:
             self._ble.start()
             self._robot.status.robot_status = RobotStatus.NotConfigured
             self.configure(None)
+            self.sound.play_tune('robot2')
 
     def run_in_background(self, callback):
         if callable(callback):
@@ -469,6 +470,7 @@ class DeviceNameProvider:
             self._name = storage.read(self._filename).decode("utf-8")
         except StorageError:
             self._name = default()
+        print('Device name: {}'.format(self._name))
 
     def get_device_name(self):
         return self._name
@@ -477,3 +479,6 @@ class DeviceNameProvider:
         if new_device_name != self._name:
             self._name = new_device_name
             self._storage.write(self._filename, self._name.encode("utf-8"))
+            print('Device name changed to {}'.format(self._name))
+        else:
+            print('Device name not changed')

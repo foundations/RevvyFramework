@@ -382,7 +382,7 @@ class RevvyBLE:
     def __init__(self, device_name: Observable, serial, long_message_handler):
         self._deviceName = device_name.get()
         os.environ["BLENO_DEVICE_NAME"] = self._deviceName
-        print('Initializing {}'.format(self._deviceName))
+        print('Initializing BLE with device name {}'.format(self._deviceName))
 
         device_name.subscribe(self._device_name_changed)
 
