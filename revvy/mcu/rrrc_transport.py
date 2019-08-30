@@ -5,6 +5,10 @@ from threading import Lock
 from revvy.functions import retry
 
 
+class TransportException(Exception):
+    pass
+
+
 def crc7(data, crc=0xFF):
     crc7_table = [
         0x00, 0x09, 0x12, 0x1b, 0x24, 0x2d, 0x36, 0x3f,

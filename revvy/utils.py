@@ -5,7 +5,6 @@ import signal
 from collections import namedtuple
 
 from revvy.file_storage import StorageInterface, StorageError
-from revvy.hardware_dependent.rrrc_transport_i2c import I2CException
 from revvy.hardware_dependent.sound import setup_sound_v1, play_sound_v1, setup_sound_v2, play_sound_v2, reset_volume
 from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version
 from revvy.robot.drivetrain import DifferentialDrivetrain
@@ -267,7 +266,7 @@ class RobotManager:
             for fn in fns:
                 print("Running background function")
                 fn()
-        except I2CException:
+        except TransportException:
             self.exit(RevvyStatusCode.ERROR)
         except Exception:
             print(traceback.format_exc())
