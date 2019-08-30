@@ -233,21 +233,21 @@ class LongMessageProtocol:
     def handle_write(self, header, data):
         if header == MessageType.SELECT_LONG_MESSAGE_TYPE:
             if len(data) == 1:
-                self._handler.select_long_message_type(data[1])
+                self._handler.select_long_message_type(data[0])
                 result = LongMessageProtocol.RESULT_SUCCESS
             else:
                 result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
 
         elif header == MessageType.INIT_TRANSFER:
             if len(data) == 16:
-                self._handler.init_transfer(bytes2hexdigest(data[1:17]))
+                self._handler.init_transfer(bytes2hexdigest(data[0:16]))
                 result = LongMessageProtocol.RESULT_SUCCESS
             else:
                 result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
 
         elif header == MessageType.UPLOAD_MESSAGE:
             if len(data) > 1:
-                self._handler.upload_message(data[1:])
+                self._handler.upload_message(data)
                 result = LongMessageProtocol.RESULT_SUCCESS
             else:
                 result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
