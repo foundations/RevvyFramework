@@ -228,7 +228,7 @@ class LongMessageProtocol:
 
             return value
         except (IOError, TypeError, JSONDecodeError):
-            raise LongMessageError
+            raise LongMessageError('Could not read long message')
 
     def handle_write(self, header, data):
         if header == MessageType.SELECT_LONG_MESSAGE_TYPE:
