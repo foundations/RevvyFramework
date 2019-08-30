@@ -1,9 +1,15 @@
 import binascii
+import json
+import os
 import time
+import traceback
+from json import JSONDecodeError
 
+from revvy.file_storage import IntegrityError
 from revvy.version import Version
 from revvy.functions import split
 from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
+from tools.common import file_hash
 
 op_mode_application = 0xAA
 op_mode_bootloader = 0xBB
@@ -122,3 +128,41 @@ class McuUpdater:
             self.update_firmware(data)
         else:
             raise ValueError('Unexpected operating mode: {}'.format(mode))
+
+
+class McuUpdateManager:
+    def __init__(self, fw_dir, updater):
+        self._fw_dir = fw_dir
+        self._updater = updater
+
+    def update_if_necessary(self):
+        try:
+            with open(os.path.join(self._fw_dir, 'catalog.json'), 'r') as cf:
+                fw_metadata = json.load(cf)
+
+            # hw version -> fw version mapping
+            expected_versions = {Version(version): Version(fw_metadata[version]['version']) for version in fw_metadata}
+
+        except (IOError, JSONDecodeError, KeyError):
+            print('Invalid firmware catalog')
+            return
+
+        # noinspection PyBroadException
+        try:
+            def fw_loader(hw_version):
+                hw_version = str(hw_version)
+                print('Loading firmware for HW: {}'.format(hw_version))
+                filename = fw_metadata[hw_version]['filename']
+                path = os.path.join(self._fw_dir, filename)
+
+                checksum = file_hash(path)
+                if checksum != fw_metadata[hw_version]['md5']:
+                    raise IntegrityError
+
+                with open(path, "rb") as f:
+                    return f.read()
+
+            self._updater.ensure_firmware_up_to_date(expected_versions, fw_loader)
+        except Exception:
+            print("Skipping firmware update")
+            traceback.print_exc()

@@ -1,10 +1,8 @@
 #!/usr/bin/python3
 
-import json
-
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
-from revvy.file_storage import FileStorage, MemoryStorage, IntegrityError
-from revvy.firmware_updater import McuUpdater
+from revvy.file_storage import FileStorage, MemoryStorage
+from revvy.firmware_updater import McuUpdater, McuUpdateManager
 from revvy.functions import getserial
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
@@ -14,7 +12,6 @@ from revvy.mcu.rrrc_control import *
 import sys
 
 from tools.check_manifest import check_manifest
-from tools.common import file_hash
 
 
 default_robot_config = RobotConfig.from_string('''{
@@ -153,32 +150,8 @@ def start_revvy(config: RobotConfig = None):
         bootloader_control = BootloaderControl(transport.bind(0x2B))
 
         updater = McuUpdater(robot_control, bootloader_control)
-
-        # noinspection PyBroadException
-        try:
-            with open(os.path.join(fw_dir, 'catalog.json'), 'r') as cf:
-                fw_metadata = json.load(cf)
-
-            # hw version -> fw version mapping
-            expected_versions = {Version(version): Version(fw_metadata[version]['version']) for version in fw_metadata}
-
-            def fw_loader(hw_version):
-                hw_version = str(hw_version)
-                print('Loading firmware for HW: {}'.format(hw_version))
-                filename = fw_metadata[hw_version]['filename']
-                path = os.path.join(fw_dir, filename)
-
-                checksum = file_hash(path)
-                if checksum != fw_metadata[hw_version]['md5']:
-                    raise IntegrityError
-
-                with open(path, "rb") as f:
-                    return f.read()
-
-            updater.ensure_firmware_up_to_date(expected_versions, fw_loader)
-        except Exception:
-            print("Skipping firmware update")
-            traceback.print_exc()
+        update_manager = McuUpdateManager(fw_dir, updater)
+        update_manager.update_if_necessary()
 
         robot = RobotManager(robot_control, ble, sound_paths, initial_config)
 
