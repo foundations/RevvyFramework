@@ -208,3 +208,58 @@ class LongMessageHandler:
         else:
             # INVALID status, finalize does nothing
             pass
+
+
+class LongMessageProtocol:
+    RESULT_SUCCESS = 0
+    RESULT_INVALID_ATTRIBUTE_LENGTH = 1
+    RESULT_UNLIKELY_ERROR = 2
+
+    def __init__(self, handler: LongMessageHandler):
+        self._handler = handler
+
+    def handle_read(self):
+        try:
+            status = self._handler.read_status()
+            value = status.status.to_bytes(1, byteorder="big")
+            if status.md5 is not None:
+                value += hexdigest2bytes(status.md5)
+                value += status.length.to_bytes(4, byteorder="big")
+
+            return value
+        except (IOError, TypeError, JSONDecodeError):
+            raise LongMessageError
+
+    def handle_write(self, header, data):
+        if header == MessageType.SELECT_LONG_MESSAGE_TYPE:
+            if len(data) == 1:
+                self._handler.select_long_message_type(data[1])
+                result = LongMessageProtocol.RESULT_SUCCESS
+            else:
+                result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
+
+        elif header == MessageType.INIT_TRANSFER:
+            if len(data) == 16:
+                self._handler.init_transfer(bytes2hexdigest(data[1:17]))
+                result = LongMessageProtocol.RESULT_SUCCESS
+            else:
+                result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
+
+        elif header == MessageType.UPLOAD_MESSAGE:
+            if len(data) > 1:
+                self._handler.upload_message(data[1:])
+                result = LongMessageProtocol.RESULT_SUCCESS
+            else:
+                result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
+
+        elif header == MessageType.FINALIZE_MESSAGE:
+            if len(data) == 0:
+                self._handler.finalize_message()
+                result = LongMessageProtocol.RESULT_SUCCESS
+            else:
+                result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
+
+        else:
+            result = LongMessageProtocol.RESULT_UNLIKELY_ERROR
+
+        return result

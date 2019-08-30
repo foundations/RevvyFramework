@@ -3,10 +3,8 @@ import os
 import struct
 import traceback
 
-from json import JSONDecodeError
-
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
-from revvy.bluetooth.longmessage import hexdigest2bytes, bytes2hexdigest, MessageType, LongMessageError
+from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.functions import bits_to_bool_list
 from revvy.robot.remote_controller import RemoteControllerCommand
 
@@ -58,26 +56,30 @@ class LongMessageCharacteristic(Characteristic):
             'properties': ['read', 'write'],
             'value':      None
         })
-        self._handler = handler
+        self._handler = LongMessageProtocol(handler)
 
     def onReadRequest(self, offset, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         else:
             try:
-                status = self._handler.read_status()
-                value = status.status.to_bytes(1, byteorder="big")
-                if status.md5 is not None:
-                    value += hexdigest2bytes(status.md5)
-                    value += status.length.to_bytes(4, byteorder="big")
+                value = self._handler.handle_read()
                 callback(Characteristic.RESULT_SUCCESS, value)
 
-            except (IOError, TypeError, JSONDecodeError):
+            except LongMessageError:
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
+
+    @staticmethod
+    def _translate_result(result):
+        if result == LongMessageProtocol.RESULT_SUCCESS:
+            return Characteristic.RESULT_SUCCESS
+        elif result == LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH:
+            return Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
+        else:
+            return Characteristic.RESULT_UNLIKELY_ERROR
 
     def onWriteRequest(self, data, offset, without_response, callback):
         result = Characteristic.RESULT_UNLIKELY_ERROR
-
         try:
             if offset:
                 result = Characteristic.RESULT_ATTR_NOT_LONG
@@ -85,33 +87,8 @@ class LongMessageCharacteristic(Characteristic):
             elif len(data) < 1:
                 result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
 
-            elif data[0] == MessageType.SELECT_LONG_MESSAGE_TYPE:
-                if len(data) == 2:
-                    self._handler.select_long_message_type(data[1])
-                    result = Characteristic.RESULT_SUCCESS
-                else:
-                    result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
-
-            elif data[0] == MessageType.INIT_TRANSFER:
-                if len(data) == 17:
-                    self._handler.init_transfer(bytes2hexdigest(data[1:17]))
-                    result = Characteristic.RESULT_SUCCESS
-                else:
-                    result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
-
-            elif data[0] == MessageType.UPLOAD_MESSAGE:
-                if len(data) < 2:
-                    result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
-                else:
-                    self._handler.upload_message(data[1:])
-                    result = Characteristic.RESULT_SUCCESS
-
-            elif data[0] == MessageType.FINALIZE_MESSAGE:
-                if len(data) == 1:
-                    self._handler.finalize_message()
-                    result = Characteristic.RESULT_SUCCESS
-                else:
-                    result = Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
+            else:
+                result = self._translate_result(self._handler.handle_write(data[0], data[1:]))
 
         except LongMessageError:
             print(traceback.format_exc())
