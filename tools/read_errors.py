@@ -11,6 +11,7 @@ class ErrorType(enum.IntEnum):
     StackOverflow = 1
     AssertFailure = 2
     TestError = 3
+    ImuError = 4
 
 
 hw_formats = {
@@ -30,7 +31,8 @@ exception_names = [
     'Hard fault',
     'Stack overflow',
     'Assertion failure',
-    'Test error'
+    'Test error',
+    'IMU error'
 ]
 
 
@@ -100,6 +102,9 @@ def format_error(error):
 
         elif error_id == ErrorType.TestError:
             details_str = '\nData: {}'.format(error_data)
+
+        elif error_id == ErrorType.ImuError:
+            pass  # no additional details yet
 
         else:
             details_str = '\nData: {}'.format(error_data)
