@@ -3,7 +3,7 @@ from abc import ABC
 from collections import namedtuple
 
 from revvy.functions import split
-from revvy.version import Version
+from revvy.version import Version, FormatError
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
 
@@ -60,7 +60,10 @@ class PingCommand(Command):
 
 class ReadVersionCommand(Command, ABC):
     def parse_response(self, payload):
-        return Version(parse_string(payload))
+        try:
+            return Version(parse_string(payload))
+        except (UnicodeDecodeError, FormatError):
+            return None
 
 
 class ReadHardwareVersionCommand(ReadVersionCommand):
@@ -354,14 +357,16 @@ class FinalizeUpdateCommand(Command):
     def command_id(self): return 0x0A
 
 
-def parse_string(data):
+def parse_string(data, ignore_errors=False):
     """
     >>> parse_string(b'foobar')
     'foobar'
     >>> parse_string([ord('f'), ord('o'), ord('o'), ord('b'), ord('a'), ord('r')])
     'foobar'
+    >>> parse_string(b'foo\\xffbar', ignore_errors=True)
+    'foobar'
     """
-    return bytes(data).decode("utf-8")
+    return bytes(data).decode('utf-8', errors='ignore' if ignore_errors else 'strict')
 
 
 def parse_string_list(data):
