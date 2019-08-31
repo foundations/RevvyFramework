@@ -12,8 +12,8 @@ def system(*args, **kwargs):
     return out.decode("utf-8") if out else None
 
 
-def main(all):
-    if all:
+def main(check_all):
+    if check_all:
         files = ['.']
     else:
         modified = re.compile('^[AM]+\\s+(?P<name>.*\\.py)', re.MULTILINE)
@@ -31,6 +31,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--check-all', help='Run code style check on whole project', action='store_true')
 
-    args = parser.parse_args()
+    input_args = parser.parse_args()
 
-    main(args.check_all)
+    main(input_args.check_all)
