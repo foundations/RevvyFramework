@@ -21,32 +21,38 @@ class McuUpdater:
         self._bootloader = bootloader_control
 
     def _read_operation_mode(self):
-        # TODO: timeout?
-        retry = True
-        mode = 0
-        while retry:
-            retry = False
+        # TODO: implement timeout in case MCU has no bootloader and firmware
+        while True:
             try:
-                mode = self._robot.read_operation_mode()
+                return self._robot.read_operation_mode()
             except OSError:
                 try:
-                    mode = self._bootloader.read_operation_mode()
+                    return self._bootloader.read_operation_mode()
                 except OSError:
                     print("Failed to read operation mode. Retrying")
-                    retry = True
                     time.sleep(0.5)
-        return mode
 
-    def request_bootloader_mode(self):
+    def _finalize_update(self):
+        """
+        Finalize firmware and reboot to application
+        """
+        # noinspection PyBroadException
+        try:
+            self._bootloader.finalize_update()
+            # at this point, the bootloader shall start the application
+        except OSError:
+            print('MCU restarted before finishing communication')
+        except Exception:
+            traceback.print_exc()
+
+    def _request_bootloader_mode(self):
         try:
             print("Rebooting to bootloader")
             self._robot.reboot_bootloader()
         except OSError:
-            # TODO make sure this is the right exception
-            pass  # ignore, this error is expected because MCU reboots before sending response
+            print('MCU restarted before finishing communication')
 
-    def update_firmware(self, data):
-        # noinspection PyUnboundLocalVariable
+    def _update_firmware(self, data):
         checksum = binascii.crc32(data)
         length = len(data)
         print("Image info: size: {} checksum: {}".format(length, checksum))
@@ -65,69 +71,68 @@ class McuUpdater:
             self._bootloader.send_firmware(chunk)
         print('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
 
-        # noinspection PyBroadException
-        try:
-            # todo handle failed update
-            self._bootloader.finalize_update()
-            # at this point, the bootloader shall start the application
-        except Exception as e:
-            print(e)
+        self._finalize_update()
 
         # read operating mode - this should return only when application has started
         assert self._read_operation_mode() == op_mode_application
-        # todo handle failed update
+
+    def read_hardware_version(self):
+        """
+        Read the hardware version from the MCU
+        """
+        mode = self._read_operation_mode()
+        if mode == op_mode_application:
+            return self._robot.get_hardware_version()
+        else:
+            return self._bootloader.get_hardware_version()
+
+    def is_update_needed(self, fw_version):
+        """
+        Compare firmware version to the currently running one
+        """
+        mode = self._read_operation_mode()
+        if mode == op_mode_application:
+            fw = self._robot.get_firmware_version()
+            return fw != fw_version  # allow downgrade as well
+        else:
+            # in bootloader mode, probably no firmware, request update
+            return True
+
+    def reboot_to_bootloader(self):
+        """
+        Start the bootloader on the MCU
+
+        This function checks the operating mode. Reboot is only requested when in application mode
+        """
+        mode = self._read_operation_mode()
+        if mode == op_mode_application:
+            self._request_bootloader_mode()
+            # wait for the reboot to complete
+            mode = self._read_operation_mode()
+            assert mode == op_mode_bootloader
 
     def ensure_firmware_up_to_date(self, expected_versions: dict, fw_loader):
-        mode = self._read_operation_mode()
+        hw_version = self.read_hardware_version()
+        if hw_version not in expected_versions:
+            print('No firmware for the hardware ({})'.format(hw_version))
+            return
 
-        if mode == op_mode_application:
-            # do we need to update?
-            hw_version = self._robot.get_hardware_version()
-
-            if hw_version not in expected_versions:
-                print('No firmware for the hardware ({})'.format(hw_version))
-                return
-
-            fw = self._robot.get_firmware_version()
-            need_to_update = fw != expected_versions[hw_version]  # allow downgrade as well
-
-            if not need_to_update:
-                return
-
-            print("Upgrading firmware: {} -> {}".format(fw, expected_versions[hw_version]))
-            self.request_bootloader_mode()
-
-            # if we need to update, reboot to bootloader
-            mode = self._read_operation_mode()
-
-        if mode == op_mode_bootloader:
-            # we can get here without the above check if there is no application installed yet, so read version
-            hw_version = self._bootloader.get_hardware_version()
-
-            if hw_version not in expected_versions:
-                print('No firmware for the hardware ({})'.format(hw_version))
-                return
-
-            print("Loading binary to memory")
+        new_fw_version = expected_versions[hw_version]
+        if self.is_update_needed(new_fw_version):
+            self.reboot_to_bootloader()
 
             # noinspection PyBroadException
             try:
+                print("Loading binary to memory")
                 data = fw_loader(hw_version)
-            except Exception as e:
-                print(e)
+            except Exception:
+                traceback.format_exc()
 
                 # send finalize to reboot to unmodified application
-                # noinspection PyBroadException
-                try:
-                    self._bootloader.finalize_update()
-                    # at this point, the bootloader shall start the application
-                except Exception as e:
-                    print(e)
+                self._finalize_update()
                 return
 
-            self.update_firmware(data)
-        else:
-            raise ValueError('Unexpected operating mode: {}'.format(mode))
+            self._update_firmware(data)
 
 
 class McuUpdateManager:
@@ -164,5 +169,5 @@ class McuUpdateManager:
 
             self._updater.ensure_firmware_up_to_date(expected_versions, fw_loader)
         except Exception:
-            print("Skipping firmware update")
             traceback.print_exc()
+            print("Skipping firmware update")
