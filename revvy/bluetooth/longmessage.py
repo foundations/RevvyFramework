@@ -105,25 +105,17 @@ class LongMessageAggregator:
     def __init__(self, md5):
         self.md5 = md5
         self.data = bytearray()
-        self.md5calc = hashlib.md5()
-        self.md5computed = None
-
-    @property
-    def is_empty(self):
-        return len(self.data) == 0
+        self._md5calc = hashlib.md5()
 
     def append_data(self, data):
         self.data += data
-        self.md5calc.update(data)
+        self._md5calc.update(data)
 
     def finalize(self):
         """Returns true if the uploaded data matches the predefined md5 checksum."""
-        self.md5computed = self.md5calc.hexdigest()
-        if self.md5computed != self.md5:
-            print('Received MD5: {}'.format(self.md5))
-            print('Calculated MD5: {}'.format(self.md5computed))
+        md5computed = self._md5calc.hexdigest()
 
-        return self.md5computed == self.md5
+        return md5computed == self.md5
 
 
 class LongMessageHandler:
