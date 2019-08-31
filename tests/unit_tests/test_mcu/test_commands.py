@@ -95,7 +95,7 @@ class TestCommandTypes(unittest.TestCase):
         ])
         hw = ReadHardwareVersionCommand(mock_transport)
         self.assertEqual(Version("0.1"), hw())
-        self.assertRaises(FormatError, hw)
+        self.assertEqual(None, hw())
 
     def test_firmware_version_returns_a_string(self):
         mock_transport = MockTransport([
@@ -104,7 +104,7 @@ class TestCommandTypes(unittest.TestCase):
         ])
         fw = ReadFirmwareVersionCommand(mock_transport)
         self.assertEqual(Version("0.1-r5"), fw())
-        self.assertRaises(FormatError, fw)
+        self.assertEqual(None, fw())
 
     def test_read_battery_status_requires_3_bytes_response(self):
         mock_transport = MockTransport([
