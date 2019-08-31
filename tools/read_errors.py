@@ -104,7 +104,7 @@ def format_error(error):
             details_str = '\nData: {}'.format(error_data)
 
         elif error_id == ErrorType.ImuError:
-            pass  # no additional details yet
+            details_str = ''
 
         else:
             details_str = '\nData: {}'.format(error_data)
