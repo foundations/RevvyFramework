@@ -4,7 +4,7 @@
 # start using 'python -m tools.check_manifest' from the root directory
 import json
 
-from tools.common import file_hash
+from revvy.functions import file_hash
 
 
 def check_manifest(manifest_file):

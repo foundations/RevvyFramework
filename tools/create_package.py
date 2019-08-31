@@ -5,8 +5,9 @@ import os
 import shutil
 from os import path
 
+from revvy.functions import file_hash
 from revvy.fw_version import FRAMEWORK_VERSION
-from tools.common import find_files, file_hash
+from tools.common import find_files
 from tools.generate_manifest import gen_manifest
 
 

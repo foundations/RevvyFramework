@@ -1,3 +1,4 @@
+import hashlib
 import traceback
 from binascii import b2a_base64, a2b_base64
 
@@ -146,3 +147,14 @@ def dict_get_first(dictionary: dict, keys: list):
         except KeyError:
             pass
     raise KeyError
+
+
+def bytestr_hash(byte_str):
+    hash_fn = hashlib.md5()
+    hash_fn.update(byte_str)
+    return hash_fn.hexdigest()
+
+
+def file_hash(file):
+    with open(file, "rb") as f:
+        return bytestr_hash(f.read())

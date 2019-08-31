@@ -5,8 +5,10 @@
 import json
 from datetime import datetime
 from os import path
+
+from revvy.functions import file_hash
 from revvy.fw_version import FRAMEWORK_VERSION
-from tools.common import find_files, file_hash
+from tools.common import find_files
 
 
 def gen_manifest(sources, output):
