@@ -1,7 +1,9 @@
 import os
 import json
-import hashlib
+from collections import namedtuple
 from json import JSONDecodeError
+
+from revvy.functions import bytestr_hash
 
 
 class StorageError(Exception):
@@ -22,8 +24,7 @@ class StorageInterface:
     def read(self, filename): raise NotImplementedError
 
 
-def _hash(data):
-    return hashlib.md5(data).hexdigest()
+MemoryStorageItem = namedtuple('MemoryStorageItem', ['md5', 'data', 'meta'])
 
 
 class MemoryStorage(StorageInterface):
@@ -36,25 +37,25 @@ class MemoryStorage(StorageInterface):
 
         file_entry = self._entries[name]
         return {
-            **file_entry[2],
-            'md5':    file_entry[0],
-            'length': len(file_entry[1])
+            **file_entry.meta,
+            'md5':    file_entry.md5,
+            'length': len(file_entry.data)
         }
 
     def write(self, name, data, metadata=None, md5=None):
         if md5 is None:
-            md5 = _hash(data)
+            md5 = bytestr_hash(data)
 
         if metadata is None:
             metadata = {}
 
-        self._entries[name] = (md5, data, metadata)
+        self._entries[name] = MemoryStorageItem(md5, data, metadata)
 
     def read(self, name):
         metadata = self.read_metadata(name)
-        data = self._entries[name][1]
+        data = self._entries[name].data
 
-        if _hash(data) != metadata['md5']:
+        if bytestr_hash(data) != metadata['md5']:
             raise IntegrityError('Checksum')
         return data
 
@@ -100,7 +101,7 @@ class FileStorage(StorageInterface):
 
     def write(self, filename, data, metadata=None, md5=None):
         if md5 is None:
-            md5 = _hash(data)
+            md5 = bytestr_hash(data)
 
         if metadata is None:
             metadata = {}
@@ -121,7 +122,7 @@ class FileStorage(StorageInterface):
                 data = data_file.read()
                 if len(data) != metadata['length']:
                     raise IntegrityError('Length')
-                if _hash(data) != metadata['md5']:
+                if bytestr_hash(data) != metadata['md5']:
                     raise IntegrityError('Checksum')
                 return data
         except IOError:
