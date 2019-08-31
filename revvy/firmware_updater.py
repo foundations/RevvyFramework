@@ -7,9 +7,8 @@ from json import JSONDecodeError
 
 from revvy.file_storage import IntegrityError
 from revvy.version import Version
-from revvy.functions import split
+from revvy.functions import split, bytestr_hash
 from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
-from tools.common import file_hash
 
 op_mode_application = 0xAA
 op_mode_bootloader = 0xBB
@@ -52,30 +51,6 @@ class McuUpdater:
         except OSError:
             print('MCU restarted before finishing communication')
 
-    def _update_firmware(self, data):
-        checksum = binascii.crc32(data)
-        length = len(data)
-        print("Image info: size: {} checksum: {}".format(length, checksum))
-
-        # init update
-        print("Initializing update")
-        self._bootloader.send_init_update(length, checksum)
-
-        # split data into chunks
-        chunks = split(data, chunk_size=255)
-
-        # send data
-        print('Sending data')
-        start = time.time()
-        for chunk in chunks:
-            self._bootloader.send_firmware(chunk)
-        print('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
-
-        self._finalize_update()
-
-        # read operating mode - this should return only when application has started
-        assert self._read_operation_mode() == op_mode_application
-
     def read_hardware_version(self):
         """
         Read the hardware version from the MCU
@@ -86,7 +61,7 @@ class McuUpdater:
         else:
             return self._bootloader.get_hardware_version()
 
-    def is_update_needed(self, fw_version):
+    def is_update_needed(self, fw_version: Version):
         """
         Compare firmware version to the currently running one
         """
@@ -111,28 +86,35 @@ class McuUpdater:
             mode = self._read_operation_mode()
             assert mode == op_mode_bootloader
 
-    def ensure_firmware_up_to_date(self, expected_versions: dict, fw_loader):
-        hw_version = self.read_hardware_version()
-        if hw_version not in expected_versions:
-            print('No firmware for the hardware ({})'.format(hw_version))
-            return
+    def update_firmware(self, new_version: Version, data):
+        """
+        Compare firmware version and burn it in case the version differs
+        """
 
-        new_fw_version = expected_versions[hw_version]
-        if self.is_update_needed(new_fw_version):
+        if self.is_update_needed(new_version):
             self.reboot_to_bootloader()
 
-            # noinspection PyBroadException
-            try:
-                print("Loading binary to memory")
-                data = fw_loader(hw_version)
-            except Exception:
-                traceback.format_exc()
+            checksum = binascii.crc32(data)
+            print("Image info: size: {} checksum: {}".format(len(data), checksum))
 
-                # send finalize to reboot to unmodified application
-                self._finalize_update()
-                return
+            # init update
+            print("Initializing update")
+            self._bootloader.send_init_update(len(data), checksum)
 
-            self._update_firmware(data)
+            # split data into chunks
+            chunks = split(data, chunk_size=255)
+
+            # send data
+            print('Sending data')
+            start = time.time()
+            for chunk in chunks:
+                self._bootloader.send_firmware(chunk)
+            print('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
+
+            self._finalize_update()
+
+            # read operating mode - this should return only when application has started
+            assert self._read_operation_mode() == op_mode_application
 
 
 class McuUpdateManager:
@@ -140,34 +122,56 @@ class McuUpdateManager:
         self._fw_dir = fw_dir
         self._updater = updater
 
-    def update_if_necessary(self):
+    def _read_catalog(self):
         try:
             with open(os.path.join(self._fw_dir, 'catalog.json'), 'r') as cf:
                 fw_metadata = json.load(cf)
 
             # hw version -> fw version mapping
-            expected_versions = {Version(version): Version(fw_metadata[version]['version']) for version in fw_metadata}
+            return {Version(version): {
+                'version': Version(fw_metadata[version]['version']),
+                'file': os.path.join(self._fw_dir, fw_metadata[version]['filename']),
+                'md5': fw_metadata[version]['md5'],
+                'length': fw_metadata[version]['length'],
+            } for version in fw_metadata}
 
         except (IOError, JSONDecodeError, KeyError):
-            print('Invalid firmware catalog')
-            return
+            return {}
 
-        # noinspection PyBroadException
+    @staticmethod
+    def _read_firmware(fw_data):
+        with open(fw_data['file'], "rb") as f:
+            firmware_binary = f.read()
+
+        if len(firmware_binary) != fw_data['length']:
+            print('Firmware file length check failed, aborting')
+            raise IntegrityError("Firmware file length does not match")
+
+        checksum = bytestr_hash(firmware_binary)
+        if checksum != fw_data['md5']:
+            print('Firmware file integrity check failed, aborting')
+            raise IntegrityError("Firmware file checksum does not match")
+
+        return firmware_binary
+
+    def update_if_necessary(self):
+        hw_version = self._updater.read_hardware_version()
+
+        firmware_collection = self._read_catalog()
+
         try:
-            def fw_loader(hw_version):
-                hw_version = str(hw_version)
-                print('Loading firmware for HW: {}'.format(hw_version))
-                filename = fw_metadata[hw_version]['filename']
-                path = os.path.join(self._fw_dir, filename)
+            fw_data = firmware_collection[hw_version]
+            firmware_binary = self._read_firmware(fw_data)
+            self._updater.update_firmware(fw_data['version'], firmware_binary)
 
-                checksum = file_hash(path)
-                if checksum != fw_metadata[hw_version]['md5']:
-                    raise IntegrityError
+        except KeyError:
+            traceback.format_exc()
+            print('No firmware for the hardware ({})'.format(hw_version))
 
-                with open(path, "rb") as f:
-                    return f.read()
+        except IOError:
+            traceback.format_exc()
+            print('Firmware file does not exist or is not readable')
 
-            self._updater.ensure_firmware_up_to_date(expected_versions, fw_loader)
-        except Exception:
-            traceback.print_exc()
-            print("Skipping firmware update")
+        except IntegrityError:
+            traceback.format_exc()
+            print('Firmware file corrupted')
