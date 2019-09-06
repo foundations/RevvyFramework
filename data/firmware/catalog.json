@@ -6,10 +6,10 @@
         "length": 107896
     },
     "2.0.0": {
-        "version": "0.2.412",
-        "md5": "5746ef177714f7abf9d97c955a045ed0",
-        "filename": "revvy_firmware-0.2.412.bin",
-        "length": 117716
+        "version": "0.2.443",
+        "filename": "revvy_firmware-0.2.443.bin",
+        "length": 67744,
+        "md5": "dbd57c970f85906145dcc8902f6e4215"
     },
     "1.0.0": {
         "version": "0.1.336",
