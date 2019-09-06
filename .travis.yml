@@ -10,7 +10,7 @@ install:
 
 # command to run tests
 script:
-  - nose2
+  - nose2 -B
   - python -m tools.precommit_pep8 --check-all
 
 # Push the results back to codecov
