@@ -233,32 +233,66 @@ class DriveTrainWrapper(Wrapper):
         self._drivetrain = drivetrain
 
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
-        left_multipliers = {
+        multipliers = {
             MotorConstants.DIRECTION_FWD:   1,
             MotorConstants.DIRECTION_BACK: -1,
-            MotorConstants.DIRECTION_LEFT: -1,
-            MotorConstants.DIRECTION_RIGHT: 1,
-        }
-        right_multipliers = {
-            MotorConstants.DIRECTION_FWD:   1,
-            MotorConstants.DIRECTION_BACK: -1,
-            MotorConstants.DIRECTION_LEFT:  1,
-            MotorConstants.DIRECTION_RIGHT: -1,
         }
 
         set_fns = {
             MotorConstants.UNIT_ROT: {
                 MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.move(
-                    360 * rotation * left_multipliers[direction],
-                    360 * rotation * right_multipliers[direction],
+                    360 * rotation * multipliers[direction],
+                    360 * rotation * multipliers[direction],
                     left_speed=rpm2dps(speed),
                     right_speed=rpm2dps(speed)),
 
                 MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.move(
-                    360 * rotation * left_multipliers[direction],
-                    360 * rotation * right_multipliers[direction],
+                    360 * rotation * multipliers[direction],
+                    360 * rotation * multipliers[direction],
                     power_limit=speed)
             },
+            MotorConstants.UNIT_SEC: {
+                MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.set_speeds(
+                    rpm2dps(speed) * multipliers[direction],
+                    rpm2dps(speed) * multipliers[direction]),
+
+                MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.set_speeds(
+                    rpm2dps(self.max_rpm) * multipliers[direction],
+                    rpm2dps(self.max_rpm) * multipliers[direction],
+                    power_limit=speed)
+            }
+        }
+
+        resource = self.try_take_resource()
+        if resource:
+            try:
+                resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
+
+                if unit_rotation == MotorConstants.UNIT_ROT:
+                    # wait for movement to finish
+                    self.sleep(0.2)
+                    while not resource.is_interrupted and self._drivetrain.is_moving:
+                        self.sleep(0.2)
+
+                elif unit_rotation == MotorConstants.UNIT_SEC:
+                    self.sleep(rotation)
+
+                    resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
+
+            finally:
+                resource.release()
+
+    def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
+        left_multipliers = {
+            MotorConstants.DIRECTION_LEFT: -1,
+            MotorConstants.DIRECTION_RIGHT: 1,
+        }
+        right_multipliers = {
+            MotorConstants.DIRECTION_LEFT:  1,
+            MotorConstants.DIRECTION_RIGHT: -1,
+        }
+
+        set_fns = {
             MotorConstants.UNIT_SEC: {
                 MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.set_speeds(
                     rpm2dps(speed) * left_multipliers[direction],
@@ -286,8 +320,7 @@ class DriveTrainWrapper(Wrapper):
             try:
                 resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
 
-                if unit_rotation == MotorConstants.UNIT_ROT\
-                        or unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
+                if unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
                     # wait for movement to finish
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._drivetrain.is_moving:
@@ -349,6 +382,7 @@ class RobotInterface:
 
         # shorthand functions
         self.drive = self._drivetrain.drive
+        self.turn = self._drivetrain.turn
         self.play_tune = self._sound.play_tune
         self.set_volume = set_volume
 
