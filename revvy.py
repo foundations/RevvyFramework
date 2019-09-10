@@ -76,7 +76,7 @@ class LongMessageImplementation:
             else:
                 parsed_config = RobotConfig.from_string(message_data)
                 if parsed_config is not None:
-                    self._robot.configure(parsed_config, self._robot.start_remote_controller())
+                    self._robot.configure(parsed_config, self._robot.start_remote_controller)
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             self._robot.request_update()
