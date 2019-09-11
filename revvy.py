@@ -129,7 +129,7 @@ def start_revvy(config: RobotConfig = None):
 
     sound_paths = {key: sound_path(sound_files[key]) for key in sound_files}
 
-    dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial.lstrip('0')))
+    dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial))
     device_name = Observable(dnp.get_device_name())
     device_name.subscribe(dnp.update_device_name)
 
