@@ -4,6 +4,7 @@ import traceback
 
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.mcu.rrrc_control import RevvyControl
+from revvy.version import Version
 
 
 class ErrorType(enum.IntEnum):
@@ -26,7 +27,6 @@ fw_formats = {
     2: '0.2.{}'
 }
 
-
 exception_names = [
     'Hard fault',
     'Stack overflow',
@@ -34,7 +34,6 @@ exception_names = [
     'Test error',
     'IMU error'
 ]
-
 
 cfsr_reasons = [
     "The processor has attempted to execute an undefined instruction",
@@ -66,7 +65,7 @@ cfsr_reasons = [
 ]
 
 
-def format_error(error):
+def format_error(error, current_fw_version: Version, only_current=False):
     # noinspection PyBroadException
     try:
         error_id = error[0]
@@ -120,7 +119,14 @@ def format_error(error):
         except IndexError:
             exception_name = 'Unknown error'
 
-        return '{} ({}, HW: {}, FW: {})\nDetails: {}'.format(exception_name, error_id, hw_str, fw_str, details_str)
+        if Version(fw_str) == current_fw_version:
+            error_template = '{} ({}, HW: {}, FW: {})\nDetails: {}'
+        elif not only_current:
+            error_template = '{} ({}, HW: {}, FW: {} (NOT CURRENT))\nDetails: {}'
+        else:
+            return None
+
+        return error_template.format(exception_name, error_id, hw_str, fw_str, details_str)
 
     except Exception:
         traceback.print_exc()
@@ -131,11 +137,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--inject-test-error', help='Record an error', action='store_true')
     parser.add_argument('--clear', help='Clear the error memory', action='store_true')
+    parser.add_argument('--only-current',
+                        help='Only display errors that were recorded with the current firmware',
+                        action='store_true')
 
     args = parser.parse_args()
 
     with RevvyTransportI2C() as transport:
         robot_control = RevvyControl(transport.bind(0x2D))
+
+        current_hw_version = robot_control.get_hardware_version()
+        current_fw_version = robot_control.get_firmware_version()
+        print('Current version numbers: HW: {} FW: {}'.format(current_fw_version, current_fw_version))
 
         if args.inject_test_error:
             print('Recording a test error')
@@ -161,9 +174,11 @@ if __name__ == "__main__":
             remaining -= len(errors)
 
             for err in errors:
-                print('----------------------------------------')
-                print('Error {}'.format(i))
-                print(format_error(err))
+                error = format_error(err, current_fw_version, only_current=args.only_current)
+                if error is not None:
+                    print('----------------------------------------')
+                    print('Error {}'.format(i))
+                    print(error)
                 i += 1
 
         if args.clear:
