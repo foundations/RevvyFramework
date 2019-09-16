@@ -31,6 +31,37 @@ class NullMotor:
     def on_status_changed(self, cb):
         pass
 
+    @property
+    def speed(self):
+        return 0
+
+    @property
+    def position(self):
+        return 0
+
+    @property
+    def power(self):
+        return 0
+
+    @property
+    def is_moving(self):
+        return False
+
+    def set_speed(self, speed, power_limit=None):
+        pass
+
+    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute'):
+        pass
+
+    def set_power(self, power):
+        pass
+
+    def update_status(self, data):
+        pass
+
+    def get_status(self):
+        return DcMotorStatus(position=0, speed=0, power=0)
+
 
 class DcMotorController:
     """Generic driver for dc motors"""

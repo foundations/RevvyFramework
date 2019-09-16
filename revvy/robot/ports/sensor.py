@@ -29,6 +29,20 @@ class NullSensor:
     def on_value_changed(self, cb):
         pass
 
+    def update_status(self, data):
+        pass
+
+    def read(self):
+        return SensorValue(raw=0, converted=0)
+
+    @property
+    def value(self):
+        return 0
+
+    @property
+    def raw_value(self):
+        return 0
+
 
 class BaseSensorPortDriver:
     def __init__(self, port: PortInstance):
