@@ -2,6 +2,7 @@
 import enum
 import os
 import signal
+import traceback
 from collections import namedtuple
 
 from revvy.file_storage import StorageInterface, StorageError
@@ -21,7 +22,7 @@ from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
-from revvy.thread_wrapper import *
+from revvy.thread_wrapper import periodic
 
 from revvy.mcu.rrrc_transport import *
 from revvy.fw_version import *
@@ -105,7 +106,7 @@ class Robot:
         }
 
         self._ring_led = RingLed(interface)
-        self._sound = Sound(setup[hw], play[hw], sound_paths)
+        self._sound = Sound(setup[hw], play[hw], sound_paths or {})
 
         self._status = RobotStatusIndicator(interface)
         self._status_updater = McuStatusUpdater(interface)
@@ -218,7 +219,7 @@ class RobotManager:
         self._robot = Robot(interface, sound_paths)
         self._interface = interface
         self._ble = revvy
-        self._default_configuration = default_config if default_config is not None else RobotConfig()
+        self._default_configuration = default_config or RobotConfig()
 
         self._status_update_thread = periodic(self._update, 0.02, "RobotStatusUpdaterThread")
         self._background_fn_lock = Lock()
