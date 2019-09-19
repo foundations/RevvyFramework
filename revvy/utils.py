@@ -431,7 +431,7 @@ class RobotManager:
         self._scripts.stop_all_scripts()
         self._reset_configuration()
 
-        if config:
+        if config is not None:
             self._apply_new_configuration(config)
             if is_default_config:
                 self._robot.status.robot_status = RobotStatus.NotConfigured

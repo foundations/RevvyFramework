@@ -140,3 +140,6 @@ class RobotConfig:
         self.controller = RemoteControlConfig()
         self.scripts = {}
         self.background_scripts = []
+
+
+empty_robot_config = RobotConfig()

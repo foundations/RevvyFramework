@@ -6,6 +6,7 @@ from revvy.firmware_updater import McuUpdater, McuUpdateManager
 from revvy.functions import getserial
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
+from revvy.robot_config import empty_robot_config
 from revvy.utils import *
 from revvy.mcu.rrrc_transport import *
 from revvy.mcu.rrrc_control import *
@@ -60,13 +61,7 @@ class LongMessageImplementation:
                 # start can't run in on_stopped handler because overwriting script causes deadlock
                 robot.run_in_background(lambda: robot._scripts["test_kit"].start())
 
-            try:
-                script = robot._scripts["test_kit"]
-                script.on_stopped(lambda: robot.run_in_background(start_script))
-                print("Stop running test script")
-                script.stop()
-            except KeyError:
-                start_script()
+            self._robot.configure(empty_robot_config, start_script)
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = storage.get_long_message(message_type).decode()
