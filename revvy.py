@@ -14,7 +14,6 @@ import sys
 
 from tools.check_manifest import check_manifest
 
-
 default_robot_config = RobotConfig.from_string('''{
     "robotConfig":{"motors":[{},{},{},{},{},{}],"sensors":[{},{},{},{}]},
     "blocklyList":[
@@ -78,9 +77,25 @@ class LongMessageImplementation:
 
 
 def start_revvy(config: RobotConfig = None):
-
     directory = os.path.dirname(os.path.realpath(__file__))
     os.chdir(directory)
+
+    data_dir = os.path.join(directory, '..', '..', 'data')
+    package_data_dir = os.path.join(directory, 'data')
+    fw_dir = os.path.join(directory, 'data', 'firmware')
+
+    def log_uncaught_exception(exctype, value, tb):
+        log_message = 'Uncaught exception: {}\n' \
+                      'Value: {}\n' \
+                      'Traceback: \n\t{}\n' \
+                      '\n'.format(exctype, value, "\t".join(traceback.format_tb(tb)))
+        print(log_message)
+        logfile = os.path.join(data_dir, 'device', 'revvy_crash.log')
+
+        with open(logfile, 'a') as logf:
+            logf.write(log_message)
+
+    sys.excepthook = log_uncaught_exception
 
     # self-test
     if not check_manifest(os.path.join(directory, 'manifest.json')):
@@ -90,9 +105,6 @@ def start_revvy(config: RobotConfig = None):
     print('Revvy run from {} ({})'.format(directory, __file__))
 
     # prepare environment
-    data_dir = os.path.join(directory, '..', '..', 'data')
-    package_data_dir = os.path.join(directory, 'data')
-    fw_dir = os.path.join(directory, 'data', 'firmware')
 
     serial = getserial()
 
