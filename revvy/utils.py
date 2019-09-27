@@ -326,8 +326,7 @@ class RobotManager:
 
             self._ble.start()
             self._robot.status.robot_status = RobotStatus.NotConfigured
-            self.configure(None)
-            self.sound.play_tune('robot2')
+            self.configure(None, lambda: self.sound.play_tune('robot2'))
 
     def run_in_background(self, callback):
         if callable(callback):
@@ -434,6 +433,7 @@ class RobotManager:
         if config is not None:
             self._apply_new_configuration(config)
             if is_default_config:
+                print('Default configuration applied')
                 self._robot.status.robot_status = RobotStatus.NotConfigured
             else:
                 self._robot.status.robot_status = RobotStatus.Configured
