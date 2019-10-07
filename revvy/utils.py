@@ -341,6 +341,7 @@ class RobotManager:
             self.configure(None)
         else:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
+            self._robot.sound.play_tune('duck')
 
     def _on_controller_detected(self):
         self._robot.status.controller_status = RemoteControllerStatus.Controlled
