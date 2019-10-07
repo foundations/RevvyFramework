@@ -291,6 +291,10 @@ class DriveTrainWrapper(Wrapper):
             MotorConstants.DIRECTION_LEFT:  1,
             MotorConstants.DIRECTION_RIGHT: -1,
         }
+        turn_multipliers = {
+            MotorConstants.DIRECTION_LEFT:  1,  # +ve number -> CCW turn
+            MotorConstants.DIRECTION_RIGHT: -1,  # -ve number -> CW turn
+        }
 
         set_fns = {
             MotorConstants.UNIT_SEC: {
@@ -305,11 +309,11 @@ class DriveTrainWrapper(Wrapper):
             },
             MotorConstants.UNIT_TURN_ANGLE: {
                 MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.turn(
-                    rotation * left_multipliers[direction],
+                    rotation * turn_multipliers[direction],
                     rpm2dps(speed)),
 
                 MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.turn(
-                    rotation * left_multipliers[direction],
+                    rotation * turn_multipliers[direction],
                     rpm2dps(self.max_rpm),
                     power_limit=speed)
             }
