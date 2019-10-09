@@ -1,4 +1,5 @@
 # start using 'python -m tools.create_package' from the root directory
+import argparse
 import json
 import tarfile
 import os
@@ -25,16 +26,26 @@ def create_package(sources, output):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dev', help='Create package for development', action='store_true')
+
+    args = parser.parse_args()
+
     print('Downloading requirements')
     os.popen('pip3 download -r install/requirements.txt -d install/packages').read()
 
-    manifest_source = [
-        'data/',
-        'install/requirements.txt',
-        'install/packages/',
-        'revvy/',
-        'revvy.py'
-    ]
+    if args.dev:
+        # generate empty manifest to allow editing files
+        manifest_source = []
+    else:
+        manifest_source = [
+            'data/',
+            'install/requirements.txt',
+            'install/packages/',
+            'revvy/',
+            'revvy.py'
+        ]
+
     gen_manifest(manifest_source, 'manifest.json')
 
     package_sources = [
