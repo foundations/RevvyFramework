@@ -20,8 +20,6 @@ def gen_version(out_file):
     with open(out_file, 'w') as out:
         out.write(template.replace("{{BRANCH}}", branch).replace("{{VERSION}}", version))
 
-    os.popen('git add {}'.format(out_file)).read()
-
 
 if __name__ == "__main__":
     file = "revvy/fw_version.py"
