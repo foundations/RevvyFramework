@@ -1,4 +1,5 @@
 import hashlib
+import json
 import traceback
 from binascii import b2a_base64, a2b_base64
 
@@ -158,3 +159,8 @@ def bytestr_hash(byte_str):
 def file_hash(file):
     with open(file, "rb") as f:
         return bytestr_hash(f.read())
+
+
+def read_json(filename):
+    with open(filename, "r") as f:
+        return json.load(f)

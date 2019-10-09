@@ -3,7 +3,7 @@
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
 from revvy.firmware_updater import McuUpdater, McuUpdateManager
-from revvy.functions import getserial
+from revvy.functions import getserial, read_json
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.robot_config import empty_robot_config
@@ -108,6 +108,8 @@ def start_revvy(config: RobotConfig = None):
 
     serial = getserial()
 
+    manifest = read_json('manifest.json')
+
     # package_storage = FileStorage(package_data_dir)
     device_storage = FileStorage(os.path.join(data_dir, 'device'))
     ble_storage = FileStorage(os.path.join(data_dir, 'ble'))
@@ -160,7 +162,7 @@ def start_revvy(config: RobotConfig = None):
         update_manager = McuUpdateManager(fw_dir, updater)
         update_manager.update_if_necessary()
 
-        robot = RobotManager(robot_control, ble, sound_paths, initial_config)
+        robot = RobotManager(robot_control, ble, sound_paths, manifest['version'], initial_config)
 
         lmi = LongMessageImplementation(robot, config is not None)
         long_message_handler.on_upload_started(lmi.on_upload_started)

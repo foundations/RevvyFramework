@@ -7,8 +7,7 @@ from datetime import datetime
 from os import path
 
 from revvy.functions import file_hash
-from revvy.fw_version import FRAMEWORK_VERSION
-from tools.common import find_files
+from tools.common import find_files, get_version
 
 
 def gen_manifest(sources, output):
@@ -26,9 +25,12 @@ def gen_manifest(sources, output):
                 print('Add file to manifest: {} (checksum: {})'.format(filename, checksum))
                 hashes[filename] = checksum
 
+    branch, version = get_version()
+
     manifest = {
-        'version': FRAMEWORK_VERSION,
-        'manifest-version': 1.0,
+        'version': version,
+        'branch': branch,
+        'manifest-version': 1.1,
         'generated': datetime.now().isoformat(),
         'files': hashes
     }

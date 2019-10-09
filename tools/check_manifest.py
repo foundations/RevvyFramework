@@ -2,16 +2,14 @@
 
 # check whether the current package files are valid according to the manifest
 # start using 'python -m tools.check_manifest' from the root directory
-import json
 
-from revvy.functions import file_hash
+from revvy.functions import file_hash, read_json
 
 
 def check_manifest(manifest_file):
     print('Checking manifest file: {}'.format(manifest_file))
 
-    with open(manifest_file) as mf:
-        manifest = json.load(mf)
+    manifest = read_json(manifest_file)
     hashes = manifest['files']
 
     for file in hashes:
