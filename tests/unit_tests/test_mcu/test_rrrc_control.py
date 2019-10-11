@@ -32,7 +32,6 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(SetBluetoothStatusCommand, type(control.set_bluetooth_connection_status))
         self.assertIs(ReadHardwareVersionCommand, type(control.get_hardware_version))
         self.assertIs(ReadFirmwareVersionCommand, type(control.get_firmware_version))
-        self.assertIs(ReadBatteryStatusCommand, type(control.get_battery_status))
         self.assertIs(RebootToBootloaderCommand, type(control.reboot_bootloader))
 
         self.assertIs(ReadMotorPortAmountCommand, type(control.get_motor_port_amount))
@@ -73,7 +72,6 @@ class TestControlCommands(unittest.TestCase):
         self.assertEqual(0x05, control.set_bluetooth_connection_status.command_id)
         self.assertEqual(0x01, control.get_hardware_version.command_id)
         self.assertEqual(0x02, control.get_firmware_version.command_id)
-        self.assertEqual(0x03, control.get_battery_status.command_id)
         self.assertEqual(0x0B, control.reboot_bootloader.command_id)
 
         self.assertEqual(0x10, control.get_motor_port_amount.command_id)

@@ -79,19 +79,6 @@ class ReadFirmwareVersionCommand(ReadVersionCommand):
 BatteryStatus = namedtuple('BatteryStatus', ['chargerStatus', 'main', 'motor'])
 
 
-class ReadBatteryStatusCommand(Command):
-    @property
-    def command_id(self): return 0x03
-
-    def parse_response(self, payload):
-        assert len(payload) == 3
-        return BatteryStatus(
-            chargerStatus=int(payload[0]),
-            main=int(payload[1]),
-            motor=int(payload[2])
-        )
-
-
 class SetMasterStatusCommand(Command):
     @property
     def command_id(self): return 0x04
