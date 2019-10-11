@@ -1,6 +1,5 @@
 import unittest
 
-from revvy.version import FormatError
 from revvy.mcu.commands import *
 from revvy.mcu.rrrc_transport import Response, ResponseHeader
 
@@ -105,21 +104,6 @@ class TestCommandTypes(unittest.TestCase):
         fw = ReadFirmwareVersionCommand(mock_transport)
         self.assertEqual(Version("0.1-r5"), fw())
         self.assertEqual(None, fw())
-
-    def test_read_battery_status_requires_3_bytes_response(self):
-        mock_transport = MockTransport([
-                Response(ResponseHeader.Status_Ok, [0, 0]),
-                Response(ResponseHeader.Status_Ok, [0, 0, 0, 0]),
-                Response(ResponseHeader.Status_Ok, [1, 30, 50]),
-             ])
-        battery = ReadBatteryStatusCommand(mock_transport)
-        self.assertRaises(AssertionError, battery)
-        self.assertRaises(AssertionError, battery)
-
-        result = battery()
-        self.assertEqual(1, result.chargerStatus)  # TODO make this not an int?
-        self.assertEqual(30, result.main)
-        self.assertEqual(50, result.motor)
 
     def test_set_master_status_payload_is_one_byte(self):
         mock_transport = MockTransport([
