@@ -80,7 +80,7 @@ def start_revvy(config: RobotConfig = None):
     directory = os.path.dirname(os.path.realpath(__file__))
     os.chdir(directory)
 
-    data_dir = os.path.join(directory, '..', '..', 'data')
+    data_dir = os.path.join(directory, '..', '..', 'user')
     package_data_dir = os.path.join(directory, 'data')
     fw_dir = os.path.join(directory, 'data', 'firmware')
 
@@ -90,7 +90,7 @@ def start_revvy(config: RobotConfig = None):
                       'Traceback: \n\t{}\n' \
                       '\n'.format(exctype, value, "\t".join(traceback.format_tb(tb)))
         print(log_message)
-        logfile = os.path.join(data_dir, 'device', 'revvy_crash.log')
+        logfile = os.path.join(data_dir, 'data', 'revvy_crash.log')
 
         with open(logfile, 'a') as logf:
             logf.write(log_message)
@@ -111,7 +111,7 @@ def start_revvy(config: RobotConfig = None):
     manifest = read_json('manifest.json')
 
     # package_storage = FileStorage(package_data_dir)
-    device_storage = FileStorage(os.path.join(data_dir, 'device'))
+    device_storage = FileStorage(os.path.join(data_dir, 'data'))
     ble_storage = FileStorage(os.path.join(data_dir, 'ble'))
 
     sound_files = {
