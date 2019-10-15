@@ -21,4 +21,4 @@ def get_version():
     branch = os.popen('git rev-parse --abbrev-ref HEAD').read()
     branch = branch.strip()
 
-    return branch, version
+    return branch, "0.1.{}".format(version)
