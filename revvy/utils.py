@@ -25,7 +25,6 @@ from revvy.scripting.runtime import ScriptManager
 from revvy.thread_wrapper import periodic
 
 from revvy.mcu.rrrc_transport import *
-from revvy.fw_version import *
 
 
 Motors = {
@@ -80,7 +79,7 @@ RobotVersion = namedtuple("RobotVersion", ['hw', 'fw', 'sw'])
 
 
 class Robot:
-    def __init__(self, interface: RevvyControl, sound_paths):
+    def __init__(self, interface: RevvyControl, sound_paths, sw_version):
         self._interface = interface
 
         self._start_time = time.time()
@@ -88,7 +87,7 @@ class Robot:
         # read versions
         hw = interface.get_hardware_version()
         fw = interface.get_firmware_version()
-        sw = FRAMEWORK_VERSION
+        sw = sw_version
 
         print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
@@ -211,12 +210,12 @@ class RevvyStatusCode(enum.IntEnum):
 class RobotManager:
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, interface: RevvyControl, revvy, sound_paths, default_config=None):
+    def __init__(self, interface: RevvyControl, revvy, sound_paths, sw_version, default_config=None):
         print("RobotManager: __init__()")
         self.needs_interrupting = True
 
         self._configuring = False
-        self._robot = Robot(interface, sound_paths)
+        self._robot = Robot(interface, sound_paths, sw_version)
         self._interface = interface
         self._ble = revvy
         self._default_configuration = default_config or RobotConfig()

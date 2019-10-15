@@ -2,6 +2,7 @@ import argparse
 import sys
 import time
 
+from revvy.functions import read_json
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.thread_wrapper import periodic
@@ -46,7 +47,8 @@ if __name__ == "__main__":
 
     with RevvyTransportI2C() as transport:
         robot_control = RevvyControl(transport.bind(0x2D))
-        robot = Robot(robot_control, None)
+        manifest = read_json('manifest.json')
+        robot = Robot(robot_control, None, manifest['version'])
 
         def update():
             global sensor_data_changed

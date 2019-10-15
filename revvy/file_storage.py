@@ -3,7 +3,7 @@ import json
 from collections import namedtuple
 from json import JSONDecodeError
 
-from revvy.functions import bytestr_hash
+from revvy.functions import bytestr_hash, read_json
 
 
 class StorageError(Exception):
@@ -94,8 +94,7 @@ class FileStorage(StorageInterface):
 
     def read_metadata(self, filename):
         try:
-            with open(self._meta_file(filename), "r") as meta_file:
-                return json.load(meta_file)
+            return read_json(self._meta_file(filename))
         except IOError:
             raise StorageElementNotFoundError
 

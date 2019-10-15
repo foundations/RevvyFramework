@@ -6,8 +6,7 @@ import os
 import shutil
 from os import path
 
-from revvy.functions import file_hash
-from revvy.fw_version import FRAMEWORK_VERSION
+from revvy.functions import file_hash, read_json
 from tools.common import find_files
 from tools.generate_manifest import gen_manifest
 
@@ -47,6 +46,7 @@ if __name__ == "__main__":
         ]
 
     gen_manifest(manifest_source, 'manifest.json')
+    manifest = read_json('manifest.json')
 
     package_sources = [
         'revvy/',
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         'tools/',
         'manifest.json'
     ]
-    package_path = 'install/framework-{}.tar.gz'.format(FRAMEWORK_VERSION.replace('/', '-'))
+    package_path = 'install/framework-{}.tar.gz'.format(manifest['version'].replace('/', '-'))
     data_path = 'install/framework.data'
     meta_file = 'install/framework.meta'
     create_package(package_sources, package_path)
