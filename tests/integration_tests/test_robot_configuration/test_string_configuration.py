@@ -13,13 +13,13 @@ class TestPortConfiguration(unittest.TestCase):
                     {
                         "name": "M1",
                         "type": 1,
-                        "direction": 0,
+                        "reversed": 0,
                         "side": 0
                     },
                     {
                         "name": "M2",
                         "type": 2,
-                        "direction": 1,
+                        "reversed": 1,
                         "side": 1
                     }
                 ],

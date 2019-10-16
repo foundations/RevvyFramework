@@ -192,36 +192,36 @@ class TestRobotConfig(unittest.TestCase):
                     {
                         "name": "M1",
                         "type": 0,
-                        "direction": 0,
+                        "reversed": 0,
                         "side": 0
                     },
                     {
                         "name": "M2",
                         "type": 2,
-                        "direction": 0,
+                        "reversed": 0,
                         "side": 0
                     },
                     {
                         "name": "M3",
                         "type": 2,
-                        "direction": 1,
+                        "reversed": 1,
                         "side": 0
                     },
                     {
                         "name": "M4",
                         "type": 1,
-                        "direction": 1
+                        "reversed": 1
                     },
                     {
                         "name": "M5",
                         "type": 2,
-                        "direction": 0,
+                        "reversed": 0,
                         "side": 1
                     },
                     {
                         "name": "M6",
                         "type": 2,
-                        "direction": 1,
+                        "reversed": 1,
                         "side": 1
                     }
                 ]
@@ -234,14 +234,14 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual("NotConfigured", config.motors[1])
 
         # drivetrain left
-        self.assertEqual("RevvyMotor", config.motors[2])      # direction cw
-        self.assertEqual("RevvyMotor_CCW", config.motors[3])  # direction ccw
+        self.assertEqual("RevvyMotor_CCW", config.motors[2])  # normal left
+        self.assertEqual("RevvyMotor", config.motors[3])      # reversed left
 
         # drivetrain right
-        self.assertEqual("RevvyMotor", config.motors[5])      # direction cw
-        self.assertEqual("RevvyMotor_CCW", config.motors[6])  # direction ccw
+        self.assertEqual("RevvyMotor", config.motors[5])      # normal right
+        self.assertEqual("RevvyMotor_CCW", config.motors[6])  # reversed right
 
-        self.assertEqual("RevvyMotor_CCW", config.motors[4])  # ccw motor, no 'side'
+        self.assertEqual("RevvyMotor", config.motors[4])  # motor, no 'side', no 'reversed'
 
         self.assertListEqual([2, 3], config.drivetrain['left'])
         self.assertListEqual([5, 6], config.drivetrain['right'])
@@ -253,7 +253,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(5, config.motors.names["M5"])
         self.assertEqual(6, config.motors.names["M6"])
 
-    def test_motor_side_is_ignored_for_normal_motors(self):
+    def test_motor_side_and_reversed_is_ignored_for_normal_motors(self):
         json = '''
         {
             "robotConfig": {
@@ -261,25 +261,25 @@ class TestRobotConfig(unittest.TestCase):
                     {
                         "name": "M1",
                         "type": 1,
-                        "direction": 0,
+                        "reversed": 0,
                         "side": 0
                     },
                     {
                         "name": "M2",
                         "type": 1,
-                        "direction": 1,
+                        "reversed": 1,
                         "side": 0
                     },
                     {
                         "name": "M3",
                         "type": 1,
-                        "direction": 0,
+                        "reversed": 0,
                         "side": 1
                     },
                     {
                         "name": "M4",
                         "type": 1,
-                        "direction": 1,
+                        "reversed": 1,
                         "side": 1
                     }
                 ]
@@ -290,9 +290,9 @@ class TestRobotConfig(unittest.TestCase):
         config = RobotConfig.from_string(json)
 
         self.assertEqual("RevvyMotor", config.motors[1])
-        self.assertEqual("RevvyMotor_CCW", config.motors[2])
+        self.assertEqual("RevvyMotor", config.motors[2])
         self.assertEqual("RevvyMotor", config.motors[3])
-        self.assertEqual("RevvyMotor_CCW", config.motors[4])
+        self.assertEqual("RevvyMotor", config.motors[4])
 
     def test_empty_or_null_motors_are_not_configured(self):
         json = '''
@@ -302,7 +302,6 @@ class TestRobotConfig(unittest.TestCase):
                     {
                         "name": "M1",
                         "type": 1,
-                        "direction": 0,
                         "side": 0
                     },
                     {},
@@ -310,7 +309,6 @@ class TestRobotConfig(unittest.TestCase):
                     {
                         "name": "M4",
                         "type": 1,
-                        "direction": 1,
                         "side": 1
                     }
                 ]
@@ -323,7 +321,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual("RevvyMotor", config.motors[1])
         self.assertEqual("NotConfigured", config.motors[2])
         self.assertEqual("NotConfigured", config.motors[3])
-        self.assertEqual("RevvyMotor_CCW", config.motors[4])
+        self.assertEqual("RevvyMotor", config.motors[4])
 
     def test_sensors_are_parsed_as_list_of_sensors(self):
         json = '''
