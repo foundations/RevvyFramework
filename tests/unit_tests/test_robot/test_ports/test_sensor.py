@@ -92,6 +92,7 @@ class TestBaseSensorPortDriver(unittest.TestCase):
         port = create_port()
 
         sensor = BaseSensorPortDriver(port)
+        port.interface.get_sensor_port_value.return_value = [1, 2, 3, 4]
         sensor.convert_sensor_value = Mock(return_value=5)
 
         self.assertFalse(sensor.has_data)
