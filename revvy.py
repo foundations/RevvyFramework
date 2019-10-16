@@ -14,13 +14,7 @@ import sys
 
 from tools.check_manifest import check_manifest
 
-default_robot_config = RobotConfig.from_string('''{
-    "robotConfig":{"motors":[{},{},{},{},{},{}],"sensors":[{},{},{},{}]},
-    "blocklyList":[
-        {"builtinScriptName":"imu_test",
-         "assignments":{"background":0}}
-    ]
-}''')
+default_robot_config = None
 
 
 class LongMessageImplementation:

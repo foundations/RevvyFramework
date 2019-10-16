@@ -3,7 +3,7 @@ import traceback
 from json import JSONDecodeError
 
 from revvy.functions import b64_decode_str, dict_get_first
-from revvy.scripting.builtin_scripts import drive_joystick, drive_2sticks, imu_test, builtin_scripts
+from revvy.scripting.builtin_scripts import builtin_scripts
 
 motor_types = [
     "NotConfigured",
