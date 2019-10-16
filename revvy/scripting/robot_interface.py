@@ -99,9 +99,6 @@ class RingLedWrapper(Wrapper):
 
 
 class MotorConstants:
-    DIR_CW = 0
-    DIR_CCW = 1
-
     DIRECTION_FWD = 0
     DIRECTION_BACK = 1
     DIRECTION_LEFT = 2
@@ -144,42 +141,50 @@ class MotorPortWrapper(Wrapper):
         set_fns = {
             MotorConstants.UNIT_DEG: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIR_CW: lambda: self._motor.set_position(amount, speed_limit=rpm2dps(limit),
-                                                                            pos_type='relative'),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-amount, speed_limit=rpm2dps(limit),
-                                                                             pos_type='relative'),
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(amount,
+                                                                                   speed_limit=rpm2dps(limit),
+                                                                                   pos_type='relative'),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-amount,
+                                                                                    speed_limit=rpm2dps(limit),
+                                                                                    pos_type='relative'),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW: lambda: self._motor.set_position(amount, power_limit=limit,
-                                                                            pos_type='relative'),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-amount, power_limit=limit,
-                                                                             pos_type='relative')
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(amount, power_limit=limit,
+                                                                                   pos_type='relative'),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-amount, power_limit=limit,
+                                                                                    pos_type='relative')
                 }
             },
 
             MotorConstants.UNIT_ROT: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIR_CW: lambda: self._motor.set_position(360 * amount, speed_limit=rpm2dps(limit),
-                                                                            pos_type='relative'),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-360 * amount, speed_limit=rpm2dps(limit),
-                                                                             pos_type='relative'),
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(360 * amount,
+                                                                                   speed_limit=rpm2dps(limit),
+                                                                                   pos_type='relative'),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-360 * amount,
+                                                                                    speed_limit=rpm2dps(limit),
+                                                                                    pos_type='relative'),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW: lambda: self._motor.set_position(360 * amount, power_limit=limit,
-                                                                            pos_type='relative'),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_position(-360 * amount, power_limit=limit,
-                                                                             pos_type='relative')
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(360 * amount,
+                                                                                   power_limit=limit,
+                                                                                   pos_type='relative'),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-360 * amount,
+                                                                                    power_limit=limit,
+                                                                                    pos_type='relative')
                 }
             },
 
             MotorConstants.UNIT_SEC: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIR_CW: lambda: self._motor.set_speed(rpm2dps(limit)),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-limit)),
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rpm2dps(limit)),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(rpm2dps(-limit)),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIR_CW: lambda: self._motor.set_speed(rpm2dps(self.max_rpm), power_limit=limit),
-                    MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-self.max_rpm), power_limit=limit),
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rpm2dps(self.max_rpm),
+                                                                                power_limit=limit),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(rpm2dps(-self.max_rpm),
+                                                                                 power_limit=limit),
                 }
             }
         }
@@ -206,12 +211,14 @@ class MotorPortWrapper(Wrapper):
         # start moving depending on limits
         set_speed_fns = {
             MotorConstants.UNIT_SPEED_RPM: {
-                MotorConstants.DIR_CW: lambda: self._motor.set_speed(rpm2dps(rotation)),
-                MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-rotation))
+                MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rpm2dps(rotation)),
+                MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(rpm2dps(-rotation))
             },
             MotorConstants.UNIT_SPEED_PWR: {
-                MotorConstants.DIR_CW: lambda: self._motor.set_speed(rpm2dps(self.max_rpm), power_limit=rotation),
-                MotorConstants.DIR_CCW: lambda: self._motor.set_speed(rpm2dps(-self.max_rpm), power_limit=rotation)
+                MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rpm2dps(self.max_rpm),
+                                                                            power_limit=rotation),
+                MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(rpm2dps(-self.max_rpm),
+                                                                             power_limit=rotation)
             }
         }
 

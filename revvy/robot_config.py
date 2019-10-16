@@ -3,14 +3,21 @@ import traceback
 from json import JSONDecodeError
 
 from revvy.functions import b64_decode_str, dict_get_first
-from revvy.scripting.builtin_scripts import drive_joystick, drive_2sticks, imu_test, builtin_scripts
+from revvy.scripting.builtin_scripts import builtin_scripts
 
 motor_types = [
     "NotConfigured",
+    "RevvyMotor",
     # motor
     [
-        "RevvyMotor",
-        "RevvyMotor_CCW"
+        [  # left
+            "RevvyMotor_CCW",
+            "RevvyMotor"
+        ],
+        [  # right
+            "RevvyMotor",
+            "RevvyMotor_CCW"
+        ]
     ]
 ]
 
@@ -99,12 +106,12 @@ class RobotConfig:
 
                     elif motor['type'] == 1:
                         # motor
-                        motor_type = motor_types[1][motor['direction']]
+                        motor_type = motor_types[1]
                         config.motors.names[motor['name']] = i
 
                     elif motor['type'] == 2:
                         # drivetrain
-                        motor_type = motor_types[1][motor['direction']]
+                        motor_type = motor_types[2][motor['side']][motor['reversed']]
                         config.motors.names[motor['name']] = i
                         config.drivetrain[motor_sides[motor['side']]].append(i)
 
