@@ -57,6 +57,10 @@ class BaseSensorPortDriver:
         return self._value is not None
 
     def update_status(self, data):
+        if len(data) == 0:
+            self._value = None
+            return
+
         old_raw = self._raw_value
         if old_raw != data:
             converted = self.convert_sensor_value(data)
