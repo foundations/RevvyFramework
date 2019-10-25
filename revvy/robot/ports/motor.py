@@ -70,7 +70,6 @@ class DcMotorController:
         self._port = port
 
         self._configure = lambda cfg: port.interface.set_motor_port_config(port.id, cfg)
-        self._control = lambda ctrl, value: port.interface.set_motor_port_control_value(port.id, [ctrl] + value)
         self._read = lambda: port.interface.get_motor_position(port.id)
 
         self._pos = 0
@@ -91,6 +90,10 @@ class DcMotorController:
 
         self._configure(config)
         self._status_changed_callback = lambda p: None
+
+    def _control(self, ctrl, value, pos_ctrl=False):
+        self._pos_reached = False if pos_ctrl else None
+        self._port.interface.set_motor_port_control_value(self._port.id, [ctrl] + value)
 
     def on_status_changed(self, cb):
         if not callable(cb):
@@ -145,7 +148,7 @@ class DcMotorController:
             control += list(struct.pack("<bf", 0, power_limit))
 
         pos_request_types = {'absolute': 2, 'relative': 3}
-        self._control(pos_request_types[pos_type], control)
+        self._control(pos_request_types[pos_type], control, True)
 
     def set_power(self, power):
         print('{}::set_power'.format(self._name))
