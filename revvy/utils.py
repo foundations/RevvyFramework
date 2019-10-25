@@ -35,10 +35,28 @@ Motors = {
             'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
             'position_controller': [10, 0, 0, -900, 900],
             'position_limits':     [0, 0],
-            'encoder_resolution':  1168
+            'encoder_resolution':  1752
         }
     },
     'RevvyMotor_CCW': {
+        'driver': 'DcMotor',
+        'config': {
+            'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
+            'position_controller': [10, 0, 0, -900, 900],
+            'position_limits':     [0, 0],
+            'encoder_resolution': -1752
+        }
+    },
+    'RevvyMotor_Old':    {
+        'driver': 'DcMotor',
+        'config': {
+            'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
+            'position_controller': [10, 0, 0, -900, 900],
+            'position_limits':     [0, 0],
+            'encoder_resolution':  1168
+        }
+    },
+    'RevvyMotor_Old_CCW': {
         'driver': 'DcMotor',
         'config': {
             'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
