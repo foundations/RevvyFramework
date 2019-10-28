@@ -5,6 +5,7 @@ import traceback
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.version import Version
+from tools.utils import parse_cfsr
 
 
 class ErrorType(enum.IntEnum):
@@ -32,36 +33,8 @@ exception_names = [
     'Stack overflow',
     'Assertion failure',
     'Test error',
-    'IMU error'
-]
-
-cfsr_reasons = [
-    "The processor has attempted to execute an undefined instruction",
-    "The processor attempted a load or store at a location that does not permit the operation",
-    None,
-    "Unstack for an exception return has caused one or more access violations",
-    "Stacking for an exception entry has caused one or more access violations",
-    "A MemManage fault occurred during floating-point lazy state preservation",
-    None,
-    None,
-    "Instruction bus error",
-    "Data bus error (PC value points to the instruction that caused the fault)",
-    "Data bus error (PC value is not directly related to the instruction that caused the error)",
-    "Unstack for an exception return has caused one or more BusFaults",
-    "Stacking for an exception entry has caused one or more BusFaults",
-    "A bus fault occurred during floating-point lazy state preservation",
-    None,
-    None,
-    "The processor has attempted to execute an undefined instruction",
-    "The processor has attempted to execute an instruction that makes illegal use of the EPSR",
-    "The processor has attempted an illegal load to the PC",
-    "The processor has attempted to access a coprocessor",
-    None,
-    None,
-    None,
-    None,
-    "The processor has made an unaligned memory access",
-    "The processor has executed an SDIV or UDIV instruction with a divisor of 0",
+    'IMU error',
+    'I2C error'
 ]
 
 
@@ -84,11 +57,12 @@ def format_error(error, current_fw_version: Version, only_current=False):
             details_str = '\n\tPC: 0x{0:X}\tPSR: 0x{1:X}\tLR: 0x{2:X}'.format(pc, psr, lr)
             details_str += '\n\tCFSR: 0x{0:X}\tDFSR: 0x{1:X}\tHFSR: 0x{2:X}'.format(cfsr, dfsr, hfsr)
 
-            if cfsr != 0:
+            cfsr_reasons = parse_cfsr(cfsr)
+            if cfsr_reasons:
                 details_str += "\n\tReasons:"
-                for bit in range(0, len(cfsr_reasons)):
-                    if (cfsr & 1 << bit) != 0 and cfsr_reasons[bit] is not None:
-                        details_str += "\n\t\t" + cfsr_reasons[bit]
+                for reason in cfsr_reasons:
+                    if reason:
+                        details_str += "\n\t\t" + reason
 
         elif error_id == ErrorType.StackOverflow:
             task = bytes(error_data).decode("utf-8")
