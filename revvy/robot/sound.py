@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
+
 class Sound:
     def __init__(self, setup, play, sounds=None):
         if sounds is None:

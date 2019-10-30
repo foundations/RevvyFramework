@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
 import unittest
 from mock.mock import Mock, patch, mock_open
 

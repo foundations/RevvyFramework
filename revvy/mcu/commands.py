@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
 import struct
 from abc import ABC
 from collections import namedtuple

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
 import time
 from collections import namedtuple
 from threading import Lock, Event

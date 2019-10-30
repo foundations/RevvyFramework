@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
 body='{
 "message": "Build triggered by tag $TRAVIS_TAG on RevvyFramework",
 "request": {

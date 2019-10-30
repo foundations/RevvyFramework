@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
 from smbus2 import i2c_msg, SMBus
 from revvy.mcu.rrrc_transport import RevvyTransportInterface, RevvyTransport, TransportException
 import traceback

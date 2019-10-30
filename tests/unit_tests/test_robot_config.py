@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
 import unittest
 
 from revvy.functions import b64_encode_str

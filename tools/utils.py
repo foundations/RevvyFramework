@@ -1,4 +1,5 @@
-import argparse
+# SPDX-License-Identifier: GPL-3.0-only
+
 
 cfsr_reasons = [
     "The processor has attempted to execute an undefined instruction",

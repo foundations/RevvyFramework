@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
 from revvy.scripting.robot_interface import RobotInterface
 from revvy.thread_wrapper import *
 import time
